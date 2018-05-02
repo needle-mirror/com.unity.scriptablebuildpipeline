@@ -4,7 +4,7 @@ using UnityEditor.Sprites;
 
 namespace UnityEditor.Build.Pipeline.Tasks
 {
-    public class RebuildAtlasCache : IBuildTask
+    public class RebuildSpriteAtlasCache : IBuildTask
     {
         const int k_Version = 1;
         public int Version { get { return k_Version; } }
