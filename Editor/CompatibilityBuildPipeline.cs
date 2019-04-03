@@ -1,6 +1,8 @@
-﻿using UnityEditor.Build.Content;
+﻿using System.IO;
+using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEngine;
+using UnityEngine.Build.Pipeline;
 
 #if UNITY_2018_3_OR_NEWER
 using BuildCompression = UnityEngine.BuildCompression;
@@ -14,7 +16,7 @@ namespace UnityEditor.Build.Pipeline
     /// Static class implementing API wrappers to match BuildPipeline APIs but use the Scriptable Build Pipeline.
     /// <seealso cref="BuildPipeline.BuildAssetBundles"/>
     /// </summary>
-    public static class LegacyBuildPipeline
+    public static class CompatibilityBuildPipeline
     {
         /// <summary>
         /// Wrapper API to match BuildPipeline API but use the Scriptable Build Pipeline to build Asset Bundles.
@@ -29,7 +31,7 @@ namespace UnityEditor.Build.Pipeline
         /// <param name="assetBundleOptions">AssetBundle building options.</param>
         /// <param name="targetPlatform">Chosen target build platform.</param>
         /// <returns>null - Generating and returning an AssetBundleManifest is not yet supported by the Scriptable Build Pipeline. Est: 2018.3 support.</returns>
-        public static LegacyAssetBundleManifest BuildAssetBundles(string outputPath, BuildAssetBundleOptions assetBundleOptions, BuildTarget targetPlatform)
+        public static CompatibilityAssetBundleManifest BuildAssetBundles(string outputPath, BuildAssetBundleOptions assetBundleOptions, BuildTarget targetPlatform)
         {
             var buildInput = ContentBuildInterface.GenerateAssetBundleBuilds();
             return BuildAssetBundles_Internal(outputPath, new BundleBuildContent(buildInput), assetBundleOptions, targetPlatform);
@@ -49,12 +51,12 @@ namespace UnityEditor.Build.Pipeline
         /// <param name="assetBundleOptions">AssetBundle building options.</param>
         /// <param name="targetPlatform">Chosen target build platform.</param>
         /// <returns>null - Generating and returning an AssetBundleManifest is not yet supported by the Scriptable Build Pipeline. Est: 2018.3 release for support.</returns>
-        public static LegacyAssetBundleManifest BuildAssetBundles(string outputPath, AssetBundleBuild[] builds, BuildAssetBundleOptions assetBundleOptions, BuildTarget targetPlatform)
+        public static CompatibilityAssetBundleManifest BuildAssetBundles(string outputPath, AssetBundleBuild[] builds, BuildAssetBundleOptions assetBundleOptions, BuildTarget targetPlatform)
         {
             return BuildAssetBundles_Internal(outputPath, new BundleBuildContent(builds), assetBundleOptions, targetPlatform);
         }
 
-        internal static LegacyAssetBundleManifest BuildAssetBundles_Internal(string outputPath, IBundleBuildContent content, BuildAssetBundleOptions options, BuildTarget targetPlatform)
+        internal static CompatibilityAssetBundleManifest BuildAssetBundles_Internal(string outputPath, IBundleBuildContent content, BuildAssetBundleOptions options, BuildTarget targetPlatform)
         {
             var group = BuildPipeline.GetBuildTargetGroup(targetPlatform);
             var parameters = new BundleBuildParameters(targetPlatform, group, outputPath);
@@ -85,7 +87,10 @@ namespace UnityEditor.Build.Pipeline
             if (exitCode < ReturnCode.Success)
                 return null;
 
-            return new LegacyAssetBundleManifest(results);
+            var manifest = ScriptableObject.CreateInstance<CompatibilityAssetBundleManifest>();
+            manifest.SetResults(results.BundleInfos);
+            File.WriteAllText(parameters.OutputFolder + "/" + Path.GetFileName(parameters.OutputFolder) + ".manifest", manifest.ToString());
+            return manifest;
         }
     }
 }

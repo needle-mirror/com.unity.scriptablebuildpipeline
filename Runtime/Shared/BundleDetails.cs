@@ -1,7 +1,6 @@
 ﻿using System;
-using UnityEngine;
 
-namespace UnityEditor.Build.Pipeline
+namespace UnityEngine.Build.Pipeline
 {
     /// <summary>
     /// Struct containing detailed information about a built asset bundle
@@ -9,27 +8,55 @@ namespace UnityEditor.Build.Pipeline
     [Serializable]
     public struct BundleDetails : IEquatable<BundleDetails>
     {
+        [SerializeField]
+        string m_FileName;
+
+        [SerializeField]
+        uint m_Crc;
+
+        [SerializeField]
+        Hash128 m_Hash;
+
+        [SerializeField]
+        string[] m_Dependencies;
+
         /// <summary>
         /// Specific file name on disk of the asset bundle.
         /// </summary>
-        public string FileName { get; set; }
+        public string FileName
+        {
+            get { return m_FileName; }
+            set { m_FileName = value; }
+        }
 
         /// <summary>
         /// Cyclic redundancy check of the content contained inside of the asset bundle.
         /// This value will not change between identical asset bundles with different compression options.
         /// </summary>
-        public uint Crc { get; set; }
+        public uint Crc
+        {
+            get { return m_Crc; }
+            set { m_Crc = value; }
+        }
 
         /// <summary>
         /// The hash version of the content contained inside of the asset bundle.
         /// This value will not change between identical asset bundles with different compression options.
         /// </summary>
-        public Hash128 Hash { get; set; }
+        public Hash128 Hash
+        {
+            get { return m_Hash; }
+            set { m_Hash = value; }
+        }
 
         /// <summary>
         /// The array of all dependent asset bundles for this asset bundle.
         /// </summary>
-        public string[] Dependencies { get; set; }
+        public string[] Dependencies
+        {
+            get { return m_Dependencies; }
+            set { m_Dependencies = value; }
+        }
 
         public override bool Equals(object obj)
         {
