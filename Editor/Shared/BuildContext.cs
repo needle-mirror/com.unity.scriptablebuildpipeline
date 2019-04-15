@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using UnityEditor.Build.Pipeline.Interfaces;
+using UnityEngine;
 
 namespace UnityEditor.Build.Pipeline
 {
@@ -107,6 +108,9 @@ namespace UnityEditor.Build.Pipeline
         {
             if (type == null)
                 throw new ArgumentNullException("type");
+
+            if (!m_ContextObjects.ContainsKey(type))
+                Debug.LogError("Missing type in GetContextObject: " + type);
 
             return m_ContextObjects[type];
         }

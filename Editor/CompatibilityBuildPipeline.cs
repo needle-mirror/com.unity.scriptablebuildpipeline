@@ -62,6 +62,9 @@ namespace UnityEditor.Build.Pipeline
             var parameters = new BundleBuildParameters(targetPlatform, group, outputPath);
             if ((options & BuildAssetBundleOptions.ForceRebuildAssetBundle) != 0)
                 parameters.UseCache = false;
+			
+			if ((options & BuildAssetBundleOptions.AppendHashToAssetBundleName) != 0)
+				parameters.AppendHash = true;
 
 #if UNITY_2018_3_OR_NEWER
             if ((options & BuildAssetBundleOptions.ChunkBasedCompression) != 0)

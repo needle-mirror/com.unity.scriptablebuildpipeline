@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Utilities;
 using UnityEditor.Build.Utilities;
@@ -114,7 +115,17 @@ namespace UnityEditor.Build.Pipeline
                 if (Directory.Exists(parameters.TempOutputFolder))
                     Directory.Delete(parameters.TempOutputFolder, true);
             }
+
+
+            int maximumSize = EditorPrefs.GetInt("BuildCache.maximumSize", 200);
+            long maximumCacheSize = maximumSize * 1073741824L; // gigabytes to bytes
+            ThreadPool.QueueUserWorkItem(PruneCache, maximumCacheSize);
             return exitCode;
+        }
+
+        static void PruneCache(object state)
+        {
+            BuildCache.PruneCache_Background((long)state);
         }
     }
 }
