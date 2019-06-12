@@ -22,7 +22,18 @@ namespace UnityEditor.Build.Pipeline.WriteTypes
         /// <inheritdoc />
         public WriteResult Write(string outputFolder, BuildSettings settings, BuildUsageTagGlobal globalUsage)
         {
+#if UNITY_2019_3_OR_NEWER
+            return ContentBuildInterface.WriteSerializedFile(outputFolder, new WriteParameters
+            {
+                writeCommand = Command,
+                settings = settings,
+                globalUsage = globalUsage,
+                usageSet = UsageSet,
+                referenceMap = ReferenceMap
+            });
+#else
             return ContentBuildInterface.WriteSerializedFile(outputFolder, Command, settings, globalUsage, UsageSet, ReferenceMap);
+#endif
         }
 
         /// <inheritdoc />

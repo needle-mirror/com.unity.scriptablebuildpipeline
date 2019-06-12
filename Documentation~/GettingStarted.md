@@ -2,7 +2,7 @@
 
 ## Installing the Scriptable Build Pipeline (SBP) package
 
-Requires Unity 2018.2 or later.
+Requires Unity 2018.3 or later.
 
 To install this package, follow the instructions in the [Package Manager documentation](https://docs.unity3d.com/Packages/com.unity.package-manager-ui@latest).
 

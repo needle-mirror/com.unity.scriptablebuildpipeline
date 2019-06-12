@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading;
-using Unity.CacheServer;
+using UnityEditor.Build.CacheServer;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEngine;
 using UnityEngine.Assertions;

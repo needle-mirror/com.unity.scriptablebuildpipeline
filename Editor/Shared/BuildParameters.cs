@@ -4,14 +4,14 @@ using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Player;
 using UnityEngine;
 
-#if UNITY_2018_3_OR_NEWER
-using BuildCompression = UnityEngine.BuildCompression;
-#else
-using BuildCompression = UnityEditor.Build.Content.BuildCompression;
-#endif
-
 namespace UnityEditor.Build.Pipeline
 {
+#if UNITY_2018_3_OR_NEWER
+    using BuildCompression = UnityEngine.BuildCompression;
+#else
+    using BuildCompression = UnityEditor.Build.Content.BuildCompression;
+#endif
+    
     /// <summary>
     /// Basic implementation of IBuildParameters. Stores the set of parameters passed into the Scriptable Build Pipeline.
     /// <seealso cref="IBuildParameters"/>

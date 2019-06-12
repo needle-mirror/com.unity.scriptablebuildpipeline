@@ -4,14 +4,14 @@ using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEngine;
 using UnityEngine.Build.Pipeline;
 
-#if UNITY_2018_3_OR_NEWER
-using BuildCompression = UnityEngine.BuildCompression;
-#else
-using BuildCompression = UnityEditor.Build.Content.BuildCompression;
-#endif
-
 namespace UnityEditor.Build.Pipeline
 {
+#if UNITY_2018_3_OR_NEWER
+    using BuildCompression = UnityEngine.BuildCompression;
+#else
+    using BuildCompression = UnityEditor.Build.Content.BuildCompression;
+#endif
+    
     /// <summary>
     /// Static class implementing API wrappers to match BuildPipeline APIs but use the Scriptable Build Pipeline.
     /// <seealso cref="BuildPipeline.BuildAssetBundles"/>

@@ -95,7 +95,9 @@ namespace UnityEditor.Build.Pipeline
                     buildContext.SetContextObject(result);
                     buildContext.SetContextObject(progressTracker);
                     buildContext.SetContextObject(buildCache);
-                    buildContext.SetContextObject(new Unity5PackedIdentifiers());
+                    // If IDeterministicIdentifiers was passed in with contextObjects, don't add the default
+                    if (!buildContext.ContainsContextObject(typeof(IDeterministicIdentifiers)))
+                        buildContext.SetContextObject(new Unity5PackedIdentifiers());
                     buildContext.SetContextObject(new BuildDependencyData());
                     buildContext.SetContextObject(new BundleWriteData());
                     buildContext.SetContextObject(BuildCallbacks);
@@ -110,7 +112,11 @@ namespace UnityEditor.Build.Pipeline
 
                 exitCode = BuildTasksRunner.Validate(taskList, buildContext);
                 if (exitCode >= ReturnCode.Success)
+#if SBP_PROFILER_ENABLE
+                    exitCode = BuildTasksRunner.RunProfiled(taskList, buildContext);
+#else
                     exitCode = BuildTasksRunner.Run(taskList, buildContext);
+#endif
 
                 if (Directory.Exists(parameters.TempOutputFolder))
                     Directory.Delete(parameters.TempOutputFolder, true);

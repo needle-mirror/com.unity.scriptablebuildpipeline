@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Threading;
-using Unity.CacheServer;
+using UnityEditor.Build.CacheServer;
 using UnityEngine;
 
 namespace UnityEditor.Build.Pipeline.Utilities

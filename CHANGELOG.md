@@ -4,11 +4,17 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.5.0-preview] - 2019-06-13
+- Updated for API compatibility with Unity 2019.3
+- Moved CacheServerClient package into SBP.  It turns out this package was not as globally useful as we thought, and we are pulling it in to ease support and discoverability.
+
 ## [1.4.1-preview] - 2019-04-16
 - Fixed "Path is empty" exception in build cache
 - Fixed an edge case where a valid cache entry could be returned for an invalid request
 - Added BuildCache.PruneCache API to trim the cache down to a limit, called in the background after a build
 - Moved BuildCache menu options and preferences to the "Edit/Prefferences..." window
+- Added SBP_PROFILER_ENABLE define to enable per task profiling output to console
+- Fixed an issue preventing PrefabPackedIdentifiers from being passed into ContentPipeline.BuildAssetBundles
 
 ## [1.3.5-preview] - 2019-02-28
 - Minimum Unity version is now 2018.3 to address a build-time bug with progressive lightmapper.

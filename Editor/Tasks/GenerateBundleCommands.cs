@@ -145,7 +145,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
             var sceneInfo = m_DependencyData.SceneInfo[asset];
             sbOp.Scene = sceneInfo.scene;
+#if !UNITY_2019_3_OR_NEWER
             sbOp.ProcessedScene = sceneInfo.processedScene;
+#endif
 
             {
                 sbOp.PreloadInfo = new PreloadInfo { preloadObjects = sceneInfo.referencedObjects.Where(x => !fileObjects.Contains(x)).ToList() };
@@ -185,7 +187,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
             var sceneInfo = m_DependencyData.SceneInfo[asset];
             sdOp.Scene = sceneInfo.scene;
+#if !UNITY_2019_3_OR_NEWER
             sdOp.ProcessedScene = sceneInfo.processedScene;
+#endif
 
             {
                 sdOp.PreloadInfo = new PreloadInfo();

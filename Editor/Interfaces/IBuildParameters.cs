@@ -2,14 +2,14 @@
 using UnityEditor.Build.Player;
 using UnityEngine;
 
-#if UNITY_2018_3_OR_NEWER
-using BuildCompression = UnityEngine.BuildCompression;
-#else
-using BuildCompression = UnityEditor.Build.Content.BuildCompression;
-#endif
-
 namespace UnityEditor.Build.Pipeline.Interfaces
 {
+#if UNITY_2018_3_OR_NEWER
+    using BuildCompression = UnityEngine.BuildCompression;
+#else
+    using BuildCompression = UnityEditor.Build.Content.BuildCompression;
+#endif
+
     /// <summary>
     /// Base interface for the parameters container
     /// </summary>

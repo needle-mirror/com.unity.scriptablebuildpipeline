@@ -87,7 +87,12 @@ namespace UnityEditor.Build.Pipeline.Tasks
                         outputFolder = m_Cache.GetCachedArtifactsDirectory(m_Cache.GetCacheEntry(scene, Version));
                     Directory.CreateDirectory(outputFolder);
 
+
+#if UNITY_2019_3_OR_NEWER
+                    sceneInfo = ContentBuildInterface.CalculatePlayerDependenciesForScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache);
+#else
                     sceneInfo = ContentBuildInterface.PrepareScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache, outputFolder);
+#endif
 
                     if (uncachedInfo != null)
                         uncachedInfo.Add(GetCachedInfo(scene, sceneInfo.referencedObjects, sceneInfo, usageTags));

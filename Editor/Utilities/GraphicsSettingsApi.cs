@@ -1,14 +1,14 @@
 ﻿using UnityEditor.Build.Content;
 
-#if !UNITY_2019_1_OR_NEWER
-using System.Reflection;
-using UnityEngine.Rendering;
-
-using Object = UnityEngine.Object;
-#endif
-
 namespace UnityEditor.Build.Pipeline.Utilities
 {
+#if !UNITY_2019_1_OR_NEWER
+    using System.Reflection;
+    using UnityEngine.Rendering;
+
+    using Object = UnityEngine.Object;
+#endif
+    
     static class GraphicsSettingsApi
     {
 #if UNITY_2019_1_OR_NEWER

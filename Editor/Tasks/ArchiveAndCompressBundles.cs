@@ -8,14 +8,14 @@ using UnityEditor.Build.Pipeline.Utilities;
 using UnityEngine;
 using UnityEngine.Build.Pipeline;
 
-#if UNITY_2018_3_OR_NEWER
-using BuildCompression = UnityEngine.BuildCompression;
-#else
-using BuildCompression = UnityEditor.Build.Content.BuildCompression;
-#endif
-
 namespace UnityEditor.Build.Pipeline.Tasks
 {
+#if UNITY_2018_3_OR_NEWER
+    using BuildCompression = UnityEngine.BuildCompression;
+#else
+    using BuildCompression = UnityEditor.Build.Content.BuildCompression;
+#endif
+    
     public class ArchiveAndCompressBundles : IBuildTask
     {
         public int Version { get { return 1; } }
