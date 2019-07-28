@@ -81,8 +81,9 @@ namespace UnityEngine.Build.Pipeline
                     int dependencyCount = 0;
                     if (details.Value.Dependencies != null && details.Value.Dependencies.Length > 0)
                     {
+                        builder.Append("      Dependencies: {}\n");
                         foreach (var dependency in details.Value.Dependencies)
-                            builder.AppendFormat("        Dependency_{0}: {1}", dependencyCount++, dependency);
+                            builder.AppendFormat("        Dependency_{0}: {1}\n", dependencyCount++, dependency);
                     }
                     else
                         builder.Append("      Dependencies: {}\n");
