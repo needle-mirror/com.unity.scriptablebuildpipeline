@@ -9,6 +9,7 @@ using UnityEditor.Build.Pipeline.Injector;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Tasks;
 using UnityEditor.Build.Pipeline.Utilities;
+using UnityEditor.Build.Pipeline.WriteTypes;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Build.Pipeline;
@@ -44,18 +45,15 @@ namespace UnityEditor.Build.Pipeline.Tests
         [OneTimeTearDown]
         public void Cleanup()
         {
-
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene);
             AssetDatabase.DeleteAsset(k_ScenePath);
+            AssetDatabase.DeleteAsset(k_CubePath);
+            AssetDatabase.DeleteAsset(k_TestAssetsPath);
 
             if (Directory.Exists(k_FolderPath))
                 Directory.Delete(k_FolderPath, true);
             if (Directory.Exists(k_TmpPath))
                 Directory.Delete(k_TmpPath, true);
-            if (Directory.Exists(k_TestAssetsPath))
-                Directory.Delete(k_TestAssetsPath, true);
-            if (File.Exists(k_TestAssetsPath + ".meta"))
-                File.Delete(k_TestAssetsPath + ".meta");
         }
 
         static ReturnCode RunTask<T>(params IContextObject[] args) where T : IBuildTask
@@ -303,6 +301,124 @@ namespace UnityEditor.Build.Pipeline.Tests
             ReturnCode exitCode = RunTask<AppendBundleHash>(buildParameters, results);
             Assert.AreEqual(ReturnCode.Success, exitCode);
             FileAssert.Exists(fileName + "_" + fileHash);
+        }
+
+        [Test]
+        public void HashChanges_WhenDependencyListHasModifiedEntries()
+        {
+            Dictionary<string, ulong> offsets = new Dictionary<string, ulong>();
+            ResourceFile[] resourceFiles = new ResourceFile[0];
+
+            string[] dependencies = new string[]
+            {
+                "dependency1",
+                "dependency2"
+            };
+
+            Hash128 firstHash = ArchiveAndCompressBundles.CalculateHashVersion(offsets, resourceFiles, dependencies);
+
+            dependencies[1] = "newDependency";
+
+            Hash128 secondHash = ArchiveAndCompressBundles.CalculateHashVersion(offsets, resourceFiles, dependencies);
+
+            Assert.AreNotEqual(firstHash, secondHash);
+        }
+
+        [Test]
+        public void HashRemainsTheSame_AfterRevertingDependencyListChange()
+        {
+            Dictionary<string, ulong> offsets = new Dictionary<string, ulong>();
+            ResourceFile[] resourceFiles = new ResourceFile[0];
+
+            string[] dependencies = new string[]
+            {
+                "dependency1",
+                "dependency2"
+            };
+
+            Hash128 firstHash = ArchiveAndCompressBundles.CalculateHashVersion(offsets, resourceFiles, dependencies);
+
+            dependencies[1] = "newDependency";
+
+            Hash128 secondHash = ArchiveAndCompressBundles.CalculateHashVersion(offsets, resourceFiles, dependencies);
+
+            dependencies[1] = "dependency2";
+
+            Hash128 thirdHash = ArchiveAndCompressBundles.CalculateHashVersion(offsets, resourceFiles, dependencies);
+
+            Assert.AreNotEqual(secondHash, thirdHash);
+            Assert.AreEqual(firstHash, thirdHash);
+        }
+
+        [UnityTest]
+        public IEnumerator SceneDataWriteOperation_HashChanges_WhenPrefabDepenencyChanges()
+        {
+            Scene s = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene);
+            yield return null;
+
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(k_CubePath);
+            prefab.transform.position = new Vector3(0, 0, 0);
+            EditorUtility.SetDirty(prefab);
+            AssetDatabase.SaveAssets();
+            PrefabUtility.InstantiatePrefab(prefab);
+
+            EditorSceneManager.SaveScene(s, k_ScenePath);
+
+            var op = new SceneDataWriteOperation
+            {
+                Command = new WriteCommand(),
+                PreloadInfo = new PreloadInfo(),
+#if !UNITY_2019_3_OR_NEWER
+                ProcessedScene = k_ScenePath,
+#endif
+                ReferenceMap = new BuildReferenceMap(),
+                UsageSet = new BuildUsageTagSet(),
+                Scene = k_ScenePath
+            };
+            var cacheVersion1 = op.GetHash128();
+
+            prefab.transform.position = new Vector3(1, 1, 1);
+            EditorUtility.SetDirty(prefab);
+            AssetDatabase.SaveAssets();
+            var cacheVersion2 = op.GetHash128();
+
+            Assert.AreNotEqual(cacheVersion1, cacheVersion2);
+        }
+
+        [UnityTest]
+        public IEnumerator SceneBundleWriteOperation_HashChanges_WhenPrefabDepenencyChanges()
+        {
+            Scene s = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene);
+            yield return null;
+
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(k_CubePath);
+            prefab.transform.position = new Vector3(0, 0, 0);
+            EditorUtility.SetDirty(prefab);
+            AssetDatabase.SaveAssets();
+            PrefabUtility.InstantiatePrefab(prefab);
+
+            EditorSceneManager.SaveScene(s, k_ScenePath);
+
+            var op = new SceneBundleWriteOperation
+            {
+                Command = new WriteCommand(),
+                PreloadInfo = new PreloadInfo(),
+#if !UNITY_2019_3_OR_NEWER
+                ProcessedScene = k_ScenePath,
+#endif
+                ReferenceMap = new BuildReferenceMap(),
+                UsageSet = new BuildUsageTagSet(),
+                Info = new SceneBundleInfo(),
+                Scene = k_ScenePath
+            };
+            var cacheVersion1 = op.GetHash128();
+
+            prefab.transform.position = new Vector3(1, 1, 1);
+            EditorUtility.SetDirty(prefab);
+            AssetDatabase.SaveAssets();
+            var cacheVersion2 = op.GetHash128();
+
+            Assert.AreNotEqual(cacheVersion1, cacheVersion2);
         }
     }
 }

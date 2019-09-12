@@ -16,7 +16,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             var blacklist = new[]
             {
                 typeof(BuildCallbacks), typeof(Unity5PackedIdentifiers), typeof(PrefabPackedIdentifiers), typeof(LinearPackedIdentifiers), typeof(BuildCache),
-                typeof(ProgressTracker), typeof(ProgressLoggingTracker)
+                typeof(ProgressTracker), typeof(ProgressLoggingTracker), typeof(BuildInterfacesWrapper)
             };
 
             var assembly = AppDomain.CurrentDomain.GetAssemblies().First(x => x.GetName().Name == "Unity.ScriptableBuildPipeline.Editor");

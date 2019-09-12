@@ -75,7 +75,7 @@ namespace UnityEditor.Build.Pipeline
             ReturnCode exitCode;
             result = new BundleBuildResults();
 
-            using (new BuildInterfacesWrapper())
+            using (var interfacesWrapper = new BuildInterfacesWrapper())
 #if !CI_TESTRUNNER_PROJECT
             using (new SceneStateCleanup())
             using (var progressTracker = new ProgressTracker())
@@ -93,6 +93,7 @@ namespace UnityEditor.Build.Pipeline
                     buildContext.SetContextObject(parameters);
                     buildContext.SetContextObject(content);
                     buildContext.SetContextObject(result);
+                    buildContext.SetContextObject(interfacesWrapper);
                     buildContext.SetContextObject(progressTracker);
                     buildContext.SetContextObject(buildCache);
                     // If IDeterministicIdentifiers was passed in with contextObjects, don't add the default

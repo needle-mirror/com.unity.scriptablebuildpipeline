@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Utilities;
 
@@ -18,6 +19,8 @@ namespace UnityEditor.Build.Pipeline
         /// <inheritdoc />
         public List<GUID> Scenes { get; private set; }
 
+        public List<CustomContent> CustomAssets { get; private set; }
+
         internal BuildContent() { }
 
         /// <summary>
@@ -31,6 +34,7 @@ namespace UnityEditor.Build.Pipeline
 
             Assets = new List<GUID>();
             Scenes = new List<GUID>();
+            CustomAssets = new List<CustomContent>();
 
             foreach (var asset in assets)
             {
@@ -58,11 +62,17 @@ namespace UnityEditor.Build.Pipeline
         /// <inheritdoc />
         public List<GUID> Scenes { get; private set; }
 
+        public List<CustomContent> CustomAssets { get; private set; }
+
         /// <inheritdoc />
         public Dictionary<GUID, string> Addresses { get; private set; }
 
         /// <inheritdoc />
         public Dictionary<string, List<GUID>> BundleLayout { get; private set; }
+
+        public Dictionary<string, List<ResourceFile>> AddionalFiles { get; private set; }
+
+        public Dictionary<GUID, string> FakeAssets { get; private set; }
 
         internal BundleBuildContent() { }
 
@@ -77,8 +87,11 @@ namespace UnityEditor.Build.Pipeline
 
             Assets = new List<GUID>();
             Scenes = new List<GUID>();
+            CustomAssets = new List<CustomContent>();
+            FakeAssets = new Dictionary<GUID, string>();
             Addresses = new Dictionary<GUID, string>();
             BundleLayout = new Dictionary<string, List<GUID>>();
+            AddionalFiles = new Dictionary<string, List<ResourceFile>>();
 
             foreach (var bundleBuild in bundleBuilds)
             {

@@ -97,7 +97,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
                     var boxedInfo = (object)sceneInfo;
                     typeof(SceneDependencyInfo).GetField("m_Scene", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(boxedInfo, scenePath);
+#if !UNITY_2019_3_OR_NEWER
                     typeof(SceneDependencyInfo).GetField("m_ProcessedScene", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(boxedInfo, scenePath);
+#endif
                     typeof(SceneDependencyInfo).GetField("m_ReferencedObjects", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(boxedInfo, references.ToArray());
                     sceneInfo = (SceneDependencyInfo)boxedInfo;
 

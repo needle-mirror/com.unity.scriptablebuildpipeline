@@ -33,11 +33,16 @@ namespace UnityEditor.Build.Pipeline.Tasks
         IDeterministicIdentifiers m_PackingMethod;
 #pragma warning restore 649
 
+        bool ValidAssetBundle(List<GUID> assets)
+        {
+            return assets.All(x => ValidationMethods.ValidAsset(x) == ValidationMethods.Status.Asset || m_BuildContent.FakeAssets.ContainsKey(x));
+        }
+
         public ReturnCode Run()
         {
             foreach (var bundlePair in m_BuildContent.BundleLayout)
             {
-                if (ValidationMethods.ValidAssetBundle(bundlePair.Value))
+                if (ValidAssetBundle(bundlePair.Value))
                 {
                     // Use generated internalName here as we could have an empty asset bundle used for raw object storage (See CreateStandardShadersBundle)
                     var internalName = string.Format(CommonStrings.AssetBundleNameFormat, m_PackingMethod.GenerateInternalFileName(bundlePair.Key));

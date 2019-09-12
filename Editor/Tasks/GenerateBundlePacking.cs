@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Injector;
@@ -26,6 +27,11 @@ namespace UnityEditor.Build.Pipeline.Tasks
         IDeterministicIdentifiers m_PackingMethod;
 #pragma warning restore 649
 
+        bool ValidAssetBundle(List<GUID> assets)
+        {
+            return assets.All(x => ValidationMethods.ValidAsset(x) == ValidationMethods.Status.Asset || m_BuildContent.FakeAssets.ContainsKey(x));
+        }
+
         public ReturnCode Run()
         {
             Dictionary<GUID, List<GUID>> assetToReferences = new Dictionary<GUID, List<GUID>>();
@@ -33,7 +39,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             // Pack each asset bundle
             foreach (var bundle in m_BuildContent.BundleLayout)
             {
-                if (ValidationMethods.ValidAssetBundle(bundle.Value))
+                if (ValidAssetBundle(bundle.Value))
                     PackAssetBundle(bundle.Key, bundle.Value, assetToReferences);
                 else if (ValidationMethods.ValidSceneBundle(bundle.Value))
                     PackSceneBundle(bundle.Key, bundle.Value, assetToReferences);
@@ -122,7 +128,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             for (int i = references.Count - 1; i >= 0; --i)
             {
                 var reference = references[i];
-                if (reference.filePath == CommonStrings.UnityDefaultResourcePath)
+                if (reference.filePath.Equals(CommonStrings.UnityDefaultResourcePath, StringComparison.OrdinalIgnoreCase))
                 {
                     references.RemoveAt(i);
                     continue; // TODO: Fix this so we can pull these in

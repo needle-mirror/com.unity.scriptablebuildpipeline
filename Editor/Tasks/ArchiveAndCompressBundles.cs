@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -15,7 +16,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 #else
     using BuildCompression = UnityEditor.Build.Content.BuildCompression;
 #endif
-    
+
     public class ArchiveAndCompressBundles : IBuildTask
     {
         public int Version { get { return 1; } }
@@ -24,8 +25,11 @@ namespace UnityEditor.Build.Pipeline.Tasks
         [InjectContext(ContextUsage.In)]
         IBuildParameters m_Parameters;
 
-        [InjectContext(ContextUsage.In)]
+        [InjectContext(ContextUsage.InOut)]
         IBundleWriteData m_WriteData;
+
+        [InjectContext(ContextUsage.In)]
+        IBundleBuildContent m_Content;
 
         [InjectContext]
         IBundleBuildResults m_Results;
@@ -62,9 +66,10 @@ namespace UnityEditor.Build.Pipeline.Tasks
             return info;
         }
 
-        static Hash128 CalculateHashVersion(Dictionary<string, ulong> fileOffsets, ResourceFile[] resourceFiles)
+        internal static Hash128 CalculateHashVersion(Dictionary<string, ulong> fileOffsets, ResourceFile[] resourceFiles, string[] dependencies)
         {
             List<RawHash> hashes = new List<RawHash>();
+           
             foreach (ResourceFile file in resourceFiles)
             {
                 if (file.serializedFile)
@@ -80,7 +85,8 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 else
                     hashes.Add(HashingMethods.CalculateFile(file.fileName));
             }
-            return HashingMethods.Calculate(hashes).ToHash128();
+
+            return HashingMethods.Calculate(hashes, dependencies).ToHash128();
         }
 
         public ReturnCode Run()
@@ -103,6 +109,17 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
                         ObjectSerializedInfo firstObject = pair.Value.serializedObjects.First(x => x.header.fileName == serializedFile.fileAlias);
                         fileOffsets[serializedFile.fileName] = firstObject.header.offset;
+                    }
+                }
+
+                foreach (var pair in m_Content.AddionalFiles)
+                {
+                    List<ResourceFile> resourceFiles;
+                    bundleToResources.GetOrAdd(pair.Key, out resourceFiles);
+                    foreach (var file in pair.Value)
+                    {
+                        resourceFiles.Add(file);
+                        m_WriteData.FileToBundle[file.fileAlias] = pair.Key;
                     }
                 }
                 bundleResources = bundleToResources.ToList();
@@ -167,13 +184,17 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
                     details.FileName = m_Parameters.GetOutputFilePathForIdentifier(bundleName);
                     details.Crc = ContentBuildInterface.ArchiveAndCompress(resourceFiles, writePath, compression);
-                    details.Hash = CalculateHashVersion(fileOffsets, resourceFiles);
 
                     HashSet<string> dependencies;
                     if (bundleDependencies.TryGetValue(bundleName, out dependencies))
+                    {
                         details.Dependencies = dependencies.ToArray();
+                        Array.Sort(details.Dependencies);
+                    }
                     else
                         details.Dependencies = new string[0];
+
+                    details.Hash = CalculateHashVersion(fileOffsets, resourceFiles, details.Dependencies);
 
                     if (uncachedInfo != null)
                         uncachedInfo.Add(GetCachedInfo(m_Cache, entries[i], resourceFiles, details));

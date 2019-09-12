@@ -4,7 +4,29 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [1.5.2] - 2019-07-29
+## [1.6.3-preview] - 2019-09-13
+- Fixed an issue where switching platforms caused Scene & Shader callbacks to no longer be called
+- Improved error messaging when a task fails with an exception
+- Removed ENABLE_SUBSCENE_IMPORTER define as everything has landed as of 2019.3.0b5
+
+## [1.6.2-preview] - 2019-09-13
+- Refactor of ImportedContent to be more flexible for adding custom content
+
+## [1.6.1-preview] - 2019-09-12
+- Added check for define ENABLE_SUBSCENE_IMPORTER
+
+## [1.6.0-preview] - 2019-09-09
+- Added support for DOTS SubScene Importer based asset bundles via ImportedContent property
+- Added support for adding custom raw files to asset bundles via AddionalFiles property
+
+## [1.5.4] - 2019-10-03
+- Fixed an edge case where Optimize Mesh would not apply to all meshes in the build.
+- Fixed an edge case where Global Usage was not being updated with latest values from Graphics Settings.
+
+## [1.5.3] - 2019-09-10
+- Fixed Scene Bundles not rebuilding when included prefab changes.
+
+## [1.5.2] - 2019-07-19
 - Fixed ToString() method of CompatibilityAssetBundleManifest to properly add new line characters and section header where multiple dependencies exist
 
 ## [1.5.1] - 2019-07-15

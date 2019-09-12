@@ -106,7 +106,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
                     assetInfo.includedObjects = new List<ObjectIdentifier>(includedObjects);
                     var referencedObjects = ContentBuildInterface.GetPlayerDependenciesForObjects(includedObjects, m_Parameters.Target, m_Parameters.ScriptInfo);
                     assetInfo.referencedObjects = new List<ObjectIdentifier>(referencedObjects);
-                    ContentBuildInterface.CalculateBuildUsageTags(referencedObjects, includedObjects, globalUsage, usageTags, m_DependencyData.DependencyUsageCache);
+                    var allObjects = new List<ObjectIdentifier>(includedObjects);
+                    allObjects.AddRange(referencedObjects);
+                    ContentBuildInterface.CalculateBuildUsageTags(allObjects.ToArray(), includedObjects, globalUsage, usageTags, m_DependencyData.DependencyUsageCache);
 
                     var importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
                     if (importer != null && importer.textureType == TextureImporterType.Sprite)
