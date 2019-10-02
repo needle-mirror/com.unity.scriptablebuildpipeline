@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Linq;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Utilities;
@@ -62,10 +63,12 @@ namespace UnityEditor.Build.Pipeline.WriteTypes
         public Hash128 GetHash128()
         {
 #if UNITY_2019_3_OR_NEWER
-            return HashingMethods.Calculate(Command, UsageSet.GetHash128(), ReferenceMap.GetHash128(), Scene, PreloadInfo).ToHash128();
+            var prefabHashes = AssetDatabase.GetDependencies(Scene).Where(path => path.EndsWith(".prefab")).Select(AssetDatabase.GetAssetDependencyHash);
+            return HashingMethods.Calculate(Command, UsageSet.GetHash128(), ReferenceMap.GetHash128(), Scene, PreloadInfo, prefabHashes).ToHash128();
 #else
             var processedSceneHash = HashingMethods.CalculateFile(ProcessedScene).ToHash128();
-            return HashingMethods.Calculate(Command, UsageSet.GetHash128(), ReferenceMap.GetHash128(), Scene, processedSceneHash, PreloadInfo).ToHash128();
+            var prefabHashes = AssetDatabase.GetDependencies(Scene).Where(path => path.EndsWith(".prefab")).Select(AssetDatabase.GetAssetDependencyHash);
+            return HashingMethods.Calculate(Command, UsageSet.GetHash128(), ReferenceMap.GetHash128(), Scene, processedSceneHash, PreloadInfo, prefabHashes).ToHash128();
 #endif
         }
     }

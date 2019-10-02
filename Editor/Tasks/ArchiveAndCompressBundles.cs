@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -62,9 +63,10 @@ namespace UnityEditor.Build.Pipeline.Tasks
             return info;
         }
 
-        static Hash128 CalculateHashVersion(Dictionary<string, ulong> fileOffsets, ResourceFile[] resourceFiles)
+        internal static Hash128 CalculateHashVersion(Dictionary<string, ulong> fileOffsets, ResourceFile[] resourceFiles, string[] dependencies)
         {
             List<RawHash> hashes = new List<RawHash>();
+           
             foreach (ResourceFile file in resourceFiles)
             {
                 if (file.serializedFile)
@@ -80,7 +82,8 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 else
                     hashes.Add(HashingMethods.CalculateFile(file.fileName));
             }
-            return HashingMethods.Calculate(hashes).ToHash128();
+
+            return HashingMethods.Calculate(hashes, dependencies).ToHash128();
         }
 
         public ReturnCode Run()
@@ -167,13 +170,17 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
                     details.FileName = m_Parameters.GetOutputFilePathForIdentifier(bundleName);
                     details.Crc = ContentBuildInterface.ArchiveAndCompress(resourceFiles, writePath, compression);
-                    details.Hash = CalculateHashVersion(fileOffsets, resourceFiles);
 
                     HashSet<string> dependencies;
                     if (bundleDependencies.TryGetValue(bundleName, out dependencies))
+                    {
                         details.Dependencies = dependencies.ToArray();
+                        Array.Sort(details.Dependencies);
+                    }
                     else
                         details.Dependencies = new string[0];
+
+                    details.Hash = CalculateHashVersion(fileOffsets, resourceFiles, details.Dependencies);
 
                     if (uncachedInfo != null)
                         uncachedInfo.Add(GetCachedInfo(m_Cache, entries[i], resourceFiles, details));

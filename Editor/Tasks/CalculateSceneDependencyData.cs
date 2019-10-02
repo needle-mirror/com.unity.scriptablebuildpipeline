@@ -10,7 +10,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 {
     public class CalculateSceneDependencyData : IBuildTask
     {
-        public int Version { get { return 1; } }
+        public int Version { get { return 2; } }
 
 #pragma warning disable 649
         [InjectContext(ContextUsage.In)]
@@ -37,6 +37,8 @@ namespace UnityEditor.Build.Pipeline.Tasks
             var dependencies = new HashSet<CacheEntry>();
             foreach (var reference in references)
                 dependencies.Add(m_Cache.GetCacheEntry(reference));
+            var prefabEntries = AssetDatabase.GetDependencies(AssetDatabase.GUIDToAssetPath(scene.ToString())).Where(path => path.EndsWith(".prefab")).Select(m_Cache.GetCacheEntry);
+            dependencies.UnionWith(prefabEntries);
             info.Dependencies = dependencies.ToArray();
 
             info.Data = new object[] { sceneInfo, usageTags };

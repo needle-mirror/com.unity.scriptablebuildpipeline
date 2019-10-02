@@ -8,7 +8,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
     using Object = UnityEngine.Object;
 #endif
-    
+
     static class GraphicsSettingsApi
     {
 #if UNITY_2019_1_OR_NEWER
@@ -82,18 +82,19 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
             var globalUsageType = typeof(BuildUsageTagGlobal);
             m_LightmapModesUsed = globalUsageType.GetField("m_LightmapModesUsed", BindingFlags.Instance | BindingFlags.NonPublic);
-            m_LegacyLightmapModesUsed = globalUsageType.GetField("m_LegacyLightmapModesUsed", BindingFlags.Instance | BindingFlags.NonPublic);;
-            m_DynamicLightmapsUsed = globalUsageType.GetField("m_DynamicLightmapsUsed", BindingFlags.Instance | BindingFlags.NonPublic);;
-            m_FogModesUsed = globalUsageType.GetField("m_FogModesUsed", BindingFlags.Instance | BindingFlags.NonPublic);;
-            m_ForceInstancingStrip = globalUsageType.GetField("m_ForceInstancingStrip", BindingFlags.Instance | BindingFlags.NonPublic);;
-            m_ForceInstancingKeep = globalUsageType.GetField("m_ForceInstancingKeep", BindingFlags.Instance | BindingFlags.NonPublic);;
-            m_ShadowMasksUsed = globalUsageType.GetField("m_ShadowMasksUsed", BindingFlags.Instance | BindingFlags.NonPublic);;
-            m_SubtractiveUsed = globalUsageType.GetField("m_SubtractiveUsed", BindingFlags.Instance | BindingFlags.NonPublic);;
+            m_LegacyLightmapModesUsed = globalUsageType.GetField("m_LegacyLightmapModesUsed", BindingFlags.Instance | BindingFlags.NonPublic);
+            m_DynamicLightmapsUsed = globalUsageType.GetField("m_DynamicLightmapsUsed", BindingFlags.Instance | BindingFlags.NonPublic);
+            m_FogModesUsed = globalUsageType.GetField("m_FogModesUsed", BindingFlags.Instance | BindingFlags.NonPublic);
+            m_ForceInstancingStrip = globalUsageType.GetField("m_ForceInstancingStrip", BindingFlags.Instance | BindingFlags.NonPublic);
+            m_ForceInstancingKeep = globalUsageType.GetField("m_ForceInstancingKeep", BindingFlags.Instance | BindingFlags.NonPublic);
+            m_ShadowMasksUsed = globalUsageType.GetField("m_ShadowMasksUsed", BindingFlags.Instance | BindingFlags.NonPublic);
+            m_SubtractiveUsed = globalUsageType.GetField("m_SubtractiveUsed", BindingFlags.Instance | BindingFlags.NonPublic);
         }
 
         internal static BuildUsageTagGlobal GetGlobalUsage()
         {
             OnEnable();
+            m_SerializedObject.Update();
 
             if (m_LightmapStripping.intValue != 0)
             {
