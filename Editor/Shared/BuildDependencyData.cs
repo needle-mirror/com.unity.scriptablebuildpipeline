@@ -29,7 +29,7 @@ namespace UnityEditor.Build.Pipeline
         /// <summary>
         /// Stores how lighting information is being used during a build.
         /// </summary>
-        public BuildUsageTagGlobal GlobalUsage { get; private set; }
+        public BuildUsageTagGlobal GlobalUsage { get; set; }
 
         [NonSerialized]
         BuildUsageCache m_BuildUsageCache;

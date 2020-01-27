@@ -13,5 +13,11 @@
     "precompiledReferences": [],
     "autoReferenced": true,
     "defineConstraints": [],
-    "versionDefines": []
+    "versionDefines": [
+        {
+            "name": "Unity",
+            "expression": "2021.1.0a6",
+            "define": "ENABLE_TYPE_HASHING"
+        }
+    ]
 }

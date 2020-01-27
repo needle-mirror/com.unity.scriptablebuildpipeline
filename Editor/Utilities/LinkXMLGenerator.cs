@@ -16,6 +16,10 @@ namespace UnityEditor.Build.Pipeline.Utilities
         Dictionary<Type, Type> m_TypeConversion = new Dictionary<Type, Type>();
         HashSet<Type> m_Types = new HashSet<Type>();
         HashSet<Assembly> m_Assemblies = new HashSet<Assembly>();
+
+        /// <summary>
+        /// Obsolete, no longer does anything.
+        /// </summary>
         [Obsolete] protected Dictionary<string, HashSet<string>> serializedClassesPerAssembly = null;
         Dictionary<string, HashSet<string>> m_SerializedClassesPerAssembly = new Dictionary<string, HashSet<string>>();
 

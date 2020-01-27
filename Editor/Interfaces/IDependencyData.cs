@@ -42,6 +42,6 @@ namespace UnityEditor.Build.Pipeline.Interfaces
         /// <summary>
         /// BuildUsageTagGlobal value from GraphicsSettings
         /// </summary>
-        BuildUsageTagGlobal GlobalUsage { get; }
+        BuildUsageTagGlobal GlobalUsage { get; set; }
     }
 }

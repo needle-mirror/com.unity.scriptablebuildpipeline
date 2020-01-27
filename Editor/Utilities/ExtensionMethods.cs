@@ -34,7 +34,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             if (command.serializeObjects != null)
             {
                 var objectIds = command.serializeObjects.Select(x => x.serializationObject);
-                var types = BuildCacheUtility.GetTypeForObjects(objectIds);
+                var types = BuildCacheUtility.GetSortedUniqueTypesForObjects(objectIds);
                 cacheEntries.UnionWith(types.Select(BuildCacheUtility.GetCacheEntry));
                 cacheEntries.UnionWith(objectIds.Select(BuildCacheUtility.GetCacheEntry));
             }
@@ -46,7 +46,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             {
                 foreach (var objectId in includedObjects)
                 {
-                    var types = BuildCacheUtility.GetTypeForObject(objectId);
+                    var types = BuildCacheUtility.GetSortedUniqueTypesForObject(objectId);
                     objectTypes.Add(new KeyValuePair<ObjectIdentifier, Type[]>(objectId, types));
                     uniqueTypes.UnionWith(types);
                 }
@@ -55,7 +55,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             {
                 foreach (var objectId in referencedObjects)
                 {
-                    var types = BuildCacheUtility.GetTypeForObject(objectId);
+                    var types = BuildCacheUtility.GetSortedUniqueTypesForObject(objectId);
                     objectTypes.Add(new KeyValuePair<ObjectIdentifier, Type[]>(objectId, types));
                     uniqueTypes.UnionWith(types);
                     dependencies.Add(cache.GetCacheEntry(objectId));

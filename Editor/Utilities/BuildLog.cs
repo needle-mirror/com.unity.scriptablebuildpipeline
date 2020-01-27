@@ -190,6 +190,11 @@ namespace UnityEditor.Build.Pipeline.Utilities
             log.m_Stack.Peek().Entries.Add(new LogEntry() { Level = level, Message = msg, Time = log.GetWallTime(), ThreadId = Thread.CurrentThread.ManagedThreadId });
         }
 
+        /// <summary>
+        /// Internal use only.
+        /// <seealso cref="IBuildLogger"/>
+        /// </summary>
+        /// <param name="events">Event collection to handle</param>
         void IDeferredBuildLogger.HandleDeferredEventStream(IEnumerable<DeferredEvent> events)
         {
             HandleDeferredEventStreamInternal(events);

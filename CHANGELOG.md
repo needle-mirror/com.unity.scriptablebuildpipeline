@@ -4,8 +4,13 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [1.15.2] - 2021-01-20
-- Fixes for automated testing
+## [1.16.1] - 2020-01-27
+- Handling of communication error with cache server. Build will now continue, using the local cache only.
+- Regression fix for index out of range error on Unity 2018.4
+
+## [1.16.0] - 2020-10-29
+- Added caching support for DOTS Subscene building
+- Fixed an issue where DOTS Subscene lighting information was lost
 
 ## [1.15.1] - 2020-10-29
 - Added support for per type caching and incremental rebuild triggers

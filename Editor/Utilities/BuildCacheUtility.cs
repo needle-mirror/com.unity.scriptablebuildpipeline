@@ -102,7 +102,7 @@ internal static class BuildCacheUtility
         return entry;
     }
 
-    public static Type[] GetTypeForObject(ObjectIdentifier objectId)
+    static Type[] GetCachedTypesForObject(ObjectIdentifier objectId)
     {
         if (!m_ObjectToType.TryGetValue(objectId, out Type[] types))
         {
@@ -113,25 +113,40 @@ internal static class BuildCacheUtility
 #endif
             m_ObjectToType[objectId] = types;
         }
+        return types;
+    }
+
+    public static Type GetMainTypeForObject(ObjectIdentifier objectId)
+    {
+        Type[] types = GetCachedTypesForObject(objectId);
+        return types[0];
+    }
+
+    public static Type[] GetMainTypeForObjects(IEnumerable<ObjectIdentifier> objectIds)
+    {
+        List<Type> results = new List<Type>();
+        foreach (var objectId in objectIds)
+        {
+            Type[] types = GetCachedTypesForObject(objectId);
+            results.Add(types[0]);
+        }
+        return results.ToArray();
+    }
+
+    public static Type[] GetSortedUniqueTypesForObject(ObjectIdentifier objectId)
+    {
+        Type[] types = GetCachedTypesForObject(objectId);
         Array.Sort(types, (x, y) => x.AssemblyQualifiedName.CompareTo(y.AssemblyQualifiedName));
         return types;
     }
 
-    public static Type[] GetTypeForObjects(IEnumerable<ObjectIdentifier> objectIds)
+    public static Type[] GetSortedUniqueTypesForObjects(IEnumerable<ObjectIdentifier> objectIds)
     {
         Type[] types;
         HashSet<Type> results = new HashSet<Type>();
         foreach (var objectId in objectIds)
         {
-            if (!m_ObjectToType.TryGetValue(objectId, out types))
-            {
-#if ENABLE_TYPE_HASHING
-                types = ContentBuildInterface.GetTypesForObject(objectId);
-#else
-                types = ContentBuildInterface.GetTypeForObjects(new[] { objectId });
-#endif
-                m_ObjectToType[objectId] = types;
-            }
+            types = GetCachedTypesForObject(objectId);
             results.UnionWith(types);
         }
         types = results.ToArray();

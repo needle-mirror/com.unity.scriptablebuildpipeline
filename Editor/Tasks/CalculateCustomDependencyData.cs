@@ -1,6 +1,7 @@
 #if UNITY_2019_3_OR_NEWER
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Injector;
 using UnityEditor.Build.Pipeline.Interfaces;
@@ -32,9 +33,19 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
         [InjectContext(ContextUsage.In, true)]
         IProgressTracker m_Tracker;
+
+        [InjectContext(ContextUsage.In, true)]
+        IBuildCache m_Cache;
+
+        [InjectContext(ContextUsage.In, true)]
+        IBuildLogger m_Log;
 #pragma warning restore 649
 
         BuildUsageTagGlobal m_GlobalUsage;
+        BuildUsageTagGlobal m_CustomUsage;
+
+        Dictionary<string, AssetLoadInfo> m_AssetInfo = new Dictionary<string, AssetLoadInfo>();
+        Dictionary<string, BuildUsageTagSet> m_BuildUsage = new Dictionary<string, BuildUsageTagSet>();
 
         /// <inheritdoc />
         public ReturnCode Run()
@@ -49,9 +60,80 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 if (!m_Tracker.UpdateInfoUnchecked(info.Asset.ToString()))
                     return ReturnCode.Canceled;
 
-                info.Processor(info.Asset, this);
+                using (m_Log.ScopedStep(LogLevel.Verbose, "CustomAssetDependency", info.Asset.ToString()))
+                    info.Processor(info.Asset, this);
             }
+
+            // Add all the additional global usage for custom assets back into the dependency data result
+            // for use in the write serialized file build task
+            m_DependencyData.GlobalUsage |= m_CustomUsage;
             return ReturnCode.Success;
+        }
+
+        CacheEntry GetCacheEntry(string path, BuildUsageTagGlobal additionalGlobalUsage)
+        {
+            var entry = new CacheEntry();
+            entry.Type = CacheEntry.EntryType.Data;
+            entry.Guid = HashingMethods.Calculate("CalculateCustomDependencyData", path).ToGUID();
+            entry.Hash = HashingMethods.Calculate(HashingMethods.CalculateFile(path), additionalGlobalUsage).ToHash128();
+            entry.Version = Version;
+            return entry;
+        }
+
+        CachedInfo GetCachedInfo(CacheEntry entry, AssetLoadInfo assetInfo, BuildUsageTagSet usageTags)
+        {
+            var info = new CachedInfo();
+            info.Asset = entry;
+
+            var uniqueTypes = new HashSet<Type>();
+            var objectTypes = new List<KeyValuePair<ObjectIdentifier, Type[]>>();
+            var dependencies = new HashSet<CacheEntry>();
+            ExtensionMethods.ExtractCommonCacheData(m_Cache, assetInfo.includedObjects, assetInfo.referencedObjects, uniqueTypes, objectTypes, dependencies);
+            info.Dependencies = dependencies.ToArray();
+
+            info.Data = new object[] { assetInfo, usageTags, objectTypes };
+            return info;
+        }
+
+        bool LoadCachedData(string path, out AssetLoadInfo assetInfo, out BuildUsageTagSet buildUsage, BuildUsageTagGlobal globalUsage)
+        {
+            assetInfo = default;
+            buildUsage = default;
+
+            if (!m_Parameters.UseCache || m_Cache == null)
+                return false;
+
+            CacheEntry entry = GetCacheEntry(path, globalUsage);
+            m_Cache.LoadCachedData(new List<CacheEntry> { entry }, out IList<CachedInfo> cachedInfos);
+            var cachedInfo = cachedInfos[0];
+            if (cachedInfo != null)
+            {
+                assetInfo = (AssetLoadInfo)cachedInfo.Data[0];
+                buildUsage = (BuildUsageTagSet)cachedInfo.Data[1];
+                var objectTypes = (List<KeyValuePair<ObjectIdentifier, Type[]>>)cachedInfo.Data[2];
+                BuildCacheUtility.SetTypeForObjects(objectTypes);
+            }
+            else
+            {
+                GatherAssetData(path, out assetInfo, out buildUsage, globalUsage);
+                cachedInfo = GetCachedInfo(entry, assetInfo, buildUsage);
+                m_Cache.SaveCachedData(new List<CachedInfo> { cachedInfo });
+            }
+            return true;
+        }
+
+        void GatherAssetData(string path, out AssetLoadInfo assetInfo, out BuildUsageTagSet buildUsage, BuildUsageTagGlobal globalUsage)
+        {
+            assetInfo = new AssetLoadInfo();
+            buildUsage = new BuildUsageTagSet();
+
+            var includedObjects = ContentBuildInterface.GetPlayerObjectIdentifiersInSerializedFile(path, m_Parameters.Target);
+            var referencedObjects = ContentBuildInterface.GetPlayerDependenciesForObjects(includedObjects, m_Parameters.Target, m_Parameters.ScriptInfo);
+
+            assetInfo.includedObjects = new List<ObjectIdentifier>(includedObjects);
+            assetInfo.referencedObjects = new List<ObjectIdentifier>(referencedObjects);
+
+            ContentBuildInterface.CalculateBuildUsageTags(referencedObjects, includedObjects, globalUsage, buildUsage, m_DependencyData.DependencyUsageCache);
         }
 
         /// <summary>
@@ -62,8 +144,31 @@ namespace UnityEditor.Build.Pipeline.Tasks
         /// <param name="types">Types for all the objects in the serialized file</param>
         public void GetObjectIdentifiersAndTypesForSerializedFile(string path, out ObjectIdentifier[] objectIdentifiers, out Type[] types)
         {
-            objectIdentifiers = ContentBuildInterface.GetPlayerObjectIdentifiersInSerializedFile(path, m_Parameters.Target);
-            types = BuildCacheUtility.GetTypeForObjects(objectIdentifiers);
+            GetObjectIdentifiersAndTypesForSerializedFile(path, out objectIdentifiers, out types, default);
+        }
+
+        /// <summary>
+        /// Returns the Object Identifiers and Types in a raw Unity Serialized File. The resulting arrays will be empty if a non-serialized file path was used.
+        /// </summary>
+        /// <param name="path">Path to the Unity Serialized File</param>
+        /// <param name="objectIdentifiers">Object Identifiers for all the objects in the serialized file</param>
+        /// <param name="types">Types for all the objects in the serialized file</param>
+        /// <param name="additionalGlobalUsage">Additional global lighting usage information to include with this custom asset</param>
+        public void GetObjectIdentifiersAndTypesForSerializedFile(string path, out ObjectIdentifier[] objectIdentifiers, out Type[] types, BuildUsageTagGlobal additionalGlobalUsage)
+        {
+            // Additional global usage is local to the custom asset, so we are using a local copy of this additional data to avoid influencing the calcualtion
+            // of other custom assets. Additionally we store all the addtional global usage for later copying back into the dependency data result for the final write build task.
+            var globalUsage = m_GlobalUsage | additionalGlobalUsage;
+            m_CustomUsage = m_CustomUsage | additionalGlobalUsage;
+            if (!LoadCachedData(path, out var assetInfo, out var buildUsage, globalUsage))
+                GatherAssetData(path, out assetInfo, out buildUsage, globalUsage);
+
+            // Local cache to reuse data from this function in the next function
+            m_AssetInfo[path] = assetInfo;
+            m_BuildUsage[path] = buildUsage;
+
+            objectIdentifiers = assetInfo.includedObjects.ToArray();
+            types = BuildCacheUtility.GetSortedUniqueTypesForObjects(objectIdentifiers);
         }
 
         /// <summary>
@@ -76,20 +181,14 @@ namespace UnityEditor.Build.Pipeline.Tasks
         /// <param name="mainAssetType">Type of the main object for this custom asset</param>
         public void CreateAssetEntryForObjectIdentifiers(ObjectIdentifier[] includedObjects, string path, string bundleName, string address, Type mainAssetType)
         {
-            AssetLoadInfo assetInfo = new AssetLoadInfo();
-            BuildUsageTagSet usageTags = new BuildUsageTagSet();
+            AssetLoadInfo assetInfo = m_AssetInfo[path];
+            BuildUsageTagSet buildUsage = m_BuildUsage[path];
 
             assetInfo.asset = HashingMethods.Calculate(address).ToGUID();
             assetInfo.address = address;
             if (m_DependencyData.AssetInfo.ContainsKey(assetInfo.asset))
                 throw new ArgumentException(string.Format("Custom Asset '{0}' already exists. Building duplicate asset entries is not supported.", address));
-
-            assetInfo.includedObjects = new List<ObjectIdentifier>(includedObjects);
-            var referencedObjects = ContentBuildInterface.GetPlayerDependenciesForObjects(includedObjects, m_Parameters.Target, m_Parameters.ScriptInfo);
-            assetInfo.referencedObjects = new List<ObjectIdentifier>(referencedObjects);
-            ContentBuildInterface.CalculateBuildUsageTags(referencedObjects, includedObjects, m_GlobalUsage, usageTags, m_DependencyData.DependencyUsageCache);
-
-            SetOutputInformation(bundleName, assetInfo, usageTags);
+            SetOutputInformation(bundleName, assetInfo, buildUsage);
         }
 
         void SetOutputInformation(string bundleName, AssetLoadInfo assetInfo, BuildUsageTagSet usageTags)

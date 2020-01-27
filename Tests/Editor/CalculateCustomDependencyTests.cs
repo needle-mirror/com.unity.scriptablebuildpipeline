@@ -19,6 +19,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             // Optional Inputs
             public override BuildTarget Target => BuildTarget.NoTarget;
             public override TypeDB ScriptInfo => null;
+            public override bool UseCache { get => false; set => base.UseCache = value; }
         }
 
         class TestContent : TestBundleBuildContent
@@ -50,7 +51,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             // Optional Inputs
             BuildUsageTagGlobal m_GlobalUsage;
             Dictionary<GUID, SceneDependencyInfo> m_SceneInfo;
-            public override BuildUsageTagGlobal GlobalUsage => m_GlobalUsage;
+            public override BuildUsageTagGlobal GlobalUsage { get => m_GlobalUsage; set => m_GlobalUsage = value; }
             public override Dictionary<GUID, SceneDependencyInfo> SceneInfo => m_SceneInfo;
             public override BuildUsageCache DependencyUsageCache => null;
 
@@ -104,6 +105,9 @@ namespace UnityEditor.Build.Pipeline.Tests
         [Test]
         public void CreateAssetEntryForObjectIdentifiers_ThrowsExceptionOnAssetGUIDCollision()
         {
+            var assetPath = "temp/test_serialized_file.asset";
+            UnityEditorInternal.InternalEditorUtility.SaveToSerializedFileAndForget(new[] { Texture2D.whiteTexture, Texture2D.redTexture }, assetPath, false);
+
             var address = "CustomAssetAddress";
             var assetInfo = new Dictionary<GUID, AssetLoadInfo>();
             assetInfo.Add(HashingMethods.Calculate(address).ToGUID(), new AssetLoadInfo());
@@ -115,7 +119,8 @@ namespace UnityEditor.Build.Pipeline.Tests
                     Asset = new GUID(),
                     Processor = (guid, task) =>
                     {
-                        var ex = Assert.Throws<System.ArgumentException>(() => task.CreateAssetEntryForObjectIdentifiers(null, null, null, address, null));
+                        task.GetObjectIdentifiersAndTypesForSerializedFile(assetPath, out var objectIdentifiers, out var types);
+                        var ex = Assert.Throws<System.ArgumentException>(() => task.CreateAssetEntryForObjectIdentifiers(objectIdentifiers, assetPath, "CustomAssetBundle", address, types[0]));
                         var expected = string.Format("Custom Asset '{0}' already exists. Building duplicate asset entries is not supported.", address);
                         Assert.That(ex.Message, Is.EqualTo(expected));
                     }

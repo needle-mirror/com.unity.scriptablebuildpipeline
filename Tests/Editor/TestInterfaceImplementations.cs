@@ -83,7 +83,7 @@ namespace UnityEditor.Build.Pipeline.Tests
 
         public virtual BuildUsageCache DependencyUsageCache => throw new System.NotImplementedException(TestTracing.Callsite());
 
-        public virtual BuildUsageTagGlobal GlobalUsage => throw new System.NotImplementedException(TestTracing.Callsite());
+        public virtual BuildUsageTagGlobal GlobalUsage { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
 
         public virtual Dictionary<GUID, Hash128> DependencyHash => throw new System.NotImplementedException(TestTracing.Callsite());
     }

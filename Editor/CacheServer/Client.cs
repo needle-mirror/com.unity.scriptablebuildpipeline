@@ -265,6 +265,8 @@ namespace UnityEditor.Build.CacheServer
             var client = m_tcpClient;
             client.Connect(m_host, m_port);
             m_stream = client.GetStream();
+            m_stream.ReadTimeout = 10000;
+            m_stream.WriteTimeout = 10000;
             SendVersion();
             m_mutex = new Mutex();
         }

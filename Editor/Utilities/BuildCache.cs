@@ -54,8 +54,19 @@ namespace UnityEditor.Build.Pipeline.Utilities
             if (string.IsNullOrEmpty(host))
                 return;
 
-            m_Uploader = new CacheServerUploader(host, port);
-            m_Downloader = new CacheServerDownloader(this, host, port);
+            try
+            {
+	            m_Uploader = new CacheServerUploader(host, port);
+	            m_Downloader = new CacheServerDownloader(this, host, port);
+            }
+            catch (Exception e)
+            {
+	            m_Uploader = null;
+	            m_Downloader = null;
+	            string msg = $"Failed to connect build cache to CacheServer. ip: {host}, port: {port}. With exception, \"{e.Message}\"";
+	            m_Logger.AddEntrySafe(LogLevel.Warning, msg);
+	            UnityEngine.Debug.LogWarning(msg);
+            }
         }
 
         // internal for testing purposes only
