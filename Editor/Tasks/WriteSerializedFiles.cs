@@ -49,6 +49,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             info.Asset = entry;
 
             var dependencies = new HashSet<CacheEntry>();
+
 #if !UNITY_2019_3_OR_NEWER
             var sceneBundleOp = operation as SceneBundleWriteOperation;
             if (sceneBundleOp != null)
@@ -56,7 +57,15 @@ namespace UnityEditor.Build.Pipeline.Tasks
             var sceneDataOp = operation as SceneDataWriteOperation;
             if (sceneDataOp != null)
                 dependencies.Add(m_Cache.GetCacheEntry(sceneDataOp.ProcessedScene));
+#else
+            var sceneBundleOp = operation as SceneBundleWriteOperation;
+            if (sceneBundleOp != null)
+                dependencies.Add(m_Cache.GetCacheEntry(sceneBundleOp.Scene));
+            var sceneDataOp = operation as SceneDataWriteOperation;
+            if (sceneDataOp != null)
+                dependencies.Add(m_Cache.GetCacheEntry(sceneDataOp.Scene));
 #endif
+
             foreach (var serializeObject in operation.Command.serializeObjects)
                 dependencies.Add(m_Cache.GetCacheEntry(serializeObject.serializationObject));
             info.Dependencies = dependencies.ToArray();

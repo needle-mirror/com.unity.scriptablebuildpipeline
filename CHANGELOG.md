@@ -4,6 +4,13 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.5.6] - 2020-01-30
+- Fixed an issue where texture sources for non-packed sprites were being stripped incorrectly.
+
+## [1.5.5] - 2020-01-21
+- Fixed an issue where texture sources for sprites were not being stripped from the build.
+- Fixed an issue where scene changes weren't getting picked up in a content re-build.
+
 ## [1.5.4] - 2019-10-03
 - Fixed an edge case where Optimize Mesh would not apply to all meshes in the build.
 - Fixed an edge case where Global Usage was not being updated with latest values from Graphics Settings.
