@@ -9,7 +9,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 {
     public class CalculateAssetDependencyData : IBuildTask
     {
-        public int Version { get { return 2; } }
+        public int Version { get { return 3; } }
 
 #pragma warning disable 649
         [InjectContext(ContextUsage.In)]
@@ -113,9 +113,23 @@ namespace UnityEditor.Build.Pipeline.Tasks
                     var importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
                     if (importer != null && importer.textureType == TextureImporterType.Sprite)
                     {
-                        importerData = new SpriteImporterData();
-                        importerData.PackedSprite = !string.IsNullOrEmpty(importer.spritePackingTag);
-                        importerData.SourceTexture = includedObjects.First();
+#if !UNITY_2020_1_OR_NEWER
+                        // Legacy Sprite Packing Modes
+                        if (EditorSettings.spritePackerMode == SpritePackerMode.AlwaysOn || EditorSettings.spritePackerMode == SpritePackerMode.BuildTimeOnly)
+                        {
+                            importerData = new SpriteImporterData();
+                            importerData.PackedSprite = !string.IsNullOrEmpty(importer.spritePackingTag);
+                            importerData.SourceTexture = includedObjects.First();
+                        }
+                        else if (!referencedObjects.IsNullOrEmpty()) // Sprite is referencing packed data
+#else
+                        if (!referencedObjects.IsNullOrEmpty()) // Sprite is referencing packed data
+#endif
+                        {
+                            importerData = new SpriteImporterData();
+                            importerData.PackedSprite = EditorSettings.spritePackerMode != SpritePackerMode.Disabled;
+                            importerData.SourceTexture = includedObjects.First();
+                        }
                     }
 
                     var representations = AssetDatabase.LoadAllAssetRepresentationsAtPath(assetPath);

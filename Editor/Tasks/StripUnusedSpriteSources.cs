@@ -16,6 +16,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
         [InjectContext(ContextUsage.In, true)]
         IBuildSpriteData m_SpriteData;
+
+        [InjectContext(ContextUsage.InOut, true)]
+        IBuildExtendedAssetData m_ExtendedAssetData;
 #pragma warning restore 649
 
         public ReturnCode Run()
@@ -50,6 +53,14 @@ namespace UnityEditor.Build.Pipeline.Tasks
             {
                 var assetInfo = m_DependencyData.AssetInfo[source.guid];
                 assetInfo.includedObjects.RemoveAt(0);
+
+                ExtendedAssetData extendedData;
+                if (m_ExtendedAssetData != null && m_ExtendedAssetData.ExtendedData.TryGetValue(source.guid, out extendedData))
+                {
+                    extendedData.Representations.Remove(source);
+                    if (extendedData.Representations.Count == 1)
+                        m_ExtendedAssetData.ExtendedData.Remove(source.guid);
+                }
             }
         }
     }

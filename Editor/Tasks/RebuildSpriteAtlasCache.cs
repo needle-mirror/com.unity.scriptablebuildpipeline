@@ -17,8 +17,10 @@ namespace UnityEditor.Build.Pipeline.Tasks
         public ReturnCode Run()
         {
             // TODO: Need a return value if this ever can fail
+#if !UNITY_2020_1_OR_NEWER
             Packer.RebuildAtlasCacheIfNeeded(m_Parameters.Target, true, Packer.Execution.Normal);
-			SpriteAtlasUtility.PackAllAtlases(m_Parameters.Target);
+#endif
+            SpriteAtlasUtility.PackAllAtlases(m_Parameters.Target);
             return ReturnCode.Success;
         }
     }

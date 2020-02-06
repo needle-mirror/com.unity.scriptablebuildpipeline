@@ -4,6 +4,9 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.6.4-preview] - 2020-02-07
+- Updated SBP DOTs preview version with latest SBP Release changes.
+
 ## [1.6.3-preview] - 2019-09-13
 - Fixed an issue where switching platforms caused Scene & Shader callbacks to no longer be called
 - Improved error messaging when a task fails with an exception
@@ -18,6 +21,16 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [1.6.0-preview] - 2019-09-09
 - Added support for DOTS SubScene Importer based asset bundles via ImportedContent property
 - Added support for adding custom raw files to asset bundles via AddionalFiles property
+
+## [1.5.7] - 2020-02-07
+- Updated code to remove obsolete code when used with Unity 2020.1 and newer.
+
+## [1.5.6] - 2020-01-30
+- Fixed an issue where texture sources for non-packed sprites were being stripped incorrectly.
+
+## [1.5.5] - 2020-01-21
+- Fixed an issue where texture sources for sprites were not being stripped from the build.
+- Fixed an issue where scene changes weren't getting picked up in a content re-build.
 
 ## [1.5.4] - 2019-10-03
 - Fixed an edge case where Optimize Mesh would not apply to all meshes in the build.
