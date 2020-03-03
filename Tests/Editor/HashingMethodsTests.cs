@@ -5,6 +5,7 @@ using System.IO;
 using System.Security.Cryptography;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Utilities;
+using UnityEngine;
 
 namespace UnityEditor.Build.Pipeline.Tests
 {
@@ -45,6 +46,76 @@ namespace UnityEditor.Build.Pipeline.Tests
             // Until which time we no longer care about compatibility with BuildPipeline.BuildAssetBundles
             Assert.AreEqual(-7588530676450950513, BitConverter.ToInt64(HashingMethods.Calculate<MD4>("fb3a9882e5510684697de78116693750", FileType.MetaAssetType, (long)21300000).ToBytes(), 0));
             Assert.AreEqual(-8666180608703991793, BitConverter.ToInt64(HashingMethods.Calculate<MD4>("library/atlascache/27/2799803afb660251e3b3049ba37cb15a", (long)2).ToBytes(), 0));
+        }
+
+#if UNITY_2020_1_OR_NEWER
+        [TestCase(false)]   // Use old hasher (MD5)
+        [TestCase(true)]    // Use V2 hasher (Spooky)
+        public void HashingMethods_Has128x2Fast_SameAsGeneric(bool useV2Hasher)
+        {
+            // Test ensures the HashingMethods.Calculate(Hash128, Hash128) fast path produces the same results as the general HashingMethods.Calculate(params object[] objects) one does
+            Hash128 hash1 = new Hash128(0x1122334455667788, 0x99AABBCCDDEEFF00);
+            Hash128 hash2 = new Hash128(0x123456789ABCDEF0, 0x1967AbC487Df2F12);
+
+            bool prevUseV2Hasher = ScriptableBuildPipeline.useV2Hasher;
+            ScriptableBuildPipeline.useV2Hasher = useV2Hasher;
+
+            Assert.AreEqual(HashingMethods.Calculate(hash1, hash2), HashingMethods.Calculate(new object[] { hash1, hash2 }));
+
+            ScriptableBuildPipeline.useV2Hasher = prevUseV2Hasher;
+        }
+#else
+        [Test]
+        public void HashingMethods_Has128x2Fast_SameAsGeneric()
+        {
+            // Test ensures the HashingMethods.Calculate(Hash128, Hash128) fast path produces the same results as the general HashingMethods.Calculate(params object[] objects) one does
+            Hash128 hash1 = new Hash128(0x1122334455667788, 0x99AABBCCDDEEFF00);
+            Hash128 hash2 = new Hash128(0x123456789ABCDEF0, 0x1967AbC487Df2F12);
+
+            Assert.AreEqual(HashingMethods.Calculate(hash1, hash2), HashingMethods.Calculate(new object[] { hash1, hash2 }));
+        }
+#endif
+
+        // Struct that is binary compatible with Hash128 but is not Hash128
+        struct Hash128Proxy
+        {
+            public uint m_Value0;
+            public uint m_Value1;
+            public uint m_Value2;
+            public uint m_Value3;
+        }
+
+        [Test]
+        [TestCaseSource("TestCases")]
+        public void HashingMethods_Hash128RawBytes_SameAsGeneric(IHasher hashFunc)
+        {
+            // Test ensures the HashingMethods.GetRawBytes() function's fast-path for Hash128 type produces the same results as generic but slower reflection based path it replaces
+            Hash128 hash128 = new Hash128(0x11223344, 0x55667788, 0x99AABBCC, 0xDDEEFF00);
+
+            Hash128Proxy hash128Proxy = new Hash128Proxy() { m_Value0 = 0x11223344, m_Value1 = 0x55667788, m_Value2 = 0x99AABBCC, m_Value3 = 0xDDEEFF00 };
+
+            Assert.AreEqual(hashFunc.Calculate(hash128), hashFunc.Calculate(hash128Proxy));
+        }
+
+        // Struct that is binary compatible with GUID but is not GUID
+        struct GUIDProxy
+        {
+            public uint m_Value0;
+            public uint m_Value1;
+            public uint m_Value2;
+            public uint m_Value3;
+        }
+
+        [Test]
+        [TestCaseSource("TestCases")]
+        public void HashingMethods_GuidRawBytes_SameAsGeneric(IHasher hashFunc)
+        {
+            // Test ensures the HashingMethods.GetRawBytes() function's fast-path for GUID type produces the same results as generic but slower reflection based path it replaces
+            GUID guid = new GUID("4433221188776655CCBBAA9900FFEEDD");
+
+            GUIDProxy guidProxy = new GUIDProxy() { m_Value0 = 0x11223344, m_Value1 = 0x55667788, m_Value2 = 0x99AABBCC, m_Value3 = 0xDDEEFF00 };
+
+            Assert.AreEqual(hashFunc.Calculate(guid), hashFunc.Calculate(guidProxy));
         }
 
         public interface IHasher

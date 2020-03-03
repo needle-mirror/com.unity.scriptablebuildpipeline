@@ -87,6 +87,8 @@ namespace UnityEditor.Build.Pipeline.WriteTypes
                 hashes.Add(HashingMethods.Calculate(hashObjects).ToHash128());
             hashes.Add(new Hash128(0, 0, 0, (uint)QualitySettingsApi.GetNumberOfLODsStripped()));
             hashes.Add(DependencyHash);
+            hashes.Add(BuildInterfacesWrapper.SceneCallbackVersionHash);
+            hashes.Add(BuildInterfacesWrapper.ShaderCallbackVersionHash);
 
             return HashingMethods.Calculate(hashes, Scene, entry).ToHash128();
         }

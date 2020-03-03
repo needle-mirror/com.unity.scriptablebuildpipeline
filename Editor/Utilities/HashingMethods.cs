@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
 using UnityEngine;
@@ -211,6 +212,24 @@ namespace UnityEditor.Build.Pipeline.Utilities
                     bytes = Encoding.ASCII.GetBytes(str);
                 stream.Write(bytes, 0, bytes.Length);
             }
+            else if (currObj is GUID)
+            {
+                byte[] hashBytes = new byte[16];
+                IntPtr ptr = Marshal.AllocHGlobal(16);
+                Marshal.StructureToPtr((GUID)currObj, ptr, false);
+                Marshal.Copy(ptr, hashBytes, 0, 16);
+                Marshal.FreeHGlobal(ptr);
+                PassBytesToStreamInBlocks(stream, hashBytes, 4);
+            }
+            else if (currObj is Hash128)
+            {
+                byte[] hashBytes = new byte[16];
+                IntPtr ptr = Marshal.AllocHGlobal(16);
+                Marshal.StructureToPtr((Hash128)currObj, ptr, false);
+                Marshal.Copy(ptr, hashBytes, 0, 16);
+                Marshal.FreeHGlobal(ptr);
+                PassBytesToStreamInBlocks(stream, hashBytes, 4);
+            }
             else if (currObj.GetType().IsEnum)
             {
                 // Handle enums
@@ -264,7 +283,18 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 GetRawBytes(objStack, stream);
         }
 
-        internal static HashAlgorithm GetHashAlgorithm(Type type = null)
+        internal static HashAlgorithm GetHashAlgorithm()
+        {
+#if UNITY_2020_1_OR_NEWER
+            // New projects on 2021.1 will default useSpookyHash to true
+            // Upgraded projects will remain false until they choose to switch
+            return ScriptableBuildPipeline.useV2Hasher ? (HashAlgorithm)SpookyHash.Create() : new MD5CryptoServiceProvider();
+#else
+            return new MD5CryptoServiceProvider();
+#endif
+        }
+
+        internal static HashAlgorithm GetHashAlgorithm(Type type)
         {
             if (type == null)
             {
@@ -361,6 +391,53 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 rawHash = stream.GetHash();
             }
             return rawHash;
+        }
+
+        /// <summary>
+        /// Creates the hash for a pair of Hash128 objects.  Optimized specialization of the generic Calculate() methods that has been shown to be ~3x faster
+        /// The generic function uses reflection to obtain the four 32bit fields in the Hash128 which is slow, this function uses more direct byte access
+        /// </summary>
+        /// <param name="hash1">The first hash to combine</param>
+        /// <param name="hash2">The second hash to combine</param>
+        /// <returns>Returns the combined hash of the two hashes.</returns>
+        public static RawHash Calculate(Hash128 hash1, Hash128 hash2)
+        {
+            byte[] hashBytes = new byte[32];
+            IntPtr ptr = Marshal.AllocHGlobal(16);
+
+            Marshal.StructureToPtr(hash1, ptr, false);
+            Marshal.Copy(ptr, hashBytes, 0, 16);
+
+            Marshal.StructureToPtr(hash2, ptr, true);
+            Marshal.Copy(ptr, hashBytes, 16, 16);
+
+            Marshal.FreeHGlobal(ptr);
+
+            HashStream hashStream = new HashStream(GetHashAlgorithm());
+            PassBytesToStreamInBlocks(hashStream, hashBytes, 4);
+            return hashStream.GetHash();
+        }
+
+        /// <summary>
+        /// Send bytes from an array to a stream as a sequence of blocks
+        /// Not all hash algorithms behave the same passing data as one large block instead of multiple smaller ones so produce different hashes if
+        /// we pass a GUID or Hash128 as a single 16 byte block for example instead of the 4x4 byte blocks the generic hashing code produces for these types 
+        /// This function passes bytes from a buffer in chunks of a specified size to ensure we get the same hash from the same data in such cases
+        /// Our SpookyHash implementation suffers from this for example (see SpookyHash::Short()) while MD5 does not
+        /// </summary>
+        /// <param name="stream">Stream to write bytes to</param>
+        /// <param name="byteBlock">Array of bytes to pass to the stream, must be multiple of blockSizeBytes in size or an InvalidOperationException will be thrown</param>
+        /// <param name="blockSizeBytes">Number of bytes to write to the stream each time</param>
+        /// <returns></returns>
+        static void PassBytesToStreamInBlocks(Stream stream, byte[] bytesToWrite, int blockSizeBytes)
+        {
+            if ((bytesToWrite.Length % blockSizeBytes) != 0)
+                throw new InvalidOperationException($"PassBytesToStreamInBlocks() byte array size of {bytesToWrite.Length} is required to be a multiple of {blockSizeBytes} which it's not");
+
+            for (int offset = 0; offset < bytesToWrite.Length; offset += blockSizeBytes)
+            {
+                stream.Write(bytesToWrite, offset, blockSizeBytes);
+            }
         }
 
         /// <summary>

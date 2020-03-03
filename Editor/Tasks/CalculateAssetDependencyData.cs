@@ -177,16 +177,19 @@ namespace UnityEditor.Build.Pipeline.Tasks
         }
 
 #else
-        static internal void GatherAssetRepresentations(GUID asset, BuildTarget target, out ExtendedAssetData extendedData)
+        static internal void GatherAssetRepresentations(GUID asset, BuildTarget target, ObjectIdentifier[] includedObjects, out ExtendedAssetData extendedData)
         {
             extendedData = null;
+            var includeSet = new HashSet<ObjectIdentifier>(includedObjects);
+            // GetPlayerAssetRepresentations can return editor only objects, filter out those to only include what is in includedObjects
             ObjectIdentifier[] representations = ContentBuildInterface.GetPlayerAssetRepresentations(asset, target);
+            var filteredRepresentations = representations.Where(includeSet.Contains);
             // Main Asset always returns at index 0, we only want representations, so check for greater than 1 length
-            if (representations.IsNullOrEmpty() || representations.Length < 2)
+            if (representations.IsNullOrEmpty() || filteredRepresentations.Count() < 2)
                 return;
 
             extendedData = new ExtendedAssetData();
-            extendedData.Representations.AddRange(representations.Skip(1));
+            extendedData.Representations.AddRange(filteredRepresentations.Skip(1));
         }
 
 #endif
@@ -260,7 +263,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 #if !UNITY_2020_2_OR_NEWER
                     GatherAssetRepresentations(assetPath, input.EngineHooks.LoadAllAssetRepresentationsAtPath, includedObjects, out assetResult.extendedData);
 #else
-                    GatherAssetRepresentations(asset, input.Target, out assetResult.extendedData);
+                    GatherAssetRepresentations(asset, input.Target, includedObjects, out assetResult.extendedData);
 #endif
                     output.AssetResults[i] = assetResult;
                 }

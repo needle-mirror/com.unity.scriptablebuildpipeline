@@ -44,6 +44,11 @@ namespace UnityEditor.Build.Pipeline.Tests
             StringAssert.IsMatch($"assembly.*?{a.FullName}.*?preserve=\"all\"", input);
         }
 
+        public static void AssertAssemblyFullName(string input, string assemblyName)
+        {
+            StringAssert.IsMatch($"assembly.*?{assemblyName}", input);
+        }
+
         [Test]
         public void CreateDefault_Converts_ExpectedUnityEditorTypes()
         {
@@ -122,6 +127,8 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             var xml = ReadLinkXML(k_LinkFile, out int assemblyCount, out int typeCount);
             Assert.AreEqual(assemblyCount, 2);
+            AssertAssemblyFullName(xml, "FantasticAssembly");
+            AssertAssemblyFullName(xml, "SuperFantasticAssembly");
             Assert.AreEqual(typeCount,3);
             AssertTypeWithAttributePreserved(xml, "AwesomeNS.Foo");
             AssertTypeWithAttributePreserved(xml, "AwesomeNS.Bar");

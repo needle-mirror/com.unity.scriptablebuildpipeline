@@ -52,6 +52,8 @@ internal static class BuildCacheUtility
             entry.Hash = AssetDatabase.GetAssetDependencyHash(path);
             if (!entry.Hash.isValid && File.Exists(path))
                 entry.Hash = HashingMethods.CalculateFile(path).ToHash128();
+            if (path.EndsWith(".unity", StringComparison.OrdinalIgnoreCase))
+                entry.Hash = HashingMethods.Calculate(entry.Hash, BuildInterfacesWrapper.SceneCallbackVersionHash).ToHash128();
         }
 
         if (entry.Hash.isValid)

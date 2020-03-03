@@ -3,6 +3,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Injector;
@@ -12,6 +13,7 @@ using UnityEditor.Build.Pipeline.Utilities;
 using UnityEditor.Build.Pipeline.WriteTypes;
 using UnityEditor.Build.Player;
 using UnityEngine;
+using UnityEngine.Rendering;
 using static UnityEditor.Build.Pipeline.Utilities.BuildLog;
 
 namespace UnityEditor.Build.Pipeline.Tests
@@ -177,6 +179,20 @@ namespace UnityEditor.Build.Pipeline.Tests
         bool m_PreviousMipStripping;
         List<int> m_PreviousMasterTextureLimits = new List<int>();
 #endif
+        GraphicsDeviceType[] m_PreviousGraphicsAPIs;
+        bool m_PreviousUseDefaultGraphicsAPIs;
+
+#if UNITY_EDITOR_WIN
+        // NOTE: Direct3D12 is marked as experimental, so use Direct3D11 for the after test
+        GraphicsDeviceType[] m_PlatformAPIsBefore = { GraphicsDeviceType.Direct3D12, GraphicsDeviceType.Direct3D11 };
+        GraphicsDeviceType[] m_PlatformAPIsAfter = { GraphicsDeviceType.Direct3D11 };
+#elif UNITY_EDITOR_OSX
+        GraphicsDeviceType[] m_PlatformAPIsBefore = { GraphicsDeviceType.OpenGLCore, GraphicsDeviceType.Metal };
+        GraphicsDeviceType[] m_PlatformAPIsAfter = { GraphicsDeviceType.Metal };
+#elif UNITY_EDITOR_LINUX
+        GraphicsDeviceType[] m_PlatformAPIsBefore = { GraphicsDeviceType.OpenGLCore, GraphicsDeviceType.Vulkan };
+        GraphicsDeviceType[] m_PlatformAPIsAfter = { GraphicsDeviceType.Vulkan };
+#endif
 
         [SetUp]
         public void Setup()
@@ -192,6 +208,10 @@ namespace UnityEditor.Build.Pipeline.Tests
             m_PreviousMipStripping = PlayerSettings.mipStripping;
             PlayerSettings.mipStripping = false;
 #endif
+            m_PreviousUseDefaultGraphicsAPIs = PlayerSettings.GetUseDefaultGraphicsAPIs(EditorUserBuildSettings.activeBuildTarget);
+            PlayerSettings.SetUseDefaultGraphicsAPIs(EditorUserBuildSettings.activeBuildTarget, false);
+            m_PreviousGraphicsAPIs = PlayerSettings.GetGraphicsAPIs(EditorUserBuildSettings.activeBuildTarget);
+            PlayerSettings.SetGraphicsAPIs(EditorUserBuildSettings.activeBuildTarget, m_PlatformAPIsBefore);
 
             BuildCache.PurgeCache(false);
 
@@ -201,7 +221,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             m_BuildParameters = new TestBuildParameters();
             m_BuildParameters.UseCache = true;
             m_BuildParameters.TempOutputFolder = m_TestTempDir;
-            m_BuildParameters.TestBuildSettings = new BuildSettings();
+            m_BuildParameters.TestBuildSettings = new BuildSettings { target = EditorUserBuildSettings.activeBuildTarget };
             m_DependencyData = new TestDependencyData();
             m_WriteData = new TestWriteData();
             m_WriteData.TestOps = new List<IWriteOperation>();
@@ -225,6 +245,8 @@ namespace UnityEditor.Build.Pipeline.Tests
 #if UNITY_2020_1_OR_NEWER
             PlayerSettings.mipStripping = m_PreviousMipStripping;
 #endif
+            PlayerSettings.SetGraphicsAPIs(EditorUserBuildSettings.activeBuildTarget, m_PreviousGraphicsAPIs);
+            PlayerSettings.SetUseDefaultGraphicsAPIs(EditorUserBuildSettings.activeBuildTarget, m_PreviousUseDefaultGraphicsAPIs);
             m_Cache.Dispose();
         }
 
@@ -314,6 +336,7 @@ namespace UnityEditor.Build.Pipeline.Tests
 #if UNITY_2020_1_OR_NEWER
                 yield return new TestCaseData(true, new Action<WriteSerializedFileTests>((_this) => { _this.SetQualitySettings_MasterTextureLimits(1); PlayerSettings.mipStripping = true; })).SetName("MipStripping");
 #endif
+                yield return new TestCaseData(true, new Action<WriteSerializedFileTests>((_this) => { PlayerSettings.SetGraphicsAPIs(EditorUserBuildSettings.activeBuildTarget, _this.m_PlatformAPIsAfter); })).SetName("GraphicsAPIs");
             }
         }
 

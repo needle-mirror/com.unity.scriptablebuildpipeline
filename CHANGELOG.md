@@ -4,6 +4,14 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.17.0] - 2020-03-03
+- Added [VersionedCallback] attribute for flagging build impacting changes to IProcessScene, IProcessSceneWithReport, IPreprocessShaders, and IPreprocessComputeShaders callbacks.
+- Fixed an IndexOutOfRange exception thrown by the GenerateSubAssetPathMaps build task.
+- Added faster code paths for common hashing operations.
+- 2019.4+ added additional threading usage for saving BuildCache data.
+- Fixed an edge case where SerializeReference types used across assemblies were being code stripped incorrectly.
+- Fixed a false positive cache hit when changing Player Setting's Graphics APIs .
+
 ## [1.16.1] - 2020-01-27
 - Handling of communication error with cache server. Build will now continue, using the local cache only.
 - Regression fix for index out of range error on Unity 2018.4
@@ -11,6 +19,9 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [1.16.0] - 2020-10-29
 - Added caching support for DOTS Subscene building
 - Fixed an issue where DOTS Subscene lighting information was lost
+
+## [1.15.2] - 2021-01-20
+- Fixes for automated testing
 
 ## [1.15.1] - 2020-10-29
 - Added support for per type caching and incremental rebuild triggers

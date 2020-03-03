@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading;
+using System.Threading.Tasks;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Utilities;
@@ -243,30 +244,6 @@ namespace UnityEditor.Build.Pipeline.Utilities
             }
         }
 
-        static void Write(object data)
-        {
-            var ops = (FileOperations)data;
-            for (int index = 0; index < ops.data.Length; index++)
-            {
-                // Basic spin lock
-                ops.waitLock.WaitOne();
-                var op = ops.data[index];
-                if (op.bytes != null && op.bytes.Length > 0)
-                {
-                    try
-                    {
-                        Directory.CreateDirectory(Path.GetDirectoryName(op.file));
-                        File.WriteAllBytes(op.file, op.bytes.GetBuffer());
-                    }
-                    catch (Exception e)
-                    {
-                        BuildLogger.LogException(e);
-                    }
-                }
-            }
-            ((IDisposable)ops.waitLock).Dispose();
-        }
-
         /// <inheritdoc />
         public void LoadCachedData(IList<CacheEntry> entries, out IList<CachedInfo> cachedInfos)
         {
@@ -371,6 +348,105 @@ namespace UnityEditor.Build.Pipeline.Utilities
             }
         }
 
+#if UNITY_2019_4_OR_NEWER
+        // Newer Parallel.For concurrent method for 2019.4 and newer.  25% faster than the old two-thread serialize/write method
+
+        class SaveCachedDataTaskData
+        {
+            public Semaphore m_ReadyLock = new Semaphore(0, 1);
+            public Semaphore m_DoneLock = new Semaphore(0, 1);
+        }
+
+        static void SaveCachedDataTask(object data)
+        {
+            SaveCachedDataTaskData saveTaskData = (SaveCachedDataTaskData)data;
+
+            // Tell the SaveCachedData() function that our task has started, ThreadingManager ensures this can only happen after any queued prune tasks have completed
+            saveTaskData.m_ReadyLock.Release();
+
+            // Now wait until SaveCachedData() has finished serialising and writing files.  The presence of this task in the Save task queue will prevent any new prune tasks being queued
+            saveTaskData.m_DoneLock.WaitOne();
+        }
+
+        /// <inheritdoc />
+        public void SaveCachedData(IList<CachedInfo> infos)
+        {
+            if (infos == null || infos.Count == 0)
+                return;
+
+            using (m_Logger.ScopedStep(LogLevel.Info, "SaveCachedData"))
+            {
+                m_Logger.AddEntrySafe(LogLevel.Info, $"Saving {infos.Count} infos");
+
+                // Queue the Save task and wait until it actually starts executing.  This ensures any queued prune tasks finish before we start writing to the cache folder
+                SaveCachedDataTaskData taskData = new SaveCachedDataTaskData();
+                ThreadingManager.QueueTask(ThreadingManager.ThreadQueues.SaveQueue, SaveCachedDataTask, taskData);
+                taskData.m_ReadyLock.WaitOne();
+
+                using (m_Logger.ScopedStep(LogLevel.Info, "SerializingCacheInfos[" + infos.Count + "]"))
+                {
+                    Parallel.For(0, infos.Count, index =>
+                    {
+                        try
+                        {
+                            var formatter = new BinaryFormatter();
+                            var stream = new MemoryStream();
+                            formatter.Serialize(stream, infos[index]);
+                            if (stream.Length > 0)
+                            {
+                                // If we have a cache server connection, upload the cached data
+                                if (m_Uploader != null)
+                                    m_Uploader.QueueUpload(infos[index].Asset, GetCachedArtifactsDirectory(infos[index].Asset), new MemoryStream(stream.GetBuffer(), 0, (int)stream.Length, false));
+
+                                string cachedInfoFilepath = GetCachedInfoFile(infos[index].Asset);
+                                Directory.CreateDirectory(Path.GetDirectoryName(cachedInfoFilepath));
+
+                                using (FileStream fileStream = new FileStream(cachedInfoFilepath, FileMode.Create))
+                                {
+                                    fileStream.Write(stream.GetBuffer(), 0, (int)stream.Length);
+                                }
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            BuildLogger.LogException(e);
+                        }
+                    });
+                }
+
+                // Signal the Save task's SaveCachedDataTask() function that we are done so it can exit.  This will allow prune tasks to proceed once again
+                taskData.m_DoneLock.Release();
+            }
+        }
+
+#else   // !UNITY_2019_4_OR_NEWER
+        // Old two-thread serialize/write method for 2018.4 support.
+        // 2018.4 does not support us running serialization on threads other than the main thread due to functions being called in Unity that are not marked as thread safe in that version (GUIDToHexInternal() and SerializeToBinary() at least)
+
+        static void Write(object data)
+        {
+            var ops = (FileOperations)data;
+            for (int index = 0; index < ops.data.Length; index++)
+            {
+                // Basic spin lock
+                ops.waitLock.WaitOne();
+                var op = ops.data[index];
+                if (op.bytes != null && op.bytes.Length > 0)
+                {
+                    try
+                    {
+                        Directory.CreateDirectory(Path.GetDirectoryName(op.file));
+                        File.WriteAllBytes(op.file, op.bytes.GetBuffer());
+                    }
+                    catch (Exception e)
+                    {
+                        BuildLogger.LogException(e);
+                    }
+                }
+            }
+            ((IDisposable)ops.waitLock).Dispose();
+        }
+
         /// <inheritdoc />
         public void SaveCachedData(IList<CachedInfo> infos)
         {
@@ -424,6 +500,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 }
             }
         }
+#endif  // #if UNITY_2019_4_OR_NEWER
 
         internal void SyncPendingSaves()
         {

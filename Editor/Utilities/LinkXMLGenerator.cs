@@ -243,21 +243,25 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 var assembly = linker.AppendChild(doc.CreateElement("assembly"));
                 var attr = doc.CreateAttribute("fullname");
                 attr.Value = k.Key;
-                //Add content for this
-                foreach (var t in k.Value)
+                if (assembly.Attributes != null)
                 {
-                    var typeEl = assembly.AppendChild(doc.CreateElement("type"));
-                    var tattr = doc.CreateAttribute("fullname");
-                    tattr.Value = t;
-                    if (typeEl.Attributes != null)
+                    assembly.Attributes.Append(attr);
+                    //Add content for this
+                    foreach (var t in k.Value)
                     {
-                        typeEl.Attributes.Append(tattr);
-                        var pattr = doc.CreateAttribute("preserve");
-                        pattr.Value = "nothing";
-                        typeEl.Attributes.Append(pattr);
-                        var sattr = doc.CreateAttribute("serialized");
-                        sattr.Value = "true";
-                        typeEl.Attributes.Append(sattr);
+                        var typeEl = assembly.AppendChild(doc.CreateElement("type"));
+                        var tattr = doc.CreateAttribute("fullname");
+                        tattr.Value = t;
+                        if (typeEl.Attributes != null)
+                        {
+                            typeEl.Attributes.Append(tattr);
+                            var pattr = doc.CreateAttribute("preserve");
+                            pattr.Value = "nothing";
+                            typeEl.Attributes.Append(pattr);
+                            var sattr = doc.CreateAttribute("serialized");
+                            sattr.Value = "true";
+                            typeEl.Attributes.Append(sattr);
+                        }
                     }
                 }
             }

@@ -41,7 +41,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
         IBuildLogger m_Log;
 #pragma warning restore 649
 
-        static Hash128 GetPlayerSettingsHash128()
+        static Hash128 GetPlayerSettingsHash128(BuildTarget target)
         {
             return HashingMethods.Calculate(
                 PlayerSettings.stripUnusedMeshComponents,
@@ -49,6 +49,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 #if UNITY_2020_1_OR_NEWER
                 , PlayerSettings.mipStripping ? PlayerSettingsApi.GetNumberOfMipsStripped() : 0
 #endif
+                , PlayerSettings.GetGraphicsAPIs(target)
                 ).ToHash128();
         }
 
@@ -59,7 +60,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 var entry = new CacheEntry();
                 entry.Type = CacheEntry.EntryType.Data;
                 entry.Guid = HashingMethods.Calculate("WriteSerializedFiles", operation.Command.fileName).ToGUID();
-                entry.Hash = HashingMethods.Calculate(Version, operation.GetHash128(m_Log), settings.GetHash128(), globalUsage, onlySaveFirstSerializedObject, GetPlayerSettingsHash128()).ToHash128();
+                entry.Hash = HashingMethods.Calculate(Version, operation.GetHash128(m_Log), settings.GetHash128(), globalUsage, onlySaveFirstSerializedObject, GetPlayerSettingsHash128(settings.target)).ToHash128();
                 entry.Version = Version;
                 return entry;
             }

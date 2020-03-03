@@ -66,6 +66,7 @@ namespace UnityEditor.Build.Pipeline.WriteTypes
             using (log.ScopedStep(LogLevel.Verbose, $"Hashing Objects", Command.fileName))
                 hashes.Add(HashingMethods.Calculate(hashObjects).ToHash128());
             hashes.Add(DependencyHash);
+            hashes.Add(BuildInterfacesWrapper.ShaderCallbackVersionHash);
 
             return HashingMethods.Calculate(hashes).ToHash128();
         }
