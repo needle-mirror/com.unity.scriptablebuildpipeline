@@ -73,7 +73,7 @@ namespace UnityEditor.Build.Pipeline
             buildTasks.Add(new RebuildSpriteAtlasCache());
 
             // Player Scripts
-            //buildTasks.Add(new BuildPlayerScripts());
+            buildTasks.Add(new BuildPlayerScripts());
             buildTasks.Add(new PostScriptsCallback());
 
             // Dependency

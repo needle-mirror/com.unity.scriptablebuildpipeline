@@ -4,6 +4,9 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.6.5-preview] - 2020-03-06
+- Updated SBP DOTs preview version with latest SBP Release changes.
+
 ## [1.6.4-preview] - 2020-02-07
 - Updated SBP DOTs preview version with latest SBP Release changes.
 
@@ -21,6 +24,14 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 ## [1.6.0-preview] - 2019-09-09
 - Added support for DOTS SubScene Importer based asset bundles via ImportedContent property
 - Added support for adding custom raw files to asset bundles via AddionalFiles property
+
+## [1.5.10] - 2020-03-05
+- Fixed poor performance of GenerateBundleCommands with large data sets.
+
+## [1.5.9] - 2020-02-28
+- Updated CompatibilityAssetBundleManifest so hash version is properly serializable.
+- Renamed "Build Cache" options in the Preferences menu to "Scriptable Build Pipeline"
+- Improved performance of the Scriptable Build Pipeline's archiving task.
 
 ## [1.5.7] - 2020-02-07
 - Updated code to remove obsolete code when used with Unity 2020.1 and newer.

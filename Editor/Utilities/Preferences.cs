@@ -4,7 +4,7 @@ using System.Collections.Generic;
 
 namespace UnityEditor.Build.Pipeline.Utilities
 {
-    static class BuildCachePreferences
+    static class SBPPreferences
     {
         internal class GUIScope : GUI.Scope
         {
@@ -33,7 +33,9 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
         internal class BuildCacheProperties
         {
+            public static readonly GUIContent threadedArchiving = EditorGUIUtility.TrTextContent("Threaded Archiving", "Thread the archiving and compress build stage.");
             public static readonly GUIContent maxCacheSize = EditorGUIUtility.TrTextContent("Maximum Cache Size (GB)", "The size of the Build Cache folder will be kept below this maximum value when possible.");
+            public static readonly GUIContent buildCache = EditorGUIUtility.TrTextContent("Build Cache");
             public static readonly GUIContent purgeCache = EditorGUIUtility.TrTextContent("Purge Cache");
             public static readonly GUIContent pruneCache = EditorGUIUtility.TrTextContent("Prune Cache");
             public static readonly GUIContent cacheSizeIs = EditorGUIUtility.TrTextContent("Cache size is");
@@ -46,12 +48,12 @@ namespace UnityEditor.Build.Pipeline.Utilities
         [SettingsProvider]
         static SettingsProvider CreateBuildCacheProvider()
         {
-            var provider = new SettingsProvider("Preferences/Build Cache", SettingsScope.User, SettingsProvider.GetSearchKeywordsFromGUIContentProperties<BuildCacheProperties>());
+            var provider = new SettingsProvider("Preferences/Scriptable Build Pipeline", SettingsScope.User, SettingsProvider.GetSearchKeywordsFromGUIContentProperties<BuildCacheProperties>());
             provider.guiHandler = sarchContext => OnGUI();
             return provider;
         }
 #else
-        [PreferenceItem("Build Cache")]
+        [PreferenceItem("Scriptable Build Pipeline")]
 #endif
         static void OnGUI()
         {
@@ -61,6 +63,15 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
         static void DrawProperties()
         {
+#if UNITY_2019_3_OR_NEWER
+            bool threadedArchiving = EditorPrefs.GetBool("ScriptableBuildPipeline.threadedArchiving", true);
+            bool newThreadedArchiving = GUILayout.Toggle(threadedArchiving, BuildCacheProperties.threadedArchiving);
+            if (threadedArchiving != newThreadedArchiving)
+                EditorPrefs.SetBool("ScriptableBuildPipeline.threadedArchiving", newThreadedArchiving);
+#endif
+
+            GUILayout.Space(15);
+            GUILayout.Label(BuildCacheProperties.buildCache, EditorStyles.boldLabel);
             // Show Gigabytes to the user.
             const int kMinSizeInGigabytes = 1;
             const int kMaxSizeInGigabytes = 200;

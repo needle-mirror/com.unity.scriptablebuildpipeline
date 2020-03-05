@@ -155,7 +155,8 @@ namespace UnityEditor.Build.Pipeline.Tasks
 #endif
 
             {
-                sbOp.PreloadInfo = new PreloadInfo { preloadObjects = sceneInfo.referencedObjects.Where(x => !fileObjects.Contains(x)).ToList() };
+                var objectSet = new HashSet<ObjectIdentifier>(m_WriteData.FileToObjects[internalName]);
+                sbOp.PreloadInfo = new PreloadInfo { preloadObjects = sceneInfo.referencedObjects.Where(x => !objectSet.Contains(x)).ToList() };
             }
 
             {
@@ -197,8 +198,8 @@ namespace UnityEditor.Build.Pipeline.Tasks
 #endif
 
             {
-                sdOp.PreloadInfo = new PreloadInfo();
-                sdOp.PreloadInfo.preloadObjects = sceneInfo.referencedObjects.Where(x => !fileObjects.Contains(x)).ToList();
+                var objectSet = new HashSet<ObjectIdentifier>(m_WriteData.FileToObjects[internalName]);
+                sdOp.PreloadInfo = new PreloadInfo { preloadObjects = sceneInfo.referencedObjects.Where(x => !objectSet.Contains(x)).ToList() };
             }
 
             m_WriteData.WriteOperations.Add(sdOp);

@@ -15,7 +15,7 @@ namespace UnityEngine.Build.Pipeline
         uint m_Crc;
 
         [SerializeField]
-        Hash128 m_Hash;
+        string m_Hash;
 
         [SerializeField]
         string[] m_Dependencies;
@@ -45,8 +45,8 @@ namespace UnityEngine.Build.Pipeline
         /// </summary>
         public Hash128 Hash
         {
-            get { return m_Hash; }
-            set { m_Hash = value; }
+            get { return Hash128.Parse(m_Hash); }
+            set { m_Hash = value.ToString(); }
         }
 
         /// <summary>

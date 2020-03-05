@@ -398,7 +398,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 if (!EditorUtility.DisplayDialog("Purge Build Cache", "Do you really want to purge your entire build cache?", "Yes", "No"))
                     return;
 
-                EditorUtility.DisplayProgressBar(BuildCachePreferences.BuildCacheProperties.purgeCache.text, BuildCachePreferences.BuildCacheProperties.pleaseWait.text, 0.0F);
+                EditorUtility.DisplayProgressBar(SBPPreferences.BuildCacheProperties.purgeCache.text, SBPPreferences.BuildCacheProperties.pleaseWait.text, 0.0F);
                 Directory.Delete(k_CachePath, true);
                 EditorUtility.ClearProgressBar();
             }
@@ -423,7 +423,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             if (!EditorUtility.DisplayDialog("Prune Build Cache", string.Format("Current build cache currentCacheSize is {0}, which is over the prune threshold of {1}. Do you want to prune your build cache now?", EditorUtility.FormatBytes(currentCacheSize), EditorUtility.FormatBytes(maximumCacheSize)), "Yes", "No"))
                 return;
 
-            EditorUtility.DisplayProgressBar(BuildCachePreferences.BuildCacheProperties.pruneCache.text, BuildCachePreferences.BuildCacheProperties.pleaseWait.text, 0.0F);
+            EditorUtility.DisplayProgressBar(SBPPreferences.BuildCacheProperties.pruneCache.text, SBPPreferences.BuildCacheProperties.pleaseWait.text, 0.0F);
 
             PruneCacheFolders(maximumCacheSize, currentCacheSize, cacheFolders);
 
