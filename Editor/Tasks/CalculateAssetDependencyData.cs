@@ -113,6 +113,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                     var importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
                     if (importer != null && importer.textureType == TextureImporterType.Sprite)
                     {
+#if !UNITY_2020_1_OR_NEWER
                         // Legacy Sprite Packing Modes
                         if (EditorSettings.spritePackerMode == SpritePackerMode.AlwaysOn || EditorSettings.spritePackerMode == SpritePackerMode.BuildTimeOnly)
                         {
@@ -121,6 +122,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
                             importerData.SourceTexture = includedObjects.First();
                         }
                         else if (!referencedObjects.IsNullOrEmpty()) // Sprite is referencing packed data
+#else
+                        if (!referencedObjects.IsNullOrEmpty()) // Sprite is referencing packed data
+#endif
                         {
                             importerData = new SpriteImporterData();
                             importerData.PackedSprite = EditorSettings.spritePackerMode != SpritePackerMode.Disabled;

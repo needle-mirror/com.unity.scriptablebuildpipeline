@@ -4,6 +4,17 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.5.10] - 2020-03-13
+- Fixed issue where asset bundles in the build cache weren't having the correct bundle hash assigned to it. 
+
+## [1.5.9] - 2020-02-28
+- Updated CompatibilityAssetBundleManifest so hash version is properly serializable.
+- Renamed "Build Cache" options in the Preferences menu to "Scriptable Build Pipeline"
+- Improved performance of the Scriptable Build Pipeline's archiving task.
+
+## [1.5.7] - 2020-02-07
+- Updated code to remove obsolete code when used with Unity 2020.1 and newer.
+
 ## [1.5.6] - 2020-01-30
 - Fixed an issue where texture sources for non-packed sprites were being stripped incorrectly.
 
