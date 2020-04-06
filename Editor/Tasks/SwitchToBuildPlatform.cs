@@ -6,6 +6,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 {
     public class SwitchToBuildPlatform : IBuildTask
     {
+        /// <inheritdoc />
         public int Version { get { return 1; } }
 
 #pragma warning disable 649
@@ -13,9 +14,10 @@ namespace UnityEditor.Build.Pipeline.Tasks
         IBuildParameters m_Parameters;
 
         [InjectContext(ContextUsage.In, true)]
-        IBuildInterfacesWrapper m_InterfaceWrapper;
+        IEditorBuildCallbacks m_InterfaceWrapper;
 #pragma warning restore 649
 
+        /// <inheritdoc />
         public ReturnCode Run()
         {
             if (EditorUserBuildSettings.SwitchActiveBuildTarget(m_Parameters.Group, m_Parameters.Target))

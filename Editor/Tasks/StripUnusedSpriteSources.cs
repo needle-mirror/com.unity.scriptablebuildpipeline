@@ -8,6 +8,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 {
     public class StripUnusedSpriteSources : IBuildTask
     {
+        /// <inheritdoc />
         public int Version { get { return 2; } }
 
 #pragma warning disable 649
@@ -21,6 +22,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
         IBuildExtendedAssetData m_ExtendedAssetData;
 #pragma warning restore 649
 
+        /// <inheritdoc />
         public ReturnCode Run()
         {
             if (m_SpriteData == null || m_SpriteData.ImporterData.Count == 0)
@@ -47,7 +49,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             return ReturnCode.Success;
         }
 
-        public void SetOutputInformation(HashSet<ObjectIdentifier> unusedSources)
+        void SetOutputInformation(HashSet<ObjectIdentifier> unusedSources)
         {
             foreach (var source in unusedSources)
             {

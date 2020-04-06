@@ -24,7 +24,6 @@ namespace UnityEditor.Build.Pipeline
         /// Constructs and returns an IList containing the build tasks in the correct order for the preset build pipeline.
         /// </summary>
         /// <param name="preset">The preset build pipeline to construct and return.</param>
-        /// <param name="compileScripts">The boolean to allow bypassing script compilation of a preset build pipeline if supported.</param>
         /// <returns>IList containing the build tasks in the correct order for the preset build pipeline.</returns>
         public static IList<IBuildTask> Create(Preset preset)
         {
@@ -78,7 +77,9 @@ namespace UnityEditor.Build.Pipeline
 
             // Dependency
             buildTasks.Add(new CalculateSceneDependencyData());
+#if UNITY_2019_3_OR_NEWER
             buildTasks.Add(new CalculateCustomDependencyData());
+#endif
             buildTasks.Add(new CalculateAssetDependencyData());
             buildTasks.Add(new StripUnusedSpriteSources());
             buildTasks.Add(new PostDependencyCallback());
@@ -116,6 +117,9 @@ namespace UnityEditor.Build.Pipeline
 
             // Dependency
             buildTasks.Add(new CalculateSceneDependencyData());
+#if UNITY_2019_3_OR_NEWER
+            buildTasks.Add(new CalculateCustomDependencyData());
+#endif
             buildTasks.Add(new CalculateAssetDependencyData());
             buildTasks.Add(new StripUnusedSpriteSources());
             buildTasks.Add(new CreateBuiltInShadersBundle("UnityBuiltInShaders.bundle"));

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
@@ -24,6 +25,9 @@ namespace UnityEditor.Build.Pipeline.Utilities
         Dictionary<KeyValuePair<string, int>, CacheEntry> m_PathToHash = new Dictionary<KeyValuePair<string, int>, CacheEntry>();
 
         Thread m_ActiveWriteThread;
+
+        [NonSerialized]
+        IBuildLogger m_Logger;
 
         [NonSerialized]
         Hash128 m_GlobalHash;
@@ -153,19 +157,49 @@ namespace UnityEditor.Build.Pipeline.Utilities
             return entry;
         }
 
+        internal bool LogCacheMiss(string msg)
+        {
+            if (!ScriptableBuildPipeline.logCacheMiss)
+                return false;
+            m_Logger.AddEntrySafe(LogLevel.Warning, msg);
+            UnityEngine.Debug.LogWarning(msg);
+            return true;
+        }
+
         /// <inheritdoc />
         public bool HasAssetOrDependencyChanged(CachedInfo info)
         {
-            if (info == null || !info.Asset.IsValid() || info.Asset != GetUpdatedCacheEntry(info.Asset))
+            if (info == null || !info.Asset.IsValid())
                 return true;
+
+            var result = false;
+            var updatedEntry = GetUpdatedCacheEntry(info.Asset);
+            if (info.Asset != updatedEntry)
+            {
+                if (!LogCacheMiss($"[Cache Miss]: Source asset changed.\nOld: {info.Asset}\nNew: {updatedEntry}"))
+                    return true;
+                result = true;
+            }
 
             foreach (var dependency in info.Dependencies)
             {
-                if (!dependency.IsValid() || dependency != GetUpdatedCacheEntry(dependency))
-                    return true;
+                if (!dependency.IsValid())
+                {
+                    if (!LogCacheMiss($"[Cache Miss]: Dependency is no longer valid.\nAsset: {info.Asset}\nDependency: {dependency}"))
+                        return true;
+                    result = true;
+                }
+
+                updatedEntry = GetUpdatedCacheEntry(dependency);
+                if (dependency != GetUpdatedCacheEntry(updatedEntry))
+                {
+                    if (!LogCacheMiss($"[Cache Miss]: Dependency changed.\nAsset: {info.Asset}\nOld: {dependency}\nNew: {updatedEntry}"))
+                        return true;
+                    result = true;
+                }
             }
 
-            return false;
+            return result;
         }
 
         /// <inheritdoc />
@@ -265,56 +299,87 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 return;
             }
 
-            // Setup Operations
-            var ops = new FileOperations(entries.Count);
-            for (int i = 0; i < entries.Count; i++)
+            using (m_Logger.ScopedStep(LogLevel.Info, "LoadCachedData"))
             {
-                var op = ops.data[i];
-                op.file = GetCachedInfoFile(entries[i]);
-                ops.data[i] = op;
-            }
-
-            // Start file reading
-            Thread thread = new Thread(Read);
-            thread.Start(ops);
-
-            cachedInfos = new List<CachedInfo>(entries.Count);
-
-            // Deserialize as files finish reading
-            var formatter = new BinaryFormatter();
-            for (int index = 0; index < entries.Count; index++)
-            {
-                // Basic wait lock
-                ops.waitLock.WaitOne();
-
-                CachedInfo info = null;
-                try
+                m_Logger.AddEntrySafe(LogLevel.Info, $"{entries.Count} items");
+                // Setup Operations
+                var ops = new FileOperations(entries.Count);
+                using (m_Logger.ScopedStep(LogLevel.Info, "GetCachedInfoFile"))
                 {
-                    var op = ops.data[index];
-                    if (op.bytes != null && op.bytes.Length > 0)
-                        info = formatter.Deserialize(op.bytes) as CachedInfo;
+                    for (int i = 0; i < entries.Count; i++)
+                    {
+                        var op = ops.data[i];
+                        op.file = GetCachedInfoFile(entries[i]);
+                        ops.data[i] = op;
+                    }
                 }
-                catch (Exception e)
+
+                using (m_Logger.ScopedStep(LogLevel.Info, "Read and deserialize cache info"))
                 {
-                    BuildLogger.LogException(e);
+                    // Start file reading
+                    Thread thread = new Thread(Read);
+                    thread.Start(ops);
+
+                    cachedInfos = new List<CachedInfo>(entries.Count);
+
+                    // Deserialize as files finish reading
+                    Stopwatch deserializeTimer = Stopwatch.StartNew();
+                    var formatter = new BinaryFormatter();
+                    int cachedCount = 0;
+                    for (int index = 0; index < entries.Count; index++)
+                    {
+                        // Basic wait lock
+                        if (!ops.waitLock.WaitOne(0))
+                        {
+                            deserializeTimer.Stop();
+                            ops.waitLock.WaitOne();
+                            deserializeTimer.Start();
+                        }
+
+                        CachedInfo info = null;
+                        try
+                        {
+                            var op = ops.data[index];
+                            if (op.bytes != null && op.bytes.Length > 0)
+                            {
+                                info = formatter.Deserialize(op.bytes) as CachedInfo;
+                                cachedCount++;
+                            }
+                            else
+                                LogCacheMiss($"[Cache Miss]: Missing cache entry.\nEntry: {entries[index]}");
+                        }
+                        catch (Exception e)
+                        {
+                            BuildLogger.LogException(e);
+                        }
+                        cachedInfos.Add(info);
+                    }
+                    thread.Join();
+                    ((IDisposable)ops.waitLock).Dispose();
+
+                    deserializeTimer.Stop();
+                    m_Logger.AddEntrySafe(LogLevel.Info, $"Time spent deserializing: {deserializeTimer.ElapsedMilliseconds}ms");
+                    m_Logger.AddEntrySafe(LogLevel.Info, $"Cache hit count: {cachedCount}");
                 }
-                cachedInfos.Add(info);
+
+                using (m_Logger.ScopedStep(LogLevel.Info, "Check for changed dependencies"))
+                {
+                    for (int i = 0; i < cachedInfos.Count; i++)
+                    {
+                        if (HasAssetOrDependencyChanged(cachedInfos[i]))
+                            cachedInfos[i] = null;
+                    }
+                }
+
+                // If we have a cache server connection, download & check any missing info
+                if (m_Downloader != null)
+                {
+                    using (m_Logger.ScopedStep(LogLevel.Info, "Download Missing Entries"))
+                        m_Downloader.DownloadMissing(entries, cachedInfos);
+                }
+
+                Assert.AreEqual(entries.Count, cachedInfos.Count);
             }
-            thread.Join();
-            ((IDisposable)ops.waitLock).Dispose();
-
-            // Validate cached data is reusable
-            for (int i = 0; i < cachedInfos.Count; i++)
-            {
-                if (HasAssetOrDependencyChanged(cachedInfos[i]))
-                    cachedInfos[i] = null;
-            }
-
-            // If we have a cache server connection, download & check any missing info
-            if (m_Downloader != null)
-                m_Downloader.DownloadMissing(entries, cachedInfos);
-
-            Assert.AreEqual(entries.Count, cachedInfos.Count);
         }
 
         /// <inheritdoc />
@@ -323,42 +388,52 @@ namespace UnityEditor.Build.Pipeline.Utilities
             if (infos == null || infos.Count == 0)
                 return;
 
-            // Setup Operations
-            var ops = new FileOperations(infos.Count);
-            for (int i = 0; i < infos.Count; i++)
+            using (m_Logger.ScopedStep(LogLevel.Info, $"SaveCachedData"))
             {
-                var op = ops.data[i];
-                op.file = GetCachedInfoFile(infos[i].Asset);
-                ops.data[i] = op;
-            }
-
-            // Start writing thread
-            SyncPendingSaves();
-            m_ActiveWriteThread = new Thread(Write);
-            m_ActiveWriteThread.Start(ops);
-
-            // Serialize data as previous data is being written out
-            var formatter = new BinaryFormatter();
-            for (int index = 0; index < infos.Count; index++, ops.waitLock.Release())
-            {
-                try
+                m_Logger.AddEntrySafe(LogLevel.Info, $"Saving {infos.Count} infos");
+                // Setup Operations
+                var ops = new FileOperations(infos.Count);
+                using (m_Logger.ScopedStep(LogLevel.Info, "SetupOperations"))
                 {
-                    var op = ops.data[index];
-                    var stream = new MemoryStream();
-                    formatter.Serialize(stream, infos[index]);
-                    if (stream.Length > 0)
+                    for (int i = 0; i < infos.Count; i++)
                     {
-                        op.bytes = stream;
-                        ops.data[index] = op;
-
-                        // If we have a cache server connection, upload the cached data
-                        if (m_Uploader != null)
-                            m_Uploader.QueueUpload(infos[index].Asset, GetCachedArtifactsDirectory(infos[index].Asset), new MemoryStream(stream.GetBuffer(), false));
+                        var op = ops.data[i];
+                        op.file = GetCachedInfoFile(infos[i].Asset);
+                        ops.data[i] = op;
                     }
                 }
-                catch (Exception e)
+
+                // Start writing thread
+                SyncPendingSaves();
+                m_ActiveWriteThread = new Thread(Write);
+                m_ActiveWriteThread.Start(ops);
+
+                using (m_Logger.ScopedStep(LogLevel.Info, "SerializingCacheInfos"))
                 {
-                    BuildLogger.LogException(e);
+                    // Serialize data as previous data is being written out
+                    var formatter = new BinaryFormatter();
+                    for (int index = 0; index < infos.Count; index++, ops.waitLock.Release())
+                    {
+                        try
+                        {
+                            var op = ops.data[index];
+                            var stream = new MemoryStream();
+                            formatter.Serialize(stream, infos[index]);
+                            if (stream.Length > 0)
+                            {
+                                op.bytes = stream;
+                                ops.data[index] = op;
+
+                                // If we have a cache server connection, upload the cached data
+                                if (m_Uploader != null)
+                                    m_Uploader.QueueUpload(infos[index].Asset, GetCachedArtifactsDirectory(infos[index].Asset), new MemoryStream(stream.GetBuffer(), false));
+                            }
+                        }
+                        catch (Exception e)
+                        {
+                            BuildLogger.LogException(e);
+                        }
+                    }
                 }
             }
         }
@@ -367,7 +442,8 @@ namespace UnityEditor.Build.Pipeline.Utilities
         {
             if (m_ActiveWriteThread != null)
             {
-                m_ActiveWriteThread.Join();
+                using (m_Logger.ScopedStep(LogLevel.Info, "SyncPendingSaves"))
+                    m_ActiveWriteThread.Join();
                 m_ActiveWriteThread = null;
             }
         }
@@ -389,7 +465,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             if (!Directory.Exists(k_CachePath))
             {
                 if (prompt)
-                    Debug.Log("Current build cache is empty.");
+                    UnityEngine.Debug.Log("Current build cache is empty.");
                 return;
             }
 
@@ -398,7 +474,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 if (!EditorUtility.DisplayDialog("Purge Build Cache", "Do you really want to purge your entire build cache?", "Yes", "No"))
                     return;
 
-                EditorUtility.DisplayProgressBar(SBPPreferences.BuildCacheProperties.purgeCache.text, SBPPreferences.BuildCacheProperties.pleaseWait.text, 0.0F);
+                EditorUtility.DisplayProgressBar(ScriptableBuildPipeline.Properties.purgeCache.text, ScriptableBuildPipeline.Properties.pleaseWait.text, 0.0F);
                 Directory.Delete(k_CachePath, true);
                 EditorUtility.ClearProgressBar();
             }
@@ -408,7 +484,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
         public static void PruneCache()
         {
-            int maximumSize = EditorPrefs.GetInt("BuildCache.maximumSize", 200);
+            int maximumSize = ScriptableBuildPipeline.maximumCacheSize;
             long maximumCacheSize = maximumSize * 1073741824L; // gigabytes to bytes
 
             // Get sizes based on common directory root for a guid / hash
@@ -416,14 +492,14 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
             if (currentCacheSize < maximumCacheSize)
             {
-                Debug.LogFormat("Current build cache currentCacheSize {0}, prune threshold {1} GB. No prune performed. You can change this value in the \"Edit/Preferences...\" window.", EditorUtility.FormatBytes(currentCacheSize), maximumSize);
+                UnityEngine.Debug.LogFormat("Current build cache currentCacheSize {0}, prune threshold {1} GB. No prune performed. You can change this value in the \"Edit/Preferences...\" window.", EditorUtility.FormatBytes(currentCacheSize), maximumSize);
                 return;
             }
 
             if (!EditorUtility.DisplayDialog("Prune Build Cache", string.Format("Current build cache currentCacheSize is {0}, which is over the prune threshold of {1}. Do you want to prune your build cache now?", EditorUtility.FormatBytes(currentCacheSize), EditorUtility.FormatBytes(maximumCacheSize)), "Yes", "No"))
                 return;
 
-            EditorUtility.DisplayProgressBar(SBPPreferences.BuildCacheProperties.pruneCache.text, SBPPreferences.BuildCacheProperties.pleaseWait.text, 0.0F);
+            EditorUtility.DisplayProgressBar(ScriptableBuildPipeline.Properties.pruneCache.text, ScriptableBuildPipeline.Properties.pleaseWait.text, 0.0F);
 
             PruneCacheFolders(maximumCacheSize, currentCacheSize, cacheFolders);
 
@@ -475,6 +551,12 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 if (currentCacheSize < maximumCacheSize)
                     break;
             }
+        }
+
+        // TODO: Add to IBuildCache interface when IBuildLogger becomes public
+        internal void SetBuildLogger(IBuildLogger profiler)
+        {
+            m_Logger = profiler;
         }
     }
 }

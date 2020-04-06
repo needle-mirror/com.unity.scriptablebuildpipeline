@@ -4,6 +4,14 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.7.2] - 2020-04-07
+- Merged in DOTS specific functionality into SBP core.
+- Scriptable Build Pipeline settings now stored in ProjectSettings/ScriptableBuildPipeline.json
+- Added option to remove extended debugging information from WriteResults before caching for better cache performance
+- Added option to log Cache Misses to the console
+- Switched to SpookyHash for Unity 2019.3 and higher for most hashing methods to edge out just a bit more performance
+- Added multi-threading support to the archive and compress task
+
 ## [1.6.5-preview] - 2020-03-06
 - Updated SBP DOTs preview version with latest SBP Release changes.
 
@@ -25,8 +33,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Added support for DOTS SubScene Importer based asset bundles via ImportedContent property
 - Added support for adding custom raw files to asset bundles via AddionalFiles property
 
-## [1.5.10] - 2020-03-05
+## [1.5.11] - 2020-03-05
 - Fixed poor performance of GenerateBundleCommands with large data sets.
+
+## [1.5.10] - 2020-03-13
+- Fixed issue where asset bundles in the build cache weren't having the correct bundle hash assigned to it. 
 
 ## [1.5.9] - 2020-02-28
 - Updated CompatibilityAssetBundleManifest so hash version is properly serializable.

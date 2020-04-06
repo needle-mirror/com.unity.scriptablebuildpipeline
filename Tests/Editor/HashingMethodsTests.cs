@@ -1,7 +1,8 @@
-﻿using System;
+﻿using NUnit.Framework;
+using System;
 using System.Collections.Generic;
 using System.IO;
-using NUnit.Framework;
+using System.Security.Cryptography;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Utilities;
 
@@ -34,14 +35,14 @@ namespace UnityEditor.Build.Pipeline.Tests
             for (var i = 0; i < 5; i++)
                 Assert.AreEqual(expectedNames[i], HashingMethods.Calculate<MD4>(sourceNames[i]).ToString());
         }
-        
+
         [Test]
         public void CSharpMD4GeneratesCppMD4IdenticalFileIDs()
         {
             Assert.AreEqual(-7588530676450950513, BitConverter.ToInt64(HashingMethods.Calculate<MD4>("fb3a9882e5510684697de78116693750", FileType.MetaAssetType, (long)21300000).ToBytes(), 0));
             Assert.AreEqual(-8666180608703991793, BitConverter.ToInt64(HashingMethods.Calculate<MD4>("library/atlascache/27/2799803afb660251e3b3049ba37cb15a", (long)2).ToBytes(), 0));
         }
-        
+
         [Test]
         public void HashingMethodsCanConsumeArrays()
         {
@@ -57,7 +58,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             // Use cast so it doesn't automatically expand the array to params object[] objects
             Assert.AreEqual("99944412d5093e431ba7ccdaf48f44f3", HashingMethods.Calculate<MD4>((object)sourceNames).ToString());
         }
-        
+
         [Test]
         public void HashingMethodsCanConsumeLists()
         {
@@ -69,10 +70,10 @@ namespace UnityEditor.Build.Pipeline.Tests
                 "shaderwithcollection",
                 "multi_sprite_packed"
             };
-            
+
             Assert.AreEqual("99944412d5093e431ba7ccdaf48f44f3", HashingMethods.Calculate<MD4>(sourceNames).ToString());
         }
-        
+
         [Test]
         public void HashingMethodsCanConsumeHashSet()
         {
@@ -84,10 +85,10 @@ namespace UnityEditor.Build.Pipeline.Tests
                 "shaderwithcollection",
                 "multi_sprite_packed"
             };
-            
+
             Assert.AreEqual("99944412d5093e431ba7ccdaf48f44f3", HashingMethods.Calculate<MD4>(sourceNames).ToString());
         }
-        
+
         [Test]
         public void HashingMethodsCanConsumeDictionaries()
         {
@@ -96,10 +97,10 @@ namespace UnityEditor.Build.Pipeline.Tests
                 { "basic_sprite", "audio" },
                 { "prefabs", "shaderwithcollection" }
             };
-            
+
             Assert.AreEqual("34392e04ec079d34cd861df956db2099", HashingMethods.Calculate<MD4>(sourceNames).ToString());
         }
-        
+
         [Test]
         public void CalculateStreamCanUseOffsets()
         {
@@ -116,6 +117,24 @@ namespace UnityEditor.Build.Pipeline.Tests
 
                 Assert.AreNotEqual(hash1.ToString(), hash2.ToString());
             }
+        }
+
+        [Test]
+        public void HashingMethodsGenerateEqualHashes()
+        {
+            var hash1 = HashingMethods.Calculate<MD4>("HashingMethodsGenerateEqualHashes");
+            var hash2 = HashingMethods.Calculate<MD4>("HashingMethodsGenerateEqualHashes");
+            Assert.IsTrue(hash1.Equals(hash2));
+
+            hash1 = HashingMethods.Calculate<MD5>("HashingMethodsGenerateEqualHashes");
+            hash2 = HashingMethods.Calculate<MD5>("HashingMethodsGenerateEqualHashes");
+            Assert.IsTrue(hash1.Equals(hash2));
+
+#if UNITY_2019_3_OR_NEWER
+            hash1 = HashingMethods.Calculate<SpookyHash>("HashingMethodsGenerateEqualHashes");
+            hash2 = HashingMethods.Calculate<SpookyHash>("HashingMethodsGenerateEqualHashes");
+            Assert.IsTrue(hash1.Equals(hash2));
+#endif
         }
     }
 }

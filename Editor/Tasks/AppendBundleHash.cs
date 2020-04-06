@@ -7,6 +7,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 {
     public class AppendBundleHash : IBuildTask
     {
+        /// <inheritdoc />
         public int Version { get { return 1; } }
 
 #pragma warning disable 649
@@ -17,6 +18,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
         IBundleBuildResults m_Results;
 #pragma warning restore 649
 
+        /// <inheritdoc />
         public ReturnCode Run()
         {
             if (!m_Parameters.AppendHash)

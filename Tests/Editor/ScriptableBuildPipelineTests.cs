@@ -40,6 +40,7 @@ namespace UnityEditor.Build.Pipeline.Tests
 #else
             PrefabUtility.CreatePrefab(k_CubePath, GameObject.CreatePrimitive(PrimitiveType.Cube));
 #endif
+            AssetDatabase.ImportAsset(k_CubePath);
         }
 
         [OneTimeTearDown]
@@ -76,7 +77,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             Directory.CreateDirectory(k_FolderPath);
             Directory.CreateDirectory(k_TmpPath);
 
-            IBundleBuildParameters buildParams = new BundleBuildParameters(EditorUserBuildSettings.activeBuildTarget, BuildTargetGroup.Unknown, k_FolderPath);
+            IBundleBuildParameters buildParams = new BundleBuildParameters(EditorUserBuildSettings.activeBuildTarget, EditorUserBuildSettings.selectedBuildTargetGroup, k_FolderPath);
             buildParams.TempOutputFolder = k_TmpPath;
             return buildParams;
         }
@@ -419,6 +420,39 @@ namespace UnityEditor.Build.Pipeline.Tests
             var cacheVersion2 = op.GetHash128();
 
             Assert.AreNotEqual(cacheVersion1, cacheVersion2);
+        }
+
+        [Test]
+        public void BuildAssetBundles_WhenNoBuildInContextLog_CreatesPerformanceLogReport()
+        {
+            IBundleBuildParameters buildParameters = GetBuildParameters();
+            IBundleBuildContent buildContent = GetBundleContent();
+            IBundleBuildResults results;
+
+            buildParameters.Group = EditorUserBuildSettings.selectedBuildTargetGroup;
+
+            ContentPipeline.BuildAssetBundles(buildParameters, buildContent, out results);
+
+            string buildLog = buildParameters.GetOutputFilePathForIdentifier("buildlog.txt");
+            string tepBuildLog = buildParameters.GetOutputFilePathForIdentifier("buildlogtep.json");
+            FileAssert.Exists(buildLog);
+            FileAssert.Exists(tepBuildLog);
+        }
+
+        [Test]
+        public void BuildAssetBundles_WhenBuildLogProvided_DoesNotCreatePerformanceLogReport()
+        {
+            IBundleBuildParameters buildParameters = GetBuildParameters();
+            IBundleBuildContent buildContent = GetBundleContent();
+            IBundleBuildResults results;
+
+            var taskList = DefaultBuildTasks.Create(DefaultBuildTasks.Preset.AssetBundleCompatible);
+            ContentPipeline.BuildAssetBundles(buildParameters, buildContent, out results, taskList, new BuildLog());
+
+            string buildLog = buildParameters.GetOutputFilePathForIdentifier("buildlog.txt");
+            string tepBuildLog = buildParameters.GetOutputFilePathForIdentifier("buildlogtep.json");
+            FileAssert.DoesNotExist(buildLog);
+            FileAssert.DoesNotExist(tepBuildLog);
         }
     }
 }

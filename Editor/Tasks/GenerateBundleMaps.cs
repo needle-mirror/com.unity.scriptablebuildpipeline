@@ -9,6 +9,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 {
     public class GenerateBundleMaps : IBuildTask
     {
+        /// <inheritdoc />
         public int Version { get { return 1; } }
 
 #pragma warning disable 649
@@ -19,6 +20,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
         IBundleWriteData m_WriteData;
 #pragma warning restore 649
 
+        /// <inheritdoc />
         public ReturnCode Run()
         {
             Dictionary<string, WriteCommand> fileToCommand = m_WriteData.WriteOperations.ToDictionary(x => x.Command.internalName, x => x.Command);

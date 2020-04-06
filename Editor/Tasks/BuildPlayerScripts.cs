@@ -7,6 +7,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 {
     public class BuildPlayerScripts : IBuildTask
     {
+        /// <inheritdoc />
         public int Version { get { return 1; } }
 
 #pragma warning disable 649
@@ -17,6 +18,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
         IBuildResults m_Results;
 #pragma warning restore 649
 
+        /// <inheritdoc />
         public ReturnCode Run()
         {
             if (m_Parameters.ScriptInfo != null)

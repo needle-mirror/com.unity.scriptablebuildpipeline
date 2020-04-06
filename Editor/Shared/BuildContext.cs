@@ -11,7 +11,7 @@ namespace UnityEditor.Build.Pipeline
     /// </summary>
     public class BuildContext : IBuildContext
     {
-        Dictionary<Type, IContextObject> m_ContextObjects;
+        internal Dictionary<Type, IContextObject> m_ContextObjects;
 
         /// <summary>
         /// Default constructor

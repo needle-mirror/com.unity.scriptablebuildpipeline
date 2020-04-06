@@ -2,7 +2,7 @@
 
 namespace UnityEditor.Build.Profiler
 {
-    public class BuildProfiler
+    internal class BuildProfiler
     {
         Stopwatch[] m_Trackers;
         long[] m_CallCount;

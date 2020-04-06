@@ -9,11 +9,12 @@ using UnityEngine;
 namespace UnityEditor.Build.Pipeline.Tasks
 {
     /// <summary>
-    /// Optional build task that extracts Unity's built in shaders and assigns them to the specified bundle 
+    /// Optional build task that extracts Unity's built in shaders and assigns them to the specified bundle
     /// </summary>
     public class CreateBuiltInShadersBundle : IBuildTask
     {
         static readonly GUID k_BuiltInGuid = new GUID("0000000000000000f000000000000000");
+        /// <inheritdoc />
         public int Version { get { return 1; } }
 
 #pragma warning disable 649
@@ -31,6 +32,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             ShaderBundleName = bundleName;
         }
 
+        /// <inheritdoc />
         public ReturnCode Run()
         {
             HashSet<ObjectIdentifier> buildInObjects = new HashSet<ObjectIdentifier>();

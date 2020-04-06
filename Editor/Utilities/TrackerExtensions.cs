@@ -3,7 +3,7 @@ using UnityEditor.Build.Pipeline.Interfaces;
 
 namespace UnityEditor.Build.Pipeline.Utilities
 {
-    public static class TrackerExtensions
+    internal static class TrackerExtensions
     {
         public static string HumanReadable(this string camelCased)
         {

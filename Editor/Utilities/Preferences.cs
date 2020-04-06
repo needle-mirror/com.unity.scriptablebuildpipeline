@@ -1,19 +1,21 @@
 ﻿using UnityEngine;
 using System.Threading;
 using System.Collections.Generic;
+using System.IO;
+using UnityEditor.Build.Pipeline.Tasks;
 
 namespace UnityEditor.Build.Pipeline.Utilities
 {
-    static class SBPPreferences
+    static class ScriptableBuildPipeline
     {
-        internal class GUIScope : GUI.Scope
+        private class GUIScope : GUI.Scope
         {
             float m_LabelWidth;
             public GUIScope(float layoutMaxWidth)
             {
                 m_LabelWidth = EditorGUIUtility.labelWidth;
-                EditorGUIUtility.labelWidth = 200;
-                GUILayout.BeginHorizontal(GUILayout.MaxWidth(layoutMaxWidth));
+                EditorGUIUtility.labelWidth = 250;
+                GUILayout.BeginHorizontal();
                 GUILayout.Space(10);
                 GUILayout.BeginVertical();
                 GUILayout.Space(15);
@@ -31,9 +33,12 @@ namespace UnityEditor.Build.Pipeline.Utilities
             }
         }
 
-        internal class BuildCacheProperties
+        internal class Properties
         {
+            public static readonly GUIContent generalSettings = EditorGUIUtility.TrTextContent("General Settings");
             public static readonly GUIContent threadedArchiving = EditorGUIUtility.TrTextContent("Threaded Archiving", "Thread the archiving and compress build stage.");
+            public static readonly GUIContent logCacheMiss = EditorGUIUtility.TrTextContent("Log Cache Miss", "Log a warning on build cache misses. Warning will contain which asset and dependency caused the miss.");
+            public static readonly GUIContent slimWriteResults = EditorGUIUtility.TrTextContent("Slim Write Results", "Reduces the caching of WriteResults data down to the bare minimum for improved cache performance.");
             public static readonly GUIContent maxCacheSize = EditorGUIUtility.TrTextContent("Maximum Cache Size (GB)", "The size of the Build Cache folder will be kept below this maximum value when possible.");
             public static readonly GUIContent buildCache = EditorGUIUtility.TrTextContent("Build Cache");
             public static readonly GUIContent purgeCache = EditorGUIUtility.TrTextContent("Purge Cache");
@@ -44,11 +49,54 @@ namespace UnityEditor.Build.Pipeline.Utilities
             public static long currentCacheSize = -1;
         }
 
+        [System.Serializable]
+        internal class Settings
+        {
+            public bool threadedArchiving = true;
+            public bool logCacheMiss = false;
+            public bool slimWriteResults = true;
+            public int maximumCacheSize = 200;
+        }
+
+        internal static Settings s_Settings = new Settings();
+
+        public static bool threadedArchiving => s_Settings.threadedArchiving;
+
+        public static bool logCacheMiss => s_Settings.logCacheMiss;
+        public static bool slimWriteResults => s_Settings.slimWriteResults;
+        public static int maximumCacheSize => s_Settings.maximumCacheSize;
+
+        internal static void LoadSettings()
+        {
+            // Load old settings
+            s_Settings.threadedArchiving = EditorPrefs.GetBool("ScriptableBuildPipeline.threadedArchiving", s_Settings.threadedArchiving);
+            s_Settings.logCacheMiss = EditorPrefs.GetBool("ScriptableBuildPipeline.logCacheMiss", s_Settings.logCacheMiss);
+            s_Settings.maximumCacheSize = EditorPrefs.GetInt("BuildCache.maximumSize", s_Settings.maximumCacheSize);
+
+            // Load new settings from Json
+            if (File.Exists("ProjectSettings/ScriptableBuildPipeline.json"))
+            {
+                var json = File.ReadAllText("ProjectSettings/ScriptableBuildPipeline.json");
+                EditorJsonUtility.FromJsonOverwrite(json, s_Settings);
+            }
+        }
+
+        internal static void SaveSettings()
+        {
+            var json = EditorJsonUtility.ToJson(s_Settings, true);
+            File.WriteAllText("ProjectSettings/ScriptableBuildPipeline.json", json);
+        }
+
+        static ScriptableBuildPipeline()
+        {
+            LoadSettings();
+        }
+
 #if UNITY_2019_1_OR_NEWER
         [SettingsProvider]
         static SettingsProvider CreateBuildCacheProvider()
         {
-            var provider = new SettingsProvider("Preferences/Scriptable Build Pipeline", SettingsScope.User, SettingsProvider.GetSearchKeywordsFromGUIContentProperties<BuildCacheProperties>());
+            var provider = new SettingsProvider("Preferences/Scriptable Build Pipeline", SettingsScope.User, SettingsProvider.GetSearchKeywordsFromGUIContentProperties<Properties>());
             provider.guiHandler = sarchContext => OnGUI();
             return provider;
         }
@@ -58,58 +106,61 @@ namespace UnityEditor.Build.Pipeline.Utilities
         static void OnGUI()
         {
             using (new GUIScope())
+            {
+                EditorGUI.BeginChangeCheck();
                 DrawProperties();
+                if (EditorGUI.EndChangeCheck())
+                    SaveSettings();
+            }
         }
 
         static void DrawProperties()
         {
-#if UNITY_2019_3_OR_NEWER
-            bool threadedArchiving = EditorPrefs.GetBool("ScriptableBuildPipeline.threadedArchiving", true);
-            bool newThreadedArchiving = GUILayout.Toggle(threadedArchiving, BuildCacheProperties.threadedArchiving);
-            if (threadedArchiving != newThreadedArchiving)
-                EditorPrefs.SetBool("ScriptableBuildPipeline.threadedArchiving", newThreadedArchiving);
-#endif
+            GUILayout.Label(Properties.generalSettings, EditorStyles.boldLabel);
+
+            if (ArchiveAndCompressBundles.SupportsMultiThreadedArchiving)
+                s_Settings.threadedArchiving = EditorGUILayout.Toggle(Properties.threadedArchiving, s_Settings.threadedArchiving);
+
+            s_Settings.logCacheMiss = EditorGUILayout.Toggle(Properties.logCacheMiss, s_Settings.logCacheMiss);
+            s_Settings.slimWriteResults = EditorGUILayout.Toggle(Properties.slimWriteResults, s_Settings.slimWriteResults);
 
             GUILayout.Space(15);
-            GUILayout.Label(BuildCacheProperties.buildCache, EditorStyles.boldLabel);
+            GUILayout.Label(Properties.buildCache, EditorStyles.boldLabel);
             // Show Gigabytes to the user.
             const int kMinSizeInGigabytes = 1;
             const int kMaxSizeInGigabytes = 200;
 
             // Write size in GigaBytes.
-            int maximumSize = EditorPrefs.GetInt("BuildCache.maximumSize", 200);
-            int newMaximumSize = EditorGUILayout.IntSlider(BuildCacheProperties.maxCacheSize, maximumSize, kMinSizeInGigabytes, kMaxSizeInGigabytes);
-            if (maximumSize != newMaximumSize)
-                EditorPrefs.SetInt("BuildCache.maximumSize", newMaximumSize);
+            s_Settings.maximumCacheSize = EditorGUILayout.IntSlider(Properties.maxCacheSize, s_Settings.maximumCacheSize, kMinSizeInGigabytes, kMaxSizeInGigabytes);
 
             GUILayout.BeginHorizontal(GUILayout.MaxWidth(500));
-            if (GUILayout.Button(BuildCacheProperties.purgeCache, GUILayout.Width(120)))
+            if (GUILayout.Button(Properties.purgeCache, GUILayout.Width(120)))
             {
                 BuildCache.PurgeCache(true);
-                BuildCacheProperties.startedCalculation = false;
+                Properties.startedCalculation = false;
             }
 
-            if (GUILayout.Button(BuildCacheProperties.pruneCache, GUILayout.Width(120)))
+            if (GUILayout.Button(Properties.pruneCache, GUILayout.Width(120)))
             {
                 BuildCache.PruneCache();
-                BuildCacheProperties.startedCalculation = false;
+                Properties.startedCalculation = false;
             }
             GUILayout.EndHorizontal();
 
             // Current cache size
-            if (!BuildCacheProperties.startedCalculation)
+            if (!Properties.startedCalculation)
             {
-                BuildCacheProperties.startedCalculation = true;
+                Properties.startedCalculation = true;
                 ThreadPool.QueueUserWorkItem((state) =>
                 {
-                    BuildCache.ComputeCacheSizeAndFolders(out BuildCacheProperties.currentCacheSize, out List<BuildCache.CacheFolder> cacheFolders);
+                    BuildCache.ComputeCacheSizeAndFolders(out Properties.currentCacheSize, out List<BuildCache.CacheFolder> cacheFolders);
                 });
             }
 
-            if (BuildCacheProperties.currentCacheSize >= 0)
-                GUILayout.Label(BuildCacheProperties.cacheSizeIs.text + " " + EditorUtility.FormatBytes(BuildCacheProperties.currentCacheSize));
+            if (Properties.currentCacheSize >= 0)
+                GUILayout.Label(Properties.cacheSizeIs.text + " " + EditorUtility.FormatBytes(Properties.currentCacheSize));
             else
-                GUILayout.Label(BuildCacheProperties.cacheSizeIs.text + " is being calculated...");
+                GUILayout.Label(Properties.cacheSizeIs.text + " is being calculated...");
         }
     }
 }

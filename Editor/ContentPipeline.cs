@@ -87,6 +87,8 @@ namespace UnityEditor.Build.Pipeline
                 Directory.CreateDirectory(parameters.TempOutputFolder);
 
                 BuildContext buildContext;
+                BuildLog buildLog = null;
+
                 try
                 {
                     buildContext = new BuildContext(contextObjects);
@@ -102,6 +104,15 @@ namespace UnityEditor.Build.Pipeline
                     buildContext.SetContextObject(new BuildDependencyData());
                     buildContext.SetContextObject(new BundleWriteData());
                     buildContext.SetContextObject(BuildCallbacks);
+
+                    IBuildLogger logger;
+                    if (!buildContext.TryGetContextObject<IBuildLogger>(out logger))
+                    {
+                        logger = buildLog = new BuildLog();
+                        buildContext.SetContextObject(buildLog);
+                    }
+                    buildCache.SetBuildLogger(logger);
+
                 }
                 catch (Exception e)
                 {
@@ -121,11 +132,18 @@ namespace UnityEditor.Build.Pipeline
 
                 if (Directory.Exists(parameters.TempOutputFolder))
                     Directory.Delete(parameters.TempOutputFolder, true);
+
+                if (buildLog != null)
+                {
+                    string buildLogPath = parameters.GetOutputFilePathForIdentifier("buildlog.txt");
+                    Directory.CreateDirectory(Path.GetDirectoryName(buildLogPath));
+                    File.WriteAllText(buildLogPath, buildLog.FormatAsText());
+                    File.WriteAllText(parameters.GetOutputFilePathForIdentifier("buildlogtep.json"), buildLog.FormatAsTraceEventProfiler());
+                }
             }
 
 
-            int maximumSize = EditorPrefs.GetInt("BuildCache.maximumSize", 200);
-            long maximumCacheSize = maximumSize * 1073741824L; // gigabytes to bytes
+            long maximumCacheSize = ScriptableBuildPipeline.maximumCacheSize * 1073741824L; // gigabytes to bytes
             ThreadPool.QueueUserWorkItem(PruneCache, maximumCacheSize);
             return exitCode;
         }

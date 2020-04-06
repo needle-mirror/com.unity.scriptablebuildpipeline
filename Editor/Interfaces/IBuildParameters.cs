@@ -52,7 +52,7 @@ namespace UnityEditor.Build.Pipeline.Interfaces
         bool UseCache { get; set; }
 
         /// <summary>
-        /// Enables & specifies the cache server to use.
+        /// Enables and specifies the cache server to use.
         /// </summary>
         string CacheServerHost { get; set; }
 

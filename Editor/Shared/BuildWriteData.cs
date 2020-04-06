@@ -37,6 +37,7 @@ namespace UnityEditor.Build.Pipeline
     [Serializable]
     public class BundleWriteData : IBundleWriteData
     {
+        /// <inheritdoc />
         public Dictionary<GUID, List<string>> AssetToFiles { get; private set; }
         /// <inheritdoc />
         public Dictionary<string, List<ObjectIdentifier>> FileToObjects { get; private set; }

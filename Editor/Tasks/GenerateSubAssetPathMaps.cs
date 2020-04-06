@@ -10,6 +10,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 {
     public class GenerateSubAssetPathMaps : IBuildTask
     {
+        /// <inheritdoc />
         public int Version { get { return 1; } }
 
 #pragma warning disable 649
@@ -20,6 +21,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
         IBuildExtendedAssetData m_ExtendedAssetData;
 #pragma warning restore 649
 
+        /// <inheritdoc />
         public ReturnCode Run()
         {
             if (m_ExtendedAssetData == null || m_ExtendedAssetData.ExtendedData.IsNullOrEmpty())

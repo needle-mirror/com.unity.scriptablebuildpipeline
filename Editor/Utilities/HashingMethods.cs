@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
@@ -55,7 +56,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
         public bool Equals(RawHash other)
         {
-            return Equals(m_Hash, other.m_Hash);
+            return m_Hash.SequenceEqual(other.m_Hash);
         }
 
         public override bool Equals(object obj)
@@ -204,6 +205,10 @@ namespace UnityEditor.Build.Pipeline.Utilities
         {
             if (type == typeof(MD4))
                 return MD4.Create();
+#if UNITY_2019_3_OR_NEWER
+            if (type == typeof(SpookyHash))
+                return SpookyHash.Create();
+#endif
 
             // TODO: allow user created HashAlgorithms?
             var alggorithm = HashAlgorithm.Create(type.FullName);
@@ -218,7 +223,11 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 return RawHash.Zero();
 
             byte[] hash;
+#if UNITY_2019_3_OR_NEWER
+            using (var hashAlgorithm = GetHashAlgorithm(typeof(SpookyHash)))
+#else
             using (var hashAlgorithm = GetHashAlgorithm(typeof(MD5)))
+#endif
                 hash = hashAlgorithm.ComputeHash(stream);
             return new RawHash(hash);
         }
@@ -241,7 +250,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             {
                 GetRawBytes(stream, obj);
                 stream.Position = 0;
-                rawHash = CalculateStream<MD5>(stream);
+                rawHash = CalculateStream(stream);
             }
             return rawHash;
         }
@@ -256,7 +265,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             {
                 GetRawBytes(stream, objects);
                 stream.Position = 0;
-                rawHash = CalculateStream<MD5>(stream);
+                rawHash = CalculateStream(stream);
             }
             return rawHash;
         }
@@ -292,7 +301,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
         {
             RawHash rawHash;
             using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
-                rawHash = CalculateStream<MD5>(stream);
+                rawHash = CalculateStream(stream);
             return rawHash;
         }
 

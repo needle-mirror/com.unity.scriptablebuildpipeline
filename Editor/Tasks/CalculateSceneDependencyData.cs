@@ -10,6 +10,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 {
     public class CalculateSceneDependencyData : IBuildTask
     {
+        /// <inheritdoc />
         public int Version { get { return 2; } }
 
 #pragma warning disable 649
@@ -46,6 +47,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             return info;
         }
 
+        /// <inheritdoc />
         public ReturnCode Run()
         {
             if (m_Content.Scenes.IsNullOrEmpty())

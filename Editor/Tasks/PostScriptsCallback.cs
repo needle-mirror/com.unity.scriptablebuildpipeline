@@ -5,6 +5,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 {
     public class PostScriptsCallback : IBuildTask
     {
+        /// <inheritdoc />
         public int Version { get { return 1; } }
 
 #pragma warning disable 649
@@ -18,6 +19,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
         IScriptsCallback m_Callback;
 #pragma warning restore 649
 
+        /// <inheritdoc />
         public ReturnCode Run()
         {
             return m_Callback.PostScripts(m_Parameters, m_Results);

@@ -11,6 +11,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 {
     public class WriteSerializedFiles : IBuildTask
     {
+        /// <inheritdoc />
         public int Version { get { return 2; } }
 
 #pragma warning disable 649
@@ -43,6 +44,30 @@ namespace UnityEditor.Build.Pipeline.Tasks
             return entry;
         }
 
+        static void SetSerializedObjects(ref WriteResult result, ObjectSerializedInfo[] osis)
+        {
+            var fieldInfo = typeof(WriteResult).GetField("m_SerializedObjects", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            object boxed = result;
+            fieldInfo.SetValue(boxed, osis);
+            result = (WriteResult)boxed;
+        }
+
+        static void SlimifySerializedObjects(ref WriteResult result)
+        {
+            if (!ScriptableBuildPipeline.slimWriteResults)
+                return;
+
+            var fileOffsets = new List<ObjectSerializedInfo>();
+            foreach (ResourceFile serializedFile in result.resourceFiles)
+            {
+                if (!serializedFile.serializedFile)
+                    continue;
+                fileOffsets.Add(result.serializedObjects.First(x => x.header.fileName == serializedFile.fileAlias));
+            }
+
+            SetSerializedObjects(ref result, fileOffsets.ToArray());
+        }
+
         CachedInfo GetCachedInfo(CacheEntry entry, IWriteOperation operation, WriteResult result)
         {
             var info = new CachedInfo();
@@ -70,11 +95,13 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 dependencies.Add(m_Cache.GetCacheEntry(serializeObject.serializationObject));
             info.Dependencies = dependencies.ToArray();
 
+            SlimifySerializedObjects(ref result);
             info.Data = new object[] { result };
 
             return info;
         }
 
+        /// <inheritdoc />
         public ReturnCode Run()
         {
             BuildUsageTagGlobal globalUsage = m_DependencyData.GlobalUsage;

@@ -10,6 +10,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 {
     public class PreviewSceneDependencyData : IBuildTask
     {
+        /// <inheritdoc />
         public int Version { get { return 1; } }
 
 #pragma warning disable 649
@@ -44,6 +45,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             return info;
         }
 
+        /// <inheritdoc />
         public ReturnCode Run()
         {
             IList<CachedInfo> cachedInfo = null;

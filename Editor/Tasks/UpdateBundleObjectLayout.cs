@@ -9,6 +9,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 {
     public class UpdateBundleObjectLayout : IBuildTask
     {
+        /// <inheritdoc />
         public int Version { get { return 1; } }
 
 #pragma warning disable 649
@@ -28,6 +29,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
         IDeterministicIdentifiers m_PackingMethod;
 #pragma warning restore 649
 
+        /// <inheritdoc />
         public ReturnCode Run()
         {
             if (m_Layout == null || m_Layout.ExplicitObjectLocation.IsNullOrEmpty())

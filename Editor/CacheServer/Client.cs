@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
 using UnityEngine;
+using System.Threading;
 
 namespace UnityEditor.Build.CacheServer
 {
@@ -27,7 +28,7 @@ namespace UnityEditor.Build.CacheServer
         FileNotFound = 1,
         Success = 2
     }
-    
+
     /// <summary>
     /// A GUID/Hash pair that uniquely identifies a particular file. For each FileId, the Cache Server can store a separate
     /// binary stream for each FileType.
@@ -43,7 +44,7 @@ namespace UnityEditor.Build.CacheServer
         /// The hash code byte array.
         /// </summary>
         public readonly byte[] hash;
-        
+
         /// <summary>
         /// A structure used to identify a file by guid and hash code.
         /// </summary>
@@ -68,7 +69,7 @@ namespace UnityEditor.Build.CacheServer
 
             if (hashStr.Length != 32)
                 throw new ArgumentException("Length != 32", "hashStr");
-            
+
             return new FileId(Util.StringToGuid(guidStr), Util.StringToHash(hashStr));
         }
 
@@ -85,7 +86,7 @@ namespace UnityEditor.Build.CacheServer
 
             if (hash.Length != 16)
                 throw new ArgumentException("Length != 32", "hash");
-            
+
             return new FileId(guid, hash);
         }
 
@@ -97,8 +98,8 @@ namespace UnityEditor.Build.CacheServer
         /// <returns></returns>
         public new bool Equals(object x, object y)
         {
-            var hash1 = (byte[]) x;
-            var hash2 = (byte[]) y;
+            var hash1 = (byte[])x;
+            var hash2 = (byte[])y;
 
             if (hash1.Length != hash2.Length)
                 return false;
@@ -157,7 +158,7 @@ namespace UnityEditor.Build.CacheServer
         /// </summary>
         public long DownloadQueueLength { get; set; }
     }
-    
+
     /// <summary>
     /// A client API for uploading and downloading files from a Cache Server
     /// </summary>
@@ -169,14 +170,14 @@ namespace UnityEditor.Build.CacheServer
             Size,
             Id
         }
-        
+
         private const int ProtocolVersion = 254;
         private const string CmdTrxBegin = "ts";
         private const string CmdTrxEnd = "te";
         private const string CmdGet = "g";
         private const string CmdPut = "p";
         private const string CmdQuit = "q";
-        
+
         private const int ResponseLen = 2;
         private const int SizeLen = 16;
         private const int GuidLen = 16;
@@ -188,7 +189,8 @@ namespace UnityEditor.Build.CacheServer
         private readonly TcpClient m_tcpClient;
         private readonly string m_host;
         private readonly int m_port;
-        private NetworkStream m_stream;
+        internal Stream m_stream;
+        private Mutex m_mutex;
         private readonly byte[] m_streamReadBuffer;
         private int m_streamBytesRead;
         private int m_streamBytesNeeded;
@@ -196,7 +198,7 @@ namespace UnityEditor.Build.CacheServer
         private DownloadFinishedEventArgs m_nextFileCompleteEventArgs;
         private Stream m_nextWriteStream;
         private bool m_inTrx;
-        
+
         /// <summary>
         /// Returns the number of items in the download queue
         /// </summary>
@@ -204,7 +206,7 @@ namespace UnityEditor.Build.CacheServer
         {
             get { return m_downloadQueue.Count; }
         }
-        
+
         /// <summary>
         /// Event fired when a queued download request finishes.
         /// </summary>
@@ -217,7 +219,7 @@ namespace UnityEditor.Build.CacheServer
         {
             DownloadFinished = null;
         }
-        
+
         /// <summary>
         /// Create a new Cache Server client
         /// </summary>
@@ -231,7 +233,7 @@ namespace UnityEditor.Build.CacheServer
             m_host = host;
             m_port = port;
         }
-        
+
         /// <summary>
         /// Connects to the Cache Server and sends a protocol version handshake.
         /// </summary>
@@ -242,8 +244,9 @@ namespace UnityEditor.Build.CacheServer
             client.Connect(m_host, m_port);
             m_stream = client.GetStream();
             SendVersion();
+            m_mutex = new Mutex();
         }
-        
+
         /// <summary>
         /// Connects to the Cache Server and sends a protocol version handshake. A TimeoutException is thrown if the connection cannot
         /// be established within <paramref name="timeoutMs"/> milliseconds.
@@ -255,14 +258,15 @@ namespace UnityEditor.Build.CacheServer
         {
             var client = m_tcpClient;
             var op = client.BeginConnect(m_host, m_port, null, null);
-            
+
             var connected = op.AsyncWaitHandle.WaitOne(TimeSpan.FromMilliseconds(timeoutMs));
-            
-            if(!connected)
+
+            if (!connected)
                 throw new TimeoutException();
-            
+
             m_stream = client.GetStream();
             SendVersion();
+            m_mutex = new Mutex();
         }
 
         /// <summary>
@@ -287,13 +291,13 @@ namespace UnityEditor.Build.CacheServer
         /// <exception cref="ArgumentException"></exception>
         public void Upload(FileType type, Stream readStream)
         {
-            if(!m_inTrx)
+            if (!m_inTrx)
                 throw new TransactionIsolationException("Upload without BeginTransaction");
-            
-            if(!readStream.CanRead || !readStream.CanSeek)
+
+            if (!readStream.CanRead || !readStream.CanSeek)
                 throw new ArgumentException();
 
-            m_stream.Write(Encoding.ASCII.GetBytes(CmdPut + (char) type), 0, 2);
+            m_stream.Write(Encoding.ASCII.GetBytes(CmdPut + (char)type), 0, 2);
             m_stream.Write(Util.EncodeInt64(readStream.Length), 0, SizeLen);
 
             var buf = new byte[ReadBufferLen];
@@ -303,16 +307,16 @@ namespace UnityEditor.Build.CacheServer
                 m_stream.Write(buf, 0, len);
             }
         }
-        
+
         /// <summary>
         /// Commit the uploaded files to the Cache Server. Will throw an exception if not preceeded by BeginTransaction.
         /// </summary>
         /// <exception cref="TransactionIsolationException"></exception>
         public void EndTransaction()
         {
-            if(!m_inTrx)
+            if (!m_inTrx)
                 throw new TransactionIsolationException("EndTransaction without BeginTransaction");
-            
+
             m_inTrx = false;
             m_stream.Write(Encoding.ASCII.GetBytes(CmdTrxEnd), 0, 2);
         }
@@ -323,25 +327,35 @@ namespace UnityEditor.Build.CacheServer
         /// <param name="downloadItem">The IDownloadItem that specifies which file to download</param>
         public void QueueDownload(IDownloadItem downloadItem)
         {
-            m_stream.Write(Encoding.ASCII.GetBytes(CmdGet + (char) downloadItem.Type), 0, 2);
+            m_stream.Write(Encoding.ASCII.GetBytes(CmdGet + (char)downloadItem.Type), 0, 2);
             m_stream.Write(downloadItem.Id.guid, 0, GuidLen);
             m_stream.Write(downloadItem.Id.hash, 0, HashLen);
+
+            m_mutex.WaitOne();
             m_downloadQueue.Enqueue(downloadItem);
-            
-            if(m_downloadQueue.Count == 1)
+            int count = m_downloadQueue.Count;
+            m_mutex.ReleaseMutex();
+
+            if (count == 1)
                 ReadNextDownloadResult();
         }
-  
+
         /// <summary>
         /// Close the connection to the Cache Server. Sends the 'quit' command and closes the network stream.
         /// </summary>
         public void Close()
         {
-            if(m_stream != null)
+            if (m_stream != null)
                 m_stream.Write(Encoding.ASCII.GetBytes(CmdQuit), 0, 1);
-            
-            if(m_tcpClient != null)
+
+            if (m_tcpClient != null)
                 m_tcpClient.Close();
+
+            if (m_mutex != null)
+            {
+                m_mutex.Dispose();
+                m_mutex = null;
+            }
         }
 
         private void SendVersion()
@@ -356,23 +370,26 @@ namespace UnityEditor.Build.CacheServer
                 pos += m_stream.Read(versionBuf, 0, versionBuf.Length);
             }
 
-            if(Util.ReadUInt32(versionBuf, 0) != ProtocolVersion)
+            if (Util.ReadUInt32(versionBuf, 0) != ProtocolVersion)
                 throw new Exception("Server version mismatch");
         }
-        
+
         private void OnDownloadFinished(DownloadFinishedEventArgs e)
         {
+            m_mutex.WaitOne();
             m_downloadQueue.Dequeue();
-            e.DownloadQueueLength = m_downloadQueue.Count;
+            int count = m_downloadQueue.Count;
+            m_mutex.ReleaseMutex();
 
+            e.DownloadQueueLength = count;
             if (DownloadFinished != null)
                 DownloadFinished(this, e);
-            
-            if(m_downloadQueue.Count > 0)
+
+            if (count > 0)
                 ReadNextDownloadResult();
         }
 
-        private void ReadNextDownloadResult()
+        internal void ReadNextDownloadResult()
         {
             m_streamReadState = StreamReadState.Response;
             m_streamBytesNeeded = ResponseLen;
@@ -384,19 +401,24 @@ namespace UnityEditor.Build.CacheServer
         private void BeginReadHeader()
         {
             m_stream.BeginRead(m_streamReadBuffer,
-                0,
+                m_streamBytesRead,
                 m_streamBytesNeeded - m_streamBytesRead,
                 EndReadHeader,
                 m_stream);
         }
 
+        internal Action<int, byte[]> OnReadHeader;
+
         private void EndReadHeader(IAsyncResult r)
         {
             var bytesRead = m_stream.EndRead(r);
             if (bytesRead <= 0) return;
-            
+
             m_streamBytesRead += bytesRead;
-            
+
+            if (OnReadHeader != null)
+                OnReadHeader(m_streamBytesRead, m_streamReadBuffer);
+
             if (m_streamBytesRead < m_streamBytesNeeded)
             {
                 BeginReadHeader();
@@ -417,19 +439,21 @@ namespace UnityEditor.Build.CacheServer
                         m_streamReadState = StreamReadState.Id;
                         m_streamBytesNeeded = IdLen;
                     }
-                        
+
                     break;
-                        
+
                 case StreamReadState.Size:
                     m_nextFileCompleteEventArgs.Size = Util.ReadUInt64(m_streamReadBuffer, 0);
                     m_streamReadState = StreamReadState.Id;
                     m_streamBytesNeeded = IdLen;
                     break;
-                        
+
                 case StreamReadState.Id:
+                    m_mutex.WaitOne();
                     var next = m_downloadQueue.Peek();
+                    m_mutex.ReleaseMutex();
                     m_nextFileCompleteEventArgs.DownloadItem = next;
-                    
+
                     var match =
                         Util.ByteArraysAreEqual(next.Id.guid, 0, m_streamReadBuffer, 0, GuidLen) &&
                         Util.ByteArraysAreEqual(next.Id.hash, 0, m_streamReadBuffer, GuidLen, HashLen);
@@ -448,13 +472,13 @@ namespace UnityEditor.Build.CacheServer
                     {
                         var size = m_nextFileCompleteEventArgs.Size;
                         m_nextWriteStream = next.GetWriteStream(size);
-                        m_streamBytesNeeded = (int) size;
+                        m_streamBytesNeeded = (int)size;
                         m_streamBytesRead = 0;
                         BeginReadData();
                     }
 
                     return;
-                
+
                 default:
                     throw new ArgumentOutOfRangeException();
             }

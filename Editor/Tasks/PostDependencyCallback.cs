@@ -5,6 +5,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 {
     public class PostDependencyCallback : IBuildTask
     {
+        /// <inheritdoc />
         public int Version { get { return 1; } }
 
 #pragma warning disable 649
@@ -18,6 +19,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
         IDependencyCallback m_Callback;
 #pragma warning restore 649
 
+        /// <inheritdoc />
         public ReturnCode Run()
         {
             return m_Callback.PostDependency(m_Parameters, m_DependencyData);

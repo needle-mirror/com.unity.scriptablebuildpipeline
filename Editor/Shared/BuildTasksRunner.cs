@@ -39,23 +39,27 @@ namespace UnityEditor.Build.Pipeline
             if (context.TryGetContextObject(out tracker))
                 tracker.TaskCount = pipeline.Count;
 
+            context.TryGetContextObject(out IBuildLogger logger);
+
             foreach (IBuildTask task in pipeline)
             {
-                try
                 {
-                    if (!tracker.UpdateTaskUnchecked(task.GetType().Name.HumanReadable()))
-                        return ReturnCode.Canceled;
+                    try
+                    {
+                        if (!tracker.UpdateTaskUnchecked(task.GetType().Name.HumanReadable()))
+                            return ReturnCode.Canceled;
 
-                    ContextInjector.Inject(context, task);
-                    var result = task.Run();
-                    if (result < ReturnCode.Success)
-                        return result;
-                    ContextInjector.Extract(context, task);
-                }
-                catch (Exception e)
-                {
-                    BuildLogger.LogError("Build Task {0} failed with exception:\n{1}", task.GetType().Name, e.Message);
-                    return ReturnCode.Exception;
+                        ContextInjector.Inject(context, task);
+                        var result = task.Run();
+                        if (result < ReturnCode.Success)
+                            return result;
+                        ContextInjector.Extract(context, task);
+                    }
+                    catch (Exception e)
+                    {
+                        BuildLogger.LogError("Build Task {0} failed with exception:\n{1}\n{2}", task.GetType().Name, e.Message, e.StackTrace);
+                    	return ReturnCode.Exception;
+                    }
                 }
             }
 
