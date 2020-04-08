@@ -27,6 +27,10 @@ namespace UnityEditor.Build.Pipeline
             /// Use to indicate that the pipeline should create asset bundles and the built-in shader bundle.
             /// </summary>
             AssetBundleBuiltInShaderExtraction,
+            /// <summary>
+            /// Use to indicate that the pipeline should create asset bundles, the built-in shader bundle, and MonoScript bundle.
+            /// </summary>
+            AssetBundleShaderAndScriptExtraction,
         }
 
         /// <summary>
@@ -41,9 +45,11 @@ namespace UnityEditor.Build.Pipeline
                 case Preset.PlayerScriptsOnly:
                     return PlayerScriptsOnly();
                 case Preset.AssetBundleCompatible:
-                    return AssetBundleCompatible();
+                    return AssetBundleCompatible(false, false);
                 case Preset.AssetBundleBuiltInShaderExtraction:
-                    return AssetBundleBuiltInShaderExtraction();
+                    return AssetBundleCompatible(true, false);
+                case Preset.AssetBundleShaderAndScriptExtraction:
+                    return AssetBundleCompatible(true, true);
                 default:
                     throw new NotImplementedException(string.Format("Preset for '{0}' not yet implemented.", preset));
             }
@@ -72,7 +78,7 @@ namespace UnityEditor.Build.Pipeline
             return buildTasks;
         }
 
-        static IList<IBuildTask> AssetBundleCompatible()
+        static IList<IBuildTask> AssetBundleCompatible(bool shaderTask, bool monoscriptTask)
         {
             var buildTasks = new List<IBuildTask>();
 
@@ -91,10 +97,16 @@ namespace UnityEditor.Build.Pipeline
 #endif
             buildTasks.Add(new CalculateAssetDependencyData());
             buildTasks.Add(new StripUnusedSpriteSources());
+            if (shaderTask)
+                buildTasks.Add(new CreateBuiltInShadersBundle("UnityBuiltInShaders.bundle"));
+            if (monoscriptTask)
+                buildTasks.Add(new CreateMonoScriptBundle("UnityMonoScripts.bundle"));
             buildTasks.Add(new PostDependencyCallback());
 
             // Packing
             buildTasks.Add(new GenerateBundlePacking());
+            if (shaderTask || monoscriptTask)
+                buildTasks.Add(new UpdateBundleObjectLayout());
             buildTasks.Add(new GenerateBundleCommands());
             buildTasks.Add(new GenerateSubAssetPathMaps());
             buildTasks.Add(new GenerateBundleMaps());
@@ -106,52 +118,6 @@ namespace UnityEditor.Build.Pipeline
             buildTasks.Add(new AppendBundleHash());
             buildTasks.Add(new GenerateLinkXml());
             buildTasks.Add(new PostWritingCallback());
-
-            // Generate manifest files
-            // TODO: IMPL manifest generation
-
-            return buildTasks;
-        }
-
-        static IList<IBuildTask> AssetBundleBuiltInShaderExtraction()
-        {
-            var buildTasks = new List<IBuildTask>();
-
-            // Setup
-            buildTasks.Add(new SwitchToBuildPlatform());
-            buildTasks.Add(new RebuildSpriteAtlasCache());
-
-            // Player Scripts
-            buildTasks.Add(new BuildPlayerScripts());
-            buildTasks.Add(new PostScriptsCallback());
-
-            // Dependency
-            buildTasks.Add(new CalculateSceneDependencyData());
-#if UNITY_2019_3_OR_NEWER
-            buildTasks.Add(new CalculateCustomDependencyData());
-#endif
-            buildTasks.Add(new CalculateAssetDependencyData());
-            buildTasks.Add(new StripUnusedSpriteSources());
-            buildTasks.Add(new CreateBuiltInShadersBundle("UnityBuiltInShaders.bundle"));
-            buildTasks.Add(new PostDependencyCallback());
-
-            // Packing
-            buildTasks.Add(new GenerateBundlePacking());
-            buildTasks.Add(new UpdateBundleObjectLayout());
-            buildTasks.Add(new GenerateBundleCommands());
-            buildTasks.Add(new GenerateSubAssetPathMaps());
-            buildTasks.Add(new GenerateBundleMaps());
-            buildTasks.Add(new PostPackingCallback());
-
-            // Writing
-            buildTasks.Add(new WriteSerializedFiles());
-            buildTasks.Add(new ArchiveAndCompressBundles());
-            buildTasks.Add(new AppendBundleHash());
-            buildTasks.Add(new GenerateLinkXml());
-            buildTasks.Add(new PostWritingCallback());
-
-            // Generate manifest files
-            // TODO: IMPL manifest generation
 
             return buildTasks;
         }

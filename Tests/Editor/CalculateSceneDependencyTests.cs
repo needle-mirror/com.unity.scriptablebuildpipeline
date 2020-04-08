@@ -25,6 +25,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             public override BuildTargetGroup Group { get => BuildTargetGroup.Unknown; }
             public override TypeDB ScriptInfo { get => null; }
             public override ContentBuildFlags ContentBuildFlags { get => ContentBuildFlags.None; }
+            public override bool NonRecursiveDependencies { get => false; }
 
 #if !UNITY_2019_3_OR_NEWER
             public override string TempOutputFolder => ContentPipeline.kTempBuildPath;

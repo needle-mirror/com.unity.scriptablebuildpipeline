@@ -18,7 +18,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
     public class CalculateSceneDependencyData : IBuildTask
     {
         /// <inheritdoc />
-        public int Version { get { return 4; } }
+        public int Version { get { return 5; } }
 
 #pragma warning disable 649
         [InjectContext(ContextUsage.In)]
@@ -37,10 +37,21 @@ namespace UnityEditor.Build.Pipeline.Tasks
         IBuildCache m_Cache;
 #pragma warning restore 649
 
+        CacheEntry GetSceneCacheEntry(GUID asset)
+        {
+            CacheEntry entry;
+#if NONRECURSIVE_DEPENDENCY_DATA
+            entry = m_Cache.GetCacheEntry(asset, m_Parameters.NonRecursiveDependencies ? -Version : Version);
+#else
+            entry = m_Cache.GetCacheEntry(asset, Version);
+#endif
+            return entry;
+        }
+
         CachedInfo GetCachedInfo(GUID scene, IEnumerable<ObjectIdentifier> references, SceneDependencyInfo sceneInfo, BuildUsageTagSet usageTags, IEnumerable<CacheEntry> prefabEntries, Hash128 prefabDependency)
         {
             var info = new CachedInfo();
-            info.Asset = m_Cache.GetCacheEntry(scene, Version);
+            info.Asset = GetSceneCacheEntry(scene);
 
 #if ENABLE_TYPE_HASHING || UNITY_2020_1_OR_NEWER
             var uniqueTypes = new HashSet<System.Type>(sceneInfo.includedTypes);
@@ -67,7 +78,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             IList<CachedInfo> uncachedInfo = null;
             if (m_Parameters.UseCache && m_Cache != null)
             {
-                IList<CacheEntry> entries = m_Content.Scenes.Select(x => m_Cache.GetCacheEntry(x, Version)).ToList();
+                IList<CacheEntry> entries = m_Content.Scenes.Select(x => GetSceneCacheEntry(x)).ToList();
                 m_Cache.LoadCachedData(entries, out cachedInfo);
 
                 uncachedInfo = new List<CachedInfo>();
@@ -103,7 +114,21 @@ namespace UnityEditor.Build.Pipeline.Tasks
                     usageTags = new BuildUsageTagSet();
 
 #if UNITY_2019_3_OR_NEWER
+#if NONRECURSIVE_DEPENDENCY_DATA
+                    if (m_Parameters.NonRecursiveDependencies)
+                    {
+                        sceneInfo = ContentBuildInterface.CalculatePlayerDependenciesForScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache, DependencyType.ValidReferences);
+                        ObjectIdentifier[] filteredReferences = sceneInfo.referencedObjects.ToArray();
+                        filteredReferences = ExtensionMethods.FilterReferencedObjectIDs(scene, filteredReferences, m_Parameters.Target, m_Parameters.ScriptInfo, new HashSet<GUID>(m_Content.Assets));
+                        sceneInfo.SetReferencedObjects(filteredReferences);
+                    }
+                    else
+                    {
+                        sceneInfo = ContentBuildInterface.CalculatePlayerDependenciesForScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache);
+                    }
+#else
                     sceneInfo = ContentBuildInterface.CalculatePlayerDependenciesForScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache);
+#endif
 #else
                     string outputFolder = m_Parameters.TempOutputFolder;
                     if (m_Parameters.UseCache && m_Cache != null)

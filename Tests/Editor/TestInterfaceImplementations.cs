@@ -32,6 +32,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         public virtual string CacheServerHost { get => throw new System.NotImplementedException(TestTracing.Callsite()); set => throw new System.NotImplementedException(TestTracing.Callsite()); }
         public virtual int CacheServerPort { get => throw new System.NotImplementedException(TestTracing.Callsite()); set => throw new System.NotImplementedException(TestTracing.Callsite()); }
         public virtual bool WriteLinkXML { get => throw new System.NotImplementedException(TestTracing.Callsite()); set => throw new System.NotImplementedException(TestTracing.Callsite()); }
+        public virtual bool NonRecursiveDependencies { get => throw new System.NotImplementedException(TestTracing.Callsite()); set => throw new System.NotImplementedException(TestTracing.Callsite()); }
 
         public virtual UnityEngine.BuildCompression GetCompressionForIdentifier(string identifier)
         {
@@ -104,5 +105,10 @@ namespace UnityEditor.Build.Pipeline.Tests
         public virtual Dictionary<string, WriteResult> WriteResults => throw new System.NotImplementedException(TestTracing.Callsite());
 
         public virtual Dictionary<string, SerializedFileMetaData> WriteResultsMetaData => throw new System.NotImplementedException(TestTracing.Callsite());
+    }
+
+    internal class TestBundleExplictObjectLayout : IBundleExplictObjectLayout
+    {
+        public virtual Dictionary<ObjectIdentifier, string> ExplicitObjectLocation { get => throw new System.NotImplementedException(TestTracing.Callsite()); set => throw new System.NotImplementedException(TestTracing.Callsite()); }
     }
 }

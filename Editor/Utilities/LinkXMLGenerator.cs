@@ -48,6 +48,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 new KeyValuePair<Type, Type>(typeof(UnityEditor.Animations.AnimatorController), typeof(UnityEngine.RuntimeAnimatorController)),
                 new KeyValuePair<Type, Type>(editor.GetType("UnityEditor.Audio.AudioMixerController"), typeof(UnityEngine.Audio.AudioMixer)),
                 new KeyValuePair<Type, Type>(editor.GetType("UnityEditor.Audio.AudioMixerGroupController"), typeof(UnityEngine.Audio.AudioMixerGroup)),
+                new KeyValuePair<Type, Type>(typeof(UnityEditor.MonoScript), typeof(UnityEngine.Object)),
             };
         }
 

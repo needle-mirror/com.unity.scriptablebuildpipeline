@@ -71,6 +71,14 @@ namespace UnityEditor.Build.Pipeline.Interfaces
         /// </summary>
         bool WriteLinkXML { get; set; }
 
+#if NONRECURSIVE_DEPENDENCY_DATA
+        /// <summary>
+        /// Calculates and build asset bundles using Non-Recursive Dependency calculation methods.
+        /// This approach helps reduce asset bundle rebuilds and runtime memory consumption.
+        /// </summary>
+        bool NonRecursiveDependencies { get; set; }
+#endif
+
         /// <summary>
         /// Constructs and returns the BuildSettings struct to use for content building.
         /// </summary>

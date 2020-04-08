@@ -4,6 +4,12 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.18.0] - 2020-04-08
+- Added an option to build MonoScripts into their own bundle reducing duplication and potential loading errors on certain project setups.
+- Added a type remap in Link.xml generation for UnityEditor.MonoScript to the correct runtime type.
+- Added an option to build bundles using Non-Recursive Dependency calculation methods. 
+  - This approach helps reduce asset bundle rebuilds and runtime memory consumption.
+
 ## [1.17.0] - 2020-03-03
 - Added [VersionedCallback] attribute for flagging build impacting changes to IProcessScene, IProcessSceneWithReport, IPreprocessShaders, and IPreprocessComputeShaders callbacks.
 - Fixed an IndexOutOfRange exception thrown by the GenerateSubAssetPathMaps build task.
@@ -35,8 +41,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Reduced unnecessary bundle rebuilds due to too much data in BuildReferenceMap
 - Removed unnecessary memory overhead when hashing large data sets for caching.
 - Fixed SpookyHash and improved it's performance when used on Unity 2020.1 and greater versions.
-- SpookyHash will be the default hashing method in Scriptable Build Pipeline on Untiy 2021.1 and greater.
-- Contiguous Bundles will be Opt-Out in Addressables & Scriptable Build Pipeline in Untiy 2021.1 and greater.
+- SpookyHash will be the default hashing method in Scriptable Build Pipeline on Unity 2021.1 and greater.
+- Contiguous Bundles will be Opt-Out in Addressables & Scriptable Build Pipeline in Unity 2021.1 and greater.
 
 ## [1.12.0] - 2020-09-15
 - Improved caching performance of the WriteSerializedFile build task with projects using many Prefabs in Scenes.
@@ -149,7 +155,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed "Path is empty" exception in build cache
 - Fixed an edge case where a valid cache entry could be returned for an invalid request
 - Added BuildCache.PruneCache API to trim the cache down to a limit, called in the background after a build
-- Moved BuildCache menu options and preferences to the "Edit/Prefferences..." window
+- Moved BuildCache menu options and preferences to the "Edit/Preferences..." window
 - Added SBP_PROFILER_ENABLE define to enable per task profiling output to console
 - Fixed an issue preventing PrefabPackedIdentifiers from being passed into ContentPipeline.BuildAssetBundles
 

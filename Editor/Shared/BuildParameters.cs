@@ -77,6 +77,10 @@ namespace UnityEditor.Build.Pipeline
         public int CacheServerPort { get; set; }
         /// <inheritdoc />
         public bool WriteLinkXML { get; set; }
+#if NONRECURSIVE_DEPENDENCY_DATA
+        /// <inheritdoc />
+        public bool NonRecursiveDependencies { get; set; }
+#endif
 
         internal BuildParameters() {}
 
@@ -114,6 +118,10 @@ namespace UnityEditor.Build.Pipeline
             }
 
             WriteLinkXML = false;
+
+#if NONRECURSIVE_DEPENDENCY_DATA && UNITY_2021_1_OR_NEWER
+            NonRecursiveDependencies = true;
+#endif
         }
 
         /// <inheritdoc />

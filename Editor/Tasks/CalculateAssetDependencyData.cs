@@ -23,7 +23,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
     /// </summary>
     public class CalculateAssetDependencyData : IBuildTask
     {
-        internal const int kVersion = 4;
+        internal const int kVersion = 5;
         /// <inheritdoc />
         public int Version { get { return kVersion; } }
 
@@ -65,6 +65,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 #if !UNITY_2020_2_OR_NEWER
             public CalculateAssetDependencyHooks EngineHooks;
 #endif
+            public bool NonRecursiveDependencies;
             public IBuildLogger Logger;
         }
 
@@ -84,10 +85,17 @@ namespace UnityEditor.Build.Pipeline.Tasks
             public int CachedAssetCount;
         }
 
-        static CachedInfo GetCachedInfo(IBuildCache cache, GUID asset, AssetLoadInfo assetInfo, BuildUsageTagSet usageTags, SpriteImporterData importerData, ExtendedAssetData assetData)
+        static CacheEntry GetAssetCacheEntry(IBuildCache cache, GUID asset, bool NonRecursiveDependencies)
+        {
+            CacheEntry entry;
+            entry = cache.GetCacheEntry(asset, NonRecursiveDependencies ? -kVersion : kVersion);
+            return entry;
+        }
+
+        static CachedInfo GetCachedInfo(IBuildCache cache, GUID asset, AssetLoadInfo assetInfo, BuildUsageTagSet usageTags, SpriteImporterData importerData, ExtendedAssetData assetData, bool NonRecursiveDependencies)
         {
             var info = new CachedInfo();
-            info.Asset = cache.GetCacheEntry(asset, kVersion);
+            info.Asset = GetAssetCacheEntry(cache, asset, NonRecursiveDependencies);
 
             var uniqueTypes = new HashSet<System.Type>();
             var objectTypes = new List<KeyValuePair<ObjectIdentifier, System.Type[]>>();
@@ -106,6 +114,11 @@ namespace UnityEditor.Build.Pipeline.Tasks
             input.Target = m_Parameters.Target;
             input.TypeDB = m_Parameters.ScriptInfo;
             input.BuildCache = m_Parameters.UseCache ? m_Cache : null;
+#if NONRECURSIVE_DEPENDENCY_DATA
+            input.NonRecursiveDependencies = m_Parameters.NonRecursiveDependencies;
+#else
+            input.NonRecursiveDependencies = false;
+#endif
             input.Assets = m_Content.Assets;
             input.ProgressTracker = m_Tracker;
             input.DependencyUsageCache = m_DependencyData.DependencyUsageCache;
@@ -205,7 +218,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             IList<CachedInfo> cachedInfo = null;
             if (input.BuildCache != null)
             {
-                IList<CacheEntry> entries = input.Assets.Select(x => input.BuildCache.GetCacheEntry(x, kVersion)).ToList();
+                IList<CacheEntry> entries = input.Assets.Select(x => GetAssetCacheEntry(input.BuildCache, x, input.NonRecursiveDependencies)).ToList();
                 input.BuildCache.LoadCachedData(entries, out cachedInfo);
             }
 
@@ -239,7 +252,21 @@ namespace UnityEditor.Build.Pipeline.Tasks
                     assetResult.assetInfo.asset = asset;
                     var includedObjects = ContentBuildInterface.GetPlayerObjectIdentifiersInAsset(asset, input.Target);
                     assetResult.assetInfo.includedObjects = new List<ObjectIdentifier>(includedObjects);
-                    var referencedObjects = ContentBuildInterface.GetPlayerDependenciesForObjects(includedObjects, input.Target, input.TypeDB);
+#if NONRECURSIVE_DEPENDENCY_DATA
+                    ObjectIdentifier[] referencedObjects;
+                    if (input.NonRecursiveDependencies)
+                    {
+                        referencedObjects = ContentBuildInterface.GetPlayerDependenciesForObjects(includedObjects, input.Target, input.TypeDB, DependencyType.ValidReferences);
+                        referencedObjects = ExtensionMethods.FilterReferencedObjectIDs(asset, referencedObjects, input.Target, input.TypeDB, new HashSet<GUID>(input.Assets));
+                    }
+                    else
+                    {
+                        referencedObjects = ContentBuildInterface.GetPlayerDependenciesForObjects(includedObjects, input.Target, input.TypeDB);
+                    }
+#else
+                    ObjectIdentifier[] referencedObjects = ContentBuildInterface.GetPlayerDependenciesForObjects(includedObjects, input.Target, input.TypeDB);
+#endif
+
                     assetResult.assetInfo.referencedObjects = new List<ObjectIdentifier>(referencedObjects);
                     var allObjects = new List<ObjectIdentifier>(includedObjects);
                     allObjects.AddRange(referencedObjects);
@@ -276,7 +303,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 {
                     AssetOutput r = output.AssetResults[i];
                     if (cachedInfo[i] == null)
-                        toCache.Add(GetCachedInfo(input.BuildCache, input.Assets[i], r.assetInfo, r.usageTags, r.spriteData, r.extendedData));
+                    {
+                        toCache.Add(GetCachedInfo(input.BuildCache, input.Assets[i], r.assetInfo, r.usageTags, r.spriteData, r.extendedData, input.NonRecursiveDependencies));
+                    }
                 }
                 input.BuildCache.SaveCachedData(toCache);
             }

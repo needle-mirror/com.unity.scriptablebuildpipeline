@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Interfaces;
+using UnityEditor.Build.Player;
 
 namespace UnityEditor.Build.Pipeline.Utilities
 {
@@ -63,5 +64,36 @@ namespace UnityEditor.Build.Pipeline.Utilities
             }
             dependencies.UnionWith(uniqueTypes.Select(cache.GetCacheEntry));
         }
+
+#if NONRECURSIVE_DEPENDENCY_DATA
+        public static ObjectIdentifier[] FilterReferencedObjectIDs(GUID asset, ObjectIdentifier[] references, BuildTarget target, TypeDB typeDB, HashSet<GUID> dependencies)
+        {
+            // Expectation: references is populated with DependencyType.ValidReferences only for the given asset
+            var collectedImmediateReferences = new HashSet<ObjectIdentifier>();
+            var encounteredDependencies = new HashSet<ObjectIdentifier>();
+            while (references.Length > 0)
+            {
+                // Track which roots we encounter to do dependency pruning
+                encounteredDependencies.UnionWith(references.Where(x => x.guid != asset && dependencies.Contains(x.guid)));
+                // We only want to recursively grab references for objects being pulled in and won't go to another bundle
+                ObjectIdentifier[] immediateReferencesNotInOtherBundles =  references.Where(x => !dependencies.Contains(x.guid) && !collectedImmediateReferences.Contains(x)).ToArray();
+                collectedImmediateReferences.UnionWith(immediateReferencesNotInOtherBundles);
+                // Grab next set of valid references and loop
+                references = ContentBuildInterface.GetPlayerDependenciesForObjects(immediateReferencesNotInOtherBundles, target, typeDB, DependencyType.ValidReferences);
+            }
+
+            // We need to ensure that we have a reference to a visible representation so our runtime dependency appending process
+            // can find something that can be appended, otherwise the necessary data will fail to load correctly in all cases. (EX: prefab A has reference to component on prefab B)
+            foreach (var dependency in encounteredDependencies)
+            {
+                // For each dependency, add just the main representation as a reference
+                var representations = ContentBuildInterface.GetPlayerAssetRepresentations(dependency.guid, target);
+                collectedImmediateReferences.Add(representations.First());
+            }
+            collectedImmediateReferences.UnionWith(encounteredDependencies);
+            return collectedImmediateReferences.ToArray();
+        }
+
+#endif
     }
 }
