@@ -72,15 +72,40 @@ namespace UnityEditor.Build.Pipeline.Tasks
             }
         }
 
+        static void CopyFileWithTimestampIfDifferent(string srcPath, string destPath, IBuildLogger log)
+        {
+            if (srcPath == destPath)
+                return;
+
+            DateTime time = File.GetLastWriteTime(srcPath);
+            DateTime destTime = File.Exists(destPath) ? File.GetLastWriteTime(destPath) : new DateTime();
+
+            if (destTime == time)
+                return;
+
+            using (log.ScopedStep(LogLevel.Verbose, $"Copying From Cache {srcPath} -> {destPath}"))
+            {
+                var directory = Path.GetDirectoryName(destPath);
+                Directory.CreateDirectory(directory);
+                File.Copy(srcPath, destPath, true);
+            }
+        }
 
         static internal bool SupportsMultiThreadedArchiving { get; private set; }
 
-        static CacheEntry GetCacheEntry(string bundleName, IEnumerable<ResourceFile> resources, BuildCompression compression)
+        static CacheEntry GetCacheEntry(IBuildCache cache, string bundleName, IEnumerable<ResourceFile> resources, BuildCompression compression)
         {
             var entry = new CacheEntry();
             entry.Type = CacheEntry.EntryType.Data;
             entry.Guid = HashingMethods.Calculate("ArchiveAndCompressBundles", bundleName).ToGUID();
-            entry.Hash = HashingMethods.Calculate(kVersion, resources, compression).ToHash128();
+            List<object> toHash = new List<object> { kVersion, compression };
+            foreach (var resource in resources)
+            {
+                toHash.Add(resource.serializedFile);
+                toHash.Add(resource.fileAlias);
+                toHash.Add(cache.GetCacheEntry(resource.fileName).Hash);
+            }
+            entry.Hash = HashingMethods.Calculate(toHash).ToHash128();
             entry.Version = kVersion;
             return entry;
         }
@@ -89,14 +114,8 @@ namespace UnityEditor.Build.Pipeline.Tasks
         {
             var info = new CachedInfo();
             info.Asset = entry;
-
-            var dependencies = new HashSet<CacheEntry>();
-            foreach (var resource in resources)
-                dependencies.Add(cache.GetCacheEntry(resource.fileName));
-            info.Dependencies = dependencies.ToArray();
-
+            info.Dependencies = new CacheEntry[0];
             info.Data = new object[] { details };
-
             return info;
         }
 
@@ -306,7 +325,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             if (input.BuildCache != null)
             {
                 using (input.Log.ScopedStep(LogLevel.Info, "Creating Cache Entries"))
-                    cacheEntries = allItems.Select(x => GetCacheEntry(x.BundleName, x.ResourceFiles, x.Compression)).ToList();
+                    cacheEntries = allItems.Select(x => GetCacheEntry(input.BuildCache, x.BundleName, x.ResourceFiles, x.Compression)).ToList();
 
                 using (input.Log.ScopedStep(LogLevel.Info, "Load Cached Data"))
                     input.BuildCache.LoadCachedData(cacheEntries, out cachedInfo);
@@ -327,7 +346,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                     item.ResultDetails = (BundleDetails)cachedInfo[item.Index].Data[0];
                     item.ResultDetails.FileName = item.OutputFilePath;
                     item.ResultHash = item.ResultDetails.Hash;
-                    CopyToOutputLocation(item.CachedArtifactPath, item.ResultDetails.FileName, input.Log);
+                    CopyFileWithTimestampIfDifferent(item.CachedArtifactPath, item.ResultDetails.FileName, input.Log);
                 }
             }
 
@@ -368,7 +387,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 item.ResultDetails.FileName = item.OutputFilePath;
                 item.ResultDetails.Crc = ContentBuildInterface.ArchiveAndCompress(item.ResourceFiles, writePath, item.Compression);
                 item.ResultHash = CalculateHashVersion(fileOffsets, item.ResourceFiles, item.ResultDetails.Dependencies);
-                CopyToOutputLocation(writePath, item.ResultDetails.FileName, log);
+                CopyFileWithTimestampIfDifferent(writePath, item.ResultDetails.FileName, log);
             }
         }
 
@@ -418,19 +437,6 @@ namespace UnityEditor.Build.Pipeline.Tasks
             Task.WaitAny(Task.WhenAll(tasks));
 
             return !srcToken.Token.IsCancellationRequested;
-        }
-
-        static void CopyToOutputLocation(string writePath, string finalPath, IBuildLogger log)
-        {
-            if (finalPath != writePath)
-            {
-                using (log.ScopedStep(LogLevel.Verbose, $"Copying From Cache {writePath} -> {finalPath}"))
-                {
-                    var directory = Path.GetDirectoryName(finalPath);
-                    Directory.CreateDirectory(directory);
-                    File.Copy(writePath, finalPath, true);
-                }
-            }
         }
     }
 }

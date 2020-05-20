@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Injector;
 using UnityEditor.Build.Pipeline.Interfaces;
@@ -181,6 +182,83 @@ namespace UnityEditor.Build.Pipeline.Tests
             ArchiveAndCompressBundles.Run(input, out ArchiveAndCompressBundles.TaskOutput output);
             var node = log.Root.Children.Find((x) => x.Name.StartsWith("ArchiveItems"));
             Assert.IsNotNull(node);
+        }
+
+        class ScopeCapturer : IBuildLogger
+        {
+            public List<string> Scopes = new List<string>();
+            public void AddEntry(LogLevel level, string msg)
+            {
+            }
+
+            public void BeginBuildStep(LogLevel level, string stepName, bool subStepsCanBeThreaded)
+            {
+                lock (Scopes)
+                {
+                    Scopes.Add(stepName);
+                }
+            }
+
+            public bool ContainsScopeWithSubstring(string subString)
+            {
+                return Scopes.Count((x) => x.Contains(subString)) != 0;
+            }
+
+            public void EndBuildStep()
+            {
+            }
+        }
+
+        private void AddSimpleBundleAndBuild(out ArchiveAndCompressBundles.TaskInput input, out string bundleBuildDir)
+        {
+            ScopeCapturer log1 = new ScopeCapturer();
+            string bDir = Path.Combine(m_TestTempDir, "bundleoutdir1");
+            Directory.CreateDirectory(bDir);
+            input = GetDefaultInput();
+            BuildCache cache = new BuildCache();
+            input.BuildCache = cache;
+            input.Log = log1;
+            AddSimpleBundle(input, "mybundle", "internalName");
+            input.GetOutputFilePathForIdentifier = (x) => Path.Combine(bDir, x);
+            ArchiveAndCompressBundles.Run(input, out ArchiveAndCompressBundles.TaskOutput output);
+            Assert.AreEqual(0, input.OutCachedBundles.Count);
+            Assert.IsTrue(log1.ContainsScopeWithSubstring("Copying From Cache"));
+            cache.SyncPendingSaves();
+            bundleBuildDir = bDir;
+        }
+
+        [Test]
+        public void WhenArchiveIsAlreadyBuilt_AndArchiveIsInOutputDirectory_ArchiveIsNotCopied()
+        {
+            AddSimpleBundleAndBuild(out ArchiveAndCompressBundles.TaskInput input, out string bundleOutDir1);
+            ScopeCapturer log2 = new ScopeCapturer();
+
+            input.GetOutputFilePathForIdentifier = (x) => Path.Combine(bundleOutDir1, x);
+            input.Log = log2;
+            ArchiveAndCompressBundles.Run(input, out ArchiveAndCompressBundles.TaskOutput output2);
+            Assert.AreEqual(1, input.OutCachedBundles.Count);
+            Assert.AreEqual("mybundle", input.OutCachedBundles[0]);
+            Assert.IsFalse(log2.ContainsScopeWithSubstring("Copying From Cache"));
+        }
+
+        [Test]
+        public void WhenArchiveIsAlreadyBuilt_AndArchiveIsInOutputDirectoryButTimestampMismatch_ArchiveIsCopied()
+        {
+            AddSimpleBundleAndBuild(out ArchiveAndCompressBundles.TaskInput input, out string bundleOutDir1);
+
+            // Change the creation timestamp on the bundles
+            string bundlePath = Path.Combine(bundleOutDir1, "mybundle");
+            File.SetLastWriteTime(bundlePath, new DateTime(2019, 1, 1));
+
+            ScopeCapturer log2 = new ScopeCapturer();
+
+            input.GetOutputFilePathForIdentifier = (x) => Path.Combine(bundleOutDir1, x);
+            input.Log = log2;
+            ArchiveAndCompressBundles.Run(input, out ArchiveAndCompressBundles.TaskOutput output2);
+
+            Assert.AreEqual(1, input.OutCachedBundles.Count);
+            Assert.AreEqual("mybundle", input.OutCachedBundles[0]);
+            Assert.IsTrue(log2.ContainsScopeWithSubstring("Copying From Cache"));
         }
 
 #if UNITY_2019_3_OR_NEWER

@@ -223,11 +223,10 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 return RawHash.Zero();
 
             byte[] hash;
-#if UNITY_2019_3_OR_NEWER
-            using (var hashAlgorithm = GetHashAlgorithm(typeof(SpookyHash)))
-#else
+            // There is a bug in spooky hash that prevents some trailing data from being added to the hash. It can also result in reading beyond the speicifed buffer.
+            // Until this is addressed in the engine, we will revert to using MD5
+            // There is a Jira ticket to investigate this further: https://jira.unity3d.com/browse/ADDR-1193?jql=text%20~%20%22spooky%22
             using (var hashAlgorithm = GetHashAlgorithm(typeof(MD5)))
-#endif
                 hash = hashAlgorithm.ComputeHash(stream);
             return new RawHash(hash);
         }
