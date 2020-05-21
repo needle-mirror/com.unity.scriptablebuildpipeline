@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Utilities;
@@ -46,7 +47,12 @@ namespace UnityEditor.Build.Pipeline.WriteTypes
         /// <inheritdoc />
         public Hash128 GetHash128()
         {
-            return HashingMethods.Calculate(Command, UsageSet.GetHash128(), ReferenceMap.GetHash128(), Info).ToHash128();
+            HashSet<CacheEntry> hashObjects = new HashSet<CacheEntry>();
+            if (Command.serializeObjects != null)
+                foreach (var serializeObject in Command.serializeObjects)
+                    hashObjects.Add(BuildCacheUtility.GetCacheEntry(serializeObject.serializationObject));
+
+            return HashingMethods.Calculate(Command, UsageSet.GetHash128(), ReferenceMap.GetHash128(), Info, hashObjects).ToHash128();
         }
     }
 }

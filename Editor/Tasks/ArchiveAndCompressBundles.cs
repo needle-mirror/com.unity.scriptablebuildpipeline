@@ -93,7 +93,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
         static internal bool SupportsMultiThreadedArchiving { get; private set; }
 
-        static CacheEntry GetCacheEntry(IBuildCache cache, string bundleName, IEnumerable<ResourceFile> resources, BuildCompression compression)
+        static CacheEntry GetCacheEntry(IBuildCache cache, string bundleName, IEnumerable<ResourceFile> resources, BuildCompression compression, List<SerializedFileMetaData> hashes)
         {
             var entry = new CacheEntry();
             entry.Type = CacheEntry.EntryType.Data;
@@ -103,8 +103,8 @@ namespace UnityEditor.Build.Pipeline.Tasks
             {
                 toHash.Add(resource.serializedFile);
                 toHash.Add(resource.fileAlias);
-                toHash.Add(cache.GetCacheEntry(resource.fileName).Hash);
             }
+            toHash.AddRange(hashes.Select(x=>(object)x.RawFileHash));
             entry.Hash = HashingMethods.Calculate(toHash).ToHash128();
             entry.Version = kVersion;
             return entry;
@@ -119,44 +119,31 @@ namespace UnityEditor.Build.Pipeline.Tasks
             return info;
         }
 
-        internal static Hash128 CalculateHashVersion(Dictionary<string, ulong> fileOffsets, ResourceFile[] resourceFiles, string[] dependencies)
+        internal static Hash128 CalculateHashVersion(ArchiveWorkItem item, string[] dependencies)
         {
-            List<RawHash> hashes = new List<RawHash>();
+            List<Hash128> hashes = new List<Hash128>();
 
-            foreach (ResourceFile file in resourceFiles)
-            {
-                if (file.serializedFile)
-                {
-                    // For serialized files, we ignore the header for the hash value.
-                    // This leaves us with a hash value of just the written object data.
-                    using (var stream = new FileStream(file.fileName, FileMode.Open, FileAccess.Read))
-                    {
-                        stream.Position = (long)fileOffsets[file.fileName];
-                        hashes.Add(HashingMethods.CalculateStream(stream));
-                    }
-                }
-                else
-                    hashes.Add(HashingMethods.CalculateFile(file.fileName));
-            }
+            hashes.AddRange(item.SeriliazedFileMetaDatas.Select(x => x.ContentHash));
 
             return HashingMethods.Calculate(hashes, dependencies).ToHash128();
         }
 
-        class ArchiveWorkItem
+        internal class ArchiveWorkItem
         {
             public int Index;
             public string BundleName;
             public string OutputFilePath;
             public string CachedArtifactPath;
-            public ResourceFile[] ResourceFiles;
+            public List<ResourceFile> ResourceFiles;
             public BuildCompression Compression;
             public BundleDetails ResultDetails;
-            public Hash128 ResultHash;
+            public List<SerializedFileMetaData> SeriliazedFileMetaDatas = new List<SerializedFileMetaData>();
         }
 
         internal struct TaskInput
         {
             public Dictionary<string, WriteResult> InternalFilenameToWriteResults;
+            public Dictionary<string, SerializedFileMetaData> InternalFilenameToWriteMetaData;
 #if UNITY_2019_3_OR_NEWER
             public Dictionary<string, List<ResourceFile>> InternalFilenameToAdditionalFiles;
 #endif
@@ -192,6 +179,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             input.ProgressTracker = m_Tracker;
             input.TempOutputFolder = m_Parameters.TempOutputFolder;
             input.AssetToFilesDependencies = m_WriteData.AssetToFiles;
+            input.InternalFilenameToWriteMetaData = m_Results.WriteResultsMetaData;
             input.Log = m_Log;
 
             input.Threaded = SupportsMultiThreadedArchiving && ScriptableBuildPipeline.threadedArchiving;
@@ -241,71 +229,60 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 {
                     // apply bundle dependencies
                     item.ResultDetails.Dependencies = bundleDependencies.ContainsKey(item.BundleName) ? bundleDependencies[item.BundleName] : new string[0];
-
-                    // set the hash on the bundle result. must be applied here because the ToString of the Hash128 can't be called on a thread
-                    item.ResultDetails.Hash = item.ResultHash;
+                    item.ResultDetails.Hash = CalculateHashVersion(item, item.ResultDetails.Dependencies);
                 }
             }
         }
-
-        static Dictionary<string, ulong> CalculateHashFileOffsets(TaskInput input)
+        
+        static ArchiveWorkItem GetOrCreateWorkItem(TaskInput input, string bundleName, Dictionary<string, ArchiveWorkItem> bundleToWorkItem)
         {
-            using (input.Log.ScopedStep(LogLevel.Info, "CalculateHashFileOffsets"))
+            if (!bundleToWorkItem.TryGetValue(bundleName, out ArchiveWorkItem item))
             {
-                Dictionary<string, ulong> fileOffsets = new Dictionary<string, ulong>();
-                foreach (var pair in input.InternalFilenameToWriteResults)
-                {
-                    foreach (ResourceFile serializedFile in pair.Value.resourceFiles)
-                    {
-                        if (!serializedFile.serializedFile)
-                            continue;
-
-                        ObjectSerializedInfo firstObject = pair.Value.serializedObjects.First(x => x.header.fileName == serializedFile.fileAlias);
-                        fileOffsets[serializedFile.fileName] = firstObject.header.offset;
-                    }
-                }
-                return fileOffsets;
+                item = new ArchiveWorkItem();
+                item.BundleName = bundleName;
+                item.Compression = input.GetCompressionForIdentifier(bundleName);
+                item.OutputFilePath = input.GetOutputFilePathForIdentifier(bundleName);
+                item.ResourceFiles = new List<ResourceFile>();
+                bundleToWorkItem[bundleName] = item;
             }
+            return item;
+        }
+
+        static RawHash HashResourceFiles(List<ResourceFile> files)
+        {
+            return HashingMethods.Calculate(files.Select((x) => HashingMethods.CalculateFile(x.fileName)));
         }
 
         static List<ArchiveWorkItem> CreateWorkItems(TaskInput input)
         {
             using (input.Log.ScopedStep(LogLevel.Info, "CreateWorkItems"))
             {
-                List<KeyValuePair<string, List<ResourceFile>>> bundleResources;
-                Dictionary<string, List<ResourceFile>> bundleToResources = new Dictionary<string, List<ResourceFile>>();
+                Dictionary<string, ArchiveWorkItem> bundleNameToWorkItem = new Dictionary<string, ArchiveWorkItem>();
+
                 foreach (var pair in input.InternalFilenameToWriteResults)
                 {
-                    string bundle = input.InternalFilenameToBundleName[pair.Key];
-                    List<ResourceFile> resourceFiles;
-                    bundleToResources.GetOrAdd(bundle, out resourceFiles);
-                    resourceFiles.AddRange(pair.Value.resourceFiles);
-                }
+                    string internalName = pair.Key;
+                    string bundleName = input.InternalFilenameToBundleName[internalName];
+                    ArchiveWorkItem item = GetOrCreateWorkItem(input, bundleName, bundleNameToWorkItem);
+
+                    if (input.InternalFilenameToWriteMetaData.TryGetValue(pair.Key, out SerializedFileMetaData md))
+                        item.SeriliazedFileMetaDatas.Add(md);
+                    else
+                        throw new Exception($"Archive {bundleName} with internal name {internalName} does not have associated SerializedFileMetaData");
+
+                    item.ResourceFiles.AddRange(pair.Value.resourceFiles);
+
 #if UNITY_2019_3_OR_NEWER
-	            foreach (var pair in input.InternalFilenameToAdditionalFiles)
-	            {
-	                List<ResourceFile> resourceFiles;
-	                bundleToResources.GetOrAdd(pair.Key, out resourceFiles);
-	                foreach (var file in pair.Value)
-	                {
-	                    resourceFiles.Add(file);
-	                    input.InternalFilenameToBundleName[file.fileAlias] = pair.Key;
-	                }
-	            }
-#endif
-                bundleResources = bundleToResources.ToList();
-
-                List<ArchiveWorkItem> allItems = bundleResources.Select((x, index) =>
-                    new ArchiveWorkItem
+                    if (input.InternalFilenameToAdditionalFiles.TryGetValue(internalName, out List<ResourceFile> additionalFiles))
                     {
-                        Index = index,
-                        BundleName = x.Key,
-                        ResourceFiles = x.Value.ToArray(),
-                        Compression = input.GetCompressionForIdentifier(x.Key),
-                        OutputFilePath = input.GetOutputFilePathForIdentifier(x.Key)
+                        RawHash hash = HashResourceFiles(additionalFiles);
+                        item.SeriliazedFileMetaDatas.Add(new SerializedFileMetaData() { ContentHash = hash.ToHash128(), RawFileHash = hash.ToHash128() });
+                        item.ResourceFiles.AddRange(additionalFiles);
                     }
-                ).ToList();
+#endif
+                }
 
+                List<ArchiveWorkItem> allItems = bundleNameToWorkItem.Select((x, index) => { x.Value.Index = index; return x.Value; }).ToList();
                 return allItems;
             }
         }
@@ -316,7 +293,6 @@ namespace UnityEditor.Build.Pipeline.Tasks
             output.BundleDetails = new Dictionary<string, BundleDetails>();
 
             List<ArchiveWorkItem> allItems = CreateWorkItems(input);
-            Dictionary<string, ulong> fileOffsets = CalculateHashFileOffsets(input);
 
             IList<CacheEntry> cacheEntries = null;
             IList<CachedInfo> cachedInfo = null;
@@ -325,7 +301,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             if (input.BuildCache != null)
             {
                 using (input.Log.ScopedStep(LogLevel.Info, "Creating Cache Entries"))
-                    cacheEntries = allItems.Select(x => GetCacheEntry(input.BuildCache, x.BundleName, x.ResourceFiles, x.Compression)).ToList();
+                    cacheEntries = allItems.Select(x => GetCacheEntry(input.BuildCache, x.BundleName, x.ResourceFiles, x.Compression, x.SeriliazedFileMetaDatas)).ToList();
 
                 using (input.Log.ScopedStep(LogLevel.Info, "Load Cached Data"))
                     input.BuildCache.LoadCachedData(cacheEntries, out cachedInfo);
@@ -345,13 +321,12 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
                     item.ResultDetails = (BundleDetails)cachedInfo[item.Index].Data[0];
                     item.ResultDetails.FileName = item.OutputFilePath;
-                    item.ResultHash = item.ResultDetails.Hash;
                     CopyFileWithTimestampIfDifferent(item.CachedArtifactPath, item.ResultDetails.FileName, input.Log);
                 }
             }
 
             // Write all the files that aren't cached
-            if (!ArchiveItems(nonCachedItems, fileOffsets, input.TempOutputFolder, input.ProgressTracker, input.Threaded, input.Log))
+            if (!ArchiveItems(nonCachedItems, input.TempOutputFolder, input.ProgressTracker, input.Threaded, input.Log))
                 return ReturnCode.Canceled;
 
             PostArchiveProcessing(allItems, input.AssetToFilesDependencies.Values.ToList(), input.InternalFilenameToBundleName, input.Log);
@@ -374,7 +349,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             return ReturnCode.Success;
         }
 
-        static private void ArchiveSingleItem(ArchiveWorkItem item, Dictionary<string, ulong> fileOffsets, string tempOutputFolder, IBuildLogger log)
+        static private void ArchiveSingleItem(ArchiveWorkItem item, string tempOutputFolder, IBuildLogger log)
         {
             using (log.ScopedStep(LogLevel.Info, $"Archive {item.BundleName}"))
             {
@@ -385,32 +360,32 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
                 Directory.CreateDirectory(Path.GetDirectoryName(writePath));
                 item.ResultDetails.FileName = item.OutputFilePath;
-                item.ResultDetails.Crc = ContentBuildInterface.ArchiveAndCompress(item.ResourceFiles, writePath, item.Compression);
-                item.ResultHash = CalculateHashVersion(fileOffsets, item.ResourceFiles, item.ResultDetails.Dependencies);
+                item.ResultDetails.Crc = ContentBuildInterface.ArchiveAndCompress(item.ResourceFiles.ToArray(), writePath, item.Compression);
+                
                 CopyFileWithTimestampIfDifferent(writePath, item.ResultDetails.FileName, log);
             }
         }
 
-        static private bool ArchiveItems(List<ArchiveWorkItem> items, Dictionary<string, ulong> fileOffsets, string tempOutputFolder, IProgressTracker tracker, bool threaded, IBuildLogger log)
+        static private bool ArchiveItems(List<ArchiveWorkItem> items, string tempOutputFolder, IProgressTracker tracker, bool threaded, IBuildLogger log)
         {
             using (log.ScopedStep(LogLevel.Info, "ArchiveItems", threaded))
             {
                 log?.AddEntry(LogLevel.Info, $"Archiving {items.Count} Bundles");
                 if (threaded)
-                    return ArchiveItemsThreaded(items, fileOffsets, tempOutputFolder, tracker, log);
+                    return ArchiveItemsThreaded(items, tempOutputFolder, tracker, log);
 
                 foreach (ArchiveWorkItem item in items)
                 {
                     if (tracker != null && !tracker.UpdateInfoUnchecked(item.BundleName))
                         return false;
 
-                    ArchiveSingleItem(item, fileOffsets, tempOutputFolder, log);
+                    ArchiveSingleItem(item, tempOutputFolder, log);
                 }
                 return true;
             }
         }
 
-        static private bool ArchiveItemsThreaded(List<ArchiveWorkItem> items, Dictionary<string, ulong> fileOffsets, string tempOutputFolder, IProgressTracker tracker, IBuildLogger log)
+        static private bool ArchiveItemsThreaded(List<ArchiveWorkItem> items, string tempOutputFolder, IProgressTracker tracker, IBuildLogger log)
         {
             CancellationTokenSource srcToken = new CancellationTokenSource();
 
@@ -420,7 +395,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             {
                 tasks.Add(Task.Run(() =>
                 {
-                    try { ArchiveSingleItem(item, fileOffsets, tempOutputFolder, log); }
+                    try { ArchiveSingleItem(item, tempOutputFolder, log); }
                     finally { semaphore.Release(); }
                 }, srcToken.Token));
             }

@@ -19,6 +19,11 @@ namespace UnityEditor.Build.Pipeline.Interfaces
         /// Map of serialized file name to results for built content.
         /// </summary>
         Dictionary<string, WriteResult> WriteResults { get; }
+
+        /// <summary>
+        /// Map of serialized file name to additional metadata associated with the write result.
+        /// </summary>
+        Dictionary<string, SerializedFileMetaData> WriteResultsMetaData { get; }
     }
 
     /// <summary>

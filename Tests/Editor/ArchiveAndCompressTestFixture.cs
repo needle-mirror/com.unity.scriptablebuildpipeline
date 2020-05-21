@@ -6,6 +6,7 @@ using System.Diagnostics;
 using System.IO;
 using UnityEditor;
 using UnityEditor.Build.Content;
+using UnityEditor.Build.Pipeline;
 using UnityEditor.Build.Pipeline.Tasks;
 using UnityEditor.Build.Pipeline.Tests;
 using UnityEditor.Build.Pipeline.Utilities;
@@ -135,6 +136,7 @@ public class ArchiveAndCompressTestFixture
 #endif
         input.InternalFilenameToBundleName = new Dictionary<string, string>();
         input.AssetToFilesDependencies = new Dictionary<UnityEditor.GUID, List<string>>();
+        input.InternalFilenameToWriteMetaData = new Dictionary<string, SerializedFileMetaData>();
         input.BuildCache = null;
         input.Threaded = false;
         input.ProgressTracker = null;
@@ -156,24 +158,28 @@ public class ArchiveAndCompressTestFixture
         writeResult.SetResourceFiles(new ResourceFile[] { file });
         input.InternalFilenameToWriteResults.Add(internalName, writeResult);
         input.InternalFilenameToBundleName.Add(internalName, bundleName);
+        SerializedFileMetaData md = new SerializedFileMetaData();
+        md.RawFileHash = HashingMethods.CalculateFile(filePath).ToHash128();
+        md.ContentHash = HashingMethods.CalculateFile(filePath).ToHash128();
+        input.InternalFilenameToWriteMetaData.Add(internalName, md);
         return writeResult;
     }
 
 #if UNITY_2019_3_OR_NEWER
-    internal void AddRawFile(ArchiveAndCompressBundles.TaskInput input, string bundleName, string internalName, string filePath)
+    internal void AddRawFileThatTargetsBundle(ArchiveAndCompressBundles.TaskInput input, string targetBundleInternalName, string rawFileInternalName, string filePath)
     {
         ResourceFile file = new ResourceFile();
         file.SetFileName(filePath);
-        file.SetFileAlias(internalName);
+        file.SetFileAlias(rawFileInternalName);
         file.SetSerializedFile(false);
         List<ResourceFile> files = new List<ResourceFile> { file };
-        input.InternalFilenameToAdditionalFiles.Add(bundleName, files);
+        input.InternalFilenameToAdditionalFiles.Add(targetBundleInternalName, files);
     }
 
-    internal void AddRawFile(ArchiveAndCompressBundles.TaskInput input, string bundleName, string internalName)
+    internal void AddRawFileThatTargetsBundle(ArchiveAndCompressBundles.TaskInput input, string targetBundleInternalName, string rawFileInternalName)
     {
         string tempFilename = CreateFileOfSize(GetUniqueFilename(Path.Combine(m_FixtureTempDir, "src", "rawfile.bin")), 1024);
-        AddRawFile(input, bundleName, internalName, tempFilename);
+        AddRawFileThatTargetsBundle(input, targetBundleInternalName, rawFileInternalName, tempFilename);
     }
 #endif
 

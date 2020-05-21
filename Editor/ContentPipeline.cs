@@ -74,7 +74,7 @@ namespace UnityEditor.Build.Pipeline
 
             ReturnCode exitCode;
             result = new BundleBuildResults();
-
+            BuildCacheUtility.ClearCacheHashes();
             using (var interfacesWrapper = new BuildInterfacesWrapper())
 #if !CI_TESTRUNNER_PROJECT
             using (new SceneStateCleanup())

@@ -2,7 +2,7 @@
 
 [assembly: InternalsVisibleTo("Unity.ScriptableBuildPipeline.Editor.Tests")]
 [assembly: InternalsVisibleTo("Unity.ScriptableBuildPipeline.Test.Fixtures")]
-[assembly: InternalsVisibleTo("Unity.ScriptableBuildPipeline.Editor.PerformanceTests")]
+[assembly: InternalsVisibleTo("PerformanceTests.Editor")]
 [assembly: InternalsVisibleTo("SBPDebug.Editor")]
 [assembly: InternalsVisibleTo("SBPDebug.Editor.Tests")]
 

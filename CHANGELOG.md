@@ -4,6 +4,11 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.8.2] - 2020-05-21
+- Improve incremental build performance. Avoid copying archives from the build cache when source and destination creation timestamps are identical.
+- Fix caching bug caused by an engine SpookyHash bug. MD5 hashing will be used until this issue is resolved.
+- Improve caching performance of the ArchiveAndCompressBundles task
+
 ## [1.7.3] - 2020-05-20
 - Fix caching bug caused by an engine SpookyHash bug. MD5 hashing will be used until this issue is resolved.
 

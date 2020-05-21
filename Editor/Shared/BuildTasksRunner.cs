@@ -4,6 +4,7 @@ using UnityEditor.Build.Pipeline.Injector;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Utilities;
 using UnityEditor.Build.Profiler;
+using UnityEditor.Build.Reporting;
 
 namespace UnityEditor.Build.Pipeline
 {
@@ -50,7 +51,9 @@ namespace UnityEditor.Build.Pipeline
                             return ReturnCode.Canceled;
 
                         ContextInjector.Inject(context, task);
-                        var result = task.Run();
+                        ReturnCode result;
+                        using (logger.ScopedStep(LogLevel.Info, task.GetType().Name))
+                            result = task.Run();
                         if (result < ReturnCode.Success)
                             return result;
                         ContextInjector.Extract(context, task);

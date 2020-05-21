@@ -74,6 +74,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         [SetUp]
         public void Setup()
         {
+            BuildCacheUtility.ClearCacheHashes();
             PurgeBuildCache();
             RecreateBuildCache();
             SetupDerived();
@@ -92,6 +93,7 @@ namespace UnityEditor.Build.Pipeline.Tests
 
         protected virtual void RecreateBuildCache()
         {
+            BuildCacheUtility.ClearCacheHashes();
             if (m_Cache != null)
             {
                 m_Cache.Dispose();

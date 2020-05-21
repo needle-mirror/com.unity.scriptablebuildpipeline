@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Interfaces;
@@ -62,14 +63,18 @@ namespace UnityEditor.Build.Pipeline.WriteTypes
         /// <inheritdoc />
         public Hash128 GetHash128()
         {
+            var prefabHashes = AssetDatabase.GetDependencies(Scene).Where(path => path.EndsWith(".prefab")).Select(AssetDatabase.GetAssetDependencyHash);
 #if UNITY_2019_3_OR_NEWER
-            var prefabHashes = AssetDatabase.GetDependencies(Scene).Where(path => path.EndsWith(".prefab")).Select(AssetDatabase.GetAssetDependencyHash);
-            return HashingMethods.Calculate(Command, UsageSet.GetHash128(), ReferenceMap.GetHash128(), Scene, PreloadInfo, prefabHashes).ToHash128();
+            CacheEntry entry = BuildCacheUtility.GetCacheEntry(Scene);
 #else
-            var processedSceneHash = HashingMethods.CalculateFile(ProcessedScene).ToHash128();
-            var prefabHashes = AssetDatabase.GetDependencies(Scene).Where(path => path.EndsWith(".prefab")).Select(AssetDatabase.GetAssetDependencyHash);
-            return HashingMethods.Calculate(Command, UsageSet.GetHash128(), ReferenceMap.GetHash128(), Scene, processedSceneHash, PreloadInfo, prefabHashes).ToHash128();
+            CacheEntry entry = BuildCacheUtility.GetCacheEntry(ProcessedScene);
 #endif
+            HashSet<CacheEntry> hashObjects = new HashSet<CacheEntry>();
+            if (Command.serializeObjects != null)
+                foreach (var serializeObject in Command.serializeObjects)
+                    hashObjects.Add(BuildCacheUtility.GetCacheEntry(serializeObject.serializationObject));
+
+            return HashingMethods.Calculate(Command, UsageSet.GetHash128(), ReferenceMap.GetHash128(), Scene, PreloadInfo, prefabHashes, entry, hashObjects).ToHash128();
         }
     }
 }

@@ -304,53 +304,6 @@ namespace UnityEditor.Build.Pipeline.Tests
             FileAssert.Exists(fileName + "_" + fileHash);
         }
 
-        [Test]
-        public void HashChanges_WhenDependencyListHasModifiedEntries()
-        {
-            Dictionary<string, ulong> offsets = new Dictionary<string, ulong>();
-            ResourceFile[] resourceFiles = new ResourceFile[0];
-
-            string[] dependencies = new string[]
-            {
-                "dependency1",
-                "dependency2"
-            };
-
-            Hash128 firstHash = ArchiveAndCompressBundles.CalculateHashVersion(offsets, resourceFiles, dependencies);
-
-            dependencies[1] = "newDependency";
-
-            Hash128 secondHash = ArchiveAndCompressBundles.CalculateHashVersion(offsets, resourceFiles, dependencies);
-
-            Assert.AreNotEqual(firstHash, secondHash);
-        }
-
-        [Test]
-        public void HashRemainsTheSame_AfterRevertingDependencyListChange()
-        {
-            Dictionary<string, ulong> offsets = new Dictionary<string, ulong>();
-            ResourceFile[] resourceFiles = new ResourceFile[0];
-
-            string[] dependencies = new string[]
-            {
-                "dependency1",
-                "dependency2"
-            };
-
-            Hash128 firstHash = ArchiveAndCompressBundles.CalculateHashVersion(offsets, resourceFiles, dependencies);
-
-            dependencies[1] = "newDependency";
-
-            Hash128 secondHash = ArchiveAndCompressBundles.CalculateHashVersion(offsets, resourceFiles, dependencies);
-
-            dependencies[1] = "dependency2";
-
-            Hash128 thirdHash = ArchiveAndCompressBundles.CalculateHashVersion(offsets, resourceFiles, dependencies);
-
-            Assert.AreNotEqual(secondHash, thirdHash);
-            Assert.AreEqual(firstHash, thirdHash);
-        }
-
         [UnityTest]
         public IEnumerator SceneDataWriteOperation_HashChanges_WhenPrefabDepenencyChanges()
         {

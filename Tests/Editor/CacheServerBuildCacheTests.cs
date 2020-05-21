@@ -21,6 +21,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         {
             // purge the local cache to make sure we don't load anything out of it again.
             // these tests need to pull from the cache server
+            BuildCacheUtility.ClearCacheHashes();
             if (m_Cache != null)
                 m_Cache.Dispose();
             PurgeBuildCache();

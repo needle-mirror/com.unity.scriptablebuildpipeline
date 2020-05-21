@@ -1,5 +1,6 @@
 ﻿using NUnit.Framework;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -42,6 +43,63 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreEqual(0, output.BundleDetails["mybundle"].Dependencies.Length);
         }
 
+        public class RebuildTestContext
+        {
+            internal ArchiveAndCompressBundles.TaskInput input;
+            internal ArchiveAndCompressTests _this;
+        };
+
+        public static IEnumerable RebuildTestCases
+        {
+            get
+            {
+                yield return new TestCaseData(false, new Action<RebuildTestContext>((ctx) => { })).SetName("NoChanges");
+                yield return new TestCaseData(true, new Action<RebuildTestContext>((ctx) => {
+                    ctx.input.InternalFilenameToWriteMetaData["internalName"] = new SerializedFileMetaData() { ContentHash = new Hash128(0, 1), RawFileHash = new Hash128(1, 2) };
+                })).SetName("SourceFileHashChanges");
+                yield return new TestCaseData(true, new Action<RebuildTestContext>((ctx) =>
+                {
+                    ctx.input.GetCompressionForIdentifier = (x) => UnityEngine.BuildCompression.Uncompressed;
+                })).SetName("CompressionChanges");
+#if UNITY_2019_3_OR_NEWER
+                yield return new TestCaseData(true, new Action<RebuildTestContext>((ctx) =>
+                {
+                    ctx._this.AddRawFileThatTargetsBundle(ctx.input, "internalName", "rawInternalName");
+                }
+                )).SetName("AddAdditionalFile");
+#endif
+            }
+        }
+
+        [Test, TestCaseSource(typeof(ArchiveAndCompressTests), "RebuildTestCases")]
+        public void WhenInputsChanges_AndRebuilt_CachedDataIsUsedAsExpected(bool shouldRebuild, Action<RebuildTestContext> postFirstBuildAction)
+        {
+            BuildCache.PurgeCache(false);
+            using (BuildCache cache = new BuildCache())
+            {
+                RebuildTestContext ctx = new RebuildTestContext();
+                ctx.input = GetDefaultInput();
+                ctx._this = this;
+                ctx.input.BuildCache = cache;
+
+                AddSimpleBundle(ctx.input, "mybundle", "internalName");
+
+                ArchiveAndCompressBundles.Run(ctx.input, out ArchiveAndCompressBundles.TaskOutput output);
+                cache.SyncPendingSaves();
+                Assert.AreEqual(0, ctx.input.OutCachedBundles.Count);
+
+                postFirstBuildAction(ctx);
+
+                ctx.input.OutCachedBundles.Clear();
+                ArchiveAndCompressBundles.Run(ctx.input, out ArchiveAndCompressBundles.TaskOutput outputReRun);
+
+                if (shouldRebuild)
+                    Assert.AreEqual(0, ctx.input.OutCachedBundles.Count);
+                else
+                    Assert.AreEqual(1, ctx.input.OutCachedBundles.Count);
+            }
+        }
+
         [Test]
         public void WhenArchiveIsAlreadyBuilt_CachedVersionIsUsed()
         {
@@ -66,22 +124,6 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
 
         [Test]
-        public void WhenSerializedFileChanges_CachedVersionIsNotUsed()
-        {
-            ArchiveAndCompressBundles.TaskInput input = GetDefaultInput();
-            BuildCache cache = new BuildCache();
-            input.BuildCache = cache;
-            AddSimpleBundle(input, "mybundle", "internalName");
-            ArchiveAndCompressBundles.Run(input, out ArchiveAndCompressBundles.TaskOutput output);
-            string srcFile = input.InternalFilenameToWriteResults["internalName"].resourceFiles[0].fileName;
-            CreateFileOfSize(srcFile, 2048);
-            cache.SyncPendingSaves();
-            cache.ClearCacheEntryMaps();
-            ArchiveAndCompressBundles.Run(input, out ArchiveAndCompressBundles.TaskOutput output2);
-            Assert.AreEqual(0, input.OutCachedBundles.Count);
-        }
-
-        [Test]
         public void WhenArchiveIsCached_AndRebuildingArchive_HashIsAssignedToOutput()
         {
             string bundleName = "mybundle";
@@ -99,36 +141,55 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreEqual(hash, output2.BundleDetails[bundleName].Hash);
         }
 
-        [Test]
-        public void WhenCalculatingBundleHash_HashingBeginsAtFirstObject()
+        public class ContentHashTestContext
         {
-            ArchiveAndCompressBundles.TaskInput input = GetDefaultInput();
-            WriteResult result = AddSimpleBundle(input, "mybundle", "internalName");
+            internal ArchiveAndCompressBundles.TaskInput input;
+            internal GUID assetGUID;
+            internal ArchiveAndCompressTests _this;
+        };
 
-            // Add a serialized. Say that the first object begins 100 bytes into the file
-            var osi = new ObjectSerializedInfo();
-            SerializedLocation header = new SerializedLocation();
-            header.SetFileName(result.resourceFiles[0].fileAlias);
-            header.SetOffset(100);
-            osi.SetHeader(header);
-            result.SetSerializedObjects(new ObjectSerializedInfo[] { osi });
-            ResourceFile rf = result.resourceFiles[0];
-            rf.SetSerializedFile(true);
-            result.SetResourceFiles(new ResourceFile[] { rf });
-            input.InternalFilenameToWriteResults["internalName"] = result;
-            string srcFile = input.InternalFilenameToWriteResults["internalName"].resourceFiles[0].fileName;
+        public static IEnumerable ContentHashTestCases
+        {
+            get
+            {
+                yield return new TestCaseData(true, new Action<ContentHashTestContext>((ctx) => 
+                {
+                    ctx.input.AssetToFilesDependencies[ctx.assetGUID] = new List<string>() { "internalName", "internalName3" };
+                })).SetName("DependencyChanges");
+                yield return new TestCaseData(true, new Action<ContentHashTestContext>((ctx) =>
+                {
+                    ctx.input.InternalFilenameToWriteMetaData["internalName"].ContentHash = new Hash128(128, 128);
+                })).SetName("ContentHashChanges");
+                yield return new TestCaseData(false, new Action<ContentHashTestContext>((ctx) =>
+                {
+                    ctx.input.InternalFilenameToWriteMetaData["internalName"].RawFileHash= new Hash128(128, 128);
+                })).SetName("RawHashChanges");
+            }
+        }
 
-            ArchiveAndCompressBundles.Run(input, out ArchiveAndCompressBundles.TaskOutput output);
-            // Change the first 100 bytes. This is before the serialized object.
-            WriteRandomData(srcFile, 100, 1);
-            ArchiveAndCompressBundles.Run(input, out ArchiveAndCompressBundles.TaskOutput output2);
+        [Test, TestCaseSource(typeof(ArchiveAndCompressTests), "ContentHashTestCases")]
+        public void WhenInputsChange_BundleOutputHashIsAffectedAsExpected(bool hashShouldChange, Action<ContentHashTestContext> postFirstBuildAction)
+        {
+            ContentHashTestContext ctx = new ContentHashTestContext();
+            ctx.input = GetDefaultInput();
+            WriteResult result = AddSimpleBundle(ctx.input, "mybundle", "internalName");
+            WriteResult result2 = AddSimpleBundle(ctx.input, "mybundle2", "internalName2");
+            WriteResult result3 = AddSimpleBundle(ctx.input, "mybundle3", "internalName3");
+            ctx.assetGUID = GUID.Generate();
+            ctx.input.AssetToFilesDependencies.Add(ctx.assetGUID, new List<string>() { "internalName", "internalName2" });
+            
+            ArchiveAndCompressBundles.Run(ctx.input, out ArchiveAndCompressBundles.TaskOutput output);
 
-            // Change the first 104 bytes. This should affect the hash
-            WriteRandomData(srcFile, 104, 2);
-            ArchiveAndCompressBundles.Run(input, out ArchiveAndCompressBundles.TaskOutput output3);
+            postFirstBuildAction(ctx);
+            
+            ArchiveAndCompressBundles.Run(ctx.input, out ArchiveAndCompressBundles.TaskOutput output2);
 
-            Assert.AreEqual(output.BundleDetails["mybundle"].Hash, output2.BundleDetails["mybundle"].Hash);
-            Assert.AreNotEqual(output.BundleDetails["mybundle"].Hash, output3.BundleDetails["mybundle"].Hash);
+            Hash128 prevHash = output.BundleDetails["mybundle"].Hash;
+            Hash128 newHash = output2.BundleDetails["mybundle"].Hash;
+            if (hashShouldChange)
+                Assert.AreNotEqual(prevHash, newHash);
+            else
+                Assert.AreEqual(prevHash, newHash);
         }
 
 #if UNITY_2019_3_OR_NEWER
@@ -269,7 +330,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             AddSimpleBundle(input, "mybundle", "internalName");
             ArchiveAndCompressBundles.Run(input, out ArchiveAndCompressBundles.TaskOutput output);
 
-            AddRawFile(input, "mybundle", "rawName");
+            AddRawFileThatTargetsBundle(input, "internalName", "rawName");
             ArchiveAndCompressBundles.Run(input, out ArchiveAndCompressBundles.TaskOutput output2);
             Assert.IsTrue(output.BundleDetails["mybundle"].Hash.isValid);
             Assert.IsTrue(output2.BundleDetails["mybundle"].Hash.isValid);
