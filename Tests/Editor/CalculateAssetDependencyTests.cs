@@ -95,7 +95,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         public void WhenSomeAssetDataIsCached_CachedVersionIsUsed()
         {
             const int kCachedCount = 5;
-            // Create 10 assets, import half of them, 
+            // Create 10 assets, import half of them,
             CalculateAssetDependencyData.TaskInput input = CreateDefaultInput();
             string assetPath = Path.Combine(kTestAssetFolder, "myPrefab.prefab");
             List<GUID> allGUIDs = new List<GUID>();
@@ -107,7 +107,7 @@ namespace UnityEditor.Build.Pipeline.Tests
                 allGUIDs.Add(cachedGUID);
                 allGUIDs.Add(CreateGameObject(Path.Combine(kTestAssetFolder, $"myPrefab{i * 2 + 1}.prefab"), $"go{i * 2 + 1}"));
             }
-            
+
             using (BuildCache cache = new BuildCache())
             {
                 input.BuildCache = cache;
@@ -243,7 +243,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         [TestCaseSource("SpriteTestCases")]
         [Test]
         public void WhenSpriteWithAtlas_SpriteImportDataCreated(SpritePackerMode spriteMode, string spritePackingTag, bool hasReferencingSpriteAtlas, bool expectedPacked)
-        { 
+        {
             string sourceTexture = Path.Combine(kSourceTestAssetFolder, "SpriteTexture32x32.png");
             string destTexture = Path.Combine(kTestAssetFolder, "SpriteTexture32x32.png");
             AssetDatabase.CopyAsset(sourceTexture, destTexture);
@@ -273,6 +273,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreEqual(expectedPacked, output.AssetResults[0].spriteData.PackedSprite);
         }
 
+#if !UNITY_2020_2_OR_NEWER
+        // This test is only important for going through AssetDatabase's LoadAllAssetRepresentationsAtPath
+        // in 2020.2 and newer we have a new build api that handles nulls natively and this no longer applies.
         class NullLoadRepresentationFake : CalculateAssetDependencyHooks
         {
             public override UnityEngine.Object[] LoadAllAssetRepresentationsAtPath(string assetPath) { return new UnityEngine.Object[] { null }; }
@@ -297,6 +300,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreEqual(2, output.AssetResults[0].assetInfo.includedObjects.Count); // GameObject and Transform
             Assert.AreEqual(0, output.AssetResults[0].assetInfo.referencedObjects.Count);
         }
+#endif
 
         [Test]
         public void WhenAssetHasMultipleRepresentations_ExtendedDataContainsAllButMainAsset()
@@ -308,9 +312,9 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             for (int i = 0; i < kExtraRepresentations; i++)
                 AssetDatabase.AddObjectToAsset(new Material(Shader.Find("Transparent/Diffuse")), assetPath);
-            
+
             AssetDatabase.SaveAssets();
-            
+
             GUID guid = new GUID(AssetDatabase.AssetPathToGUID(assetPath));
             CalculateAssetDependencyData.TaskInput input = CreateDefaultInput();
             input.Assets = new List<GUID>() { guid };

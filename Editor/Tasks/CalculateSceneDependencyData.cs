@@ -86,15 +86,15 @@ namespace UnityEditor.Build.Pipeline.Tasks
                         return ReturnCode.Canceled;
 
                     usageTags = new BuildUsageTagSet();
+
+#if UNITY_2019_3_OR_NEWER
+                    sceneInfo = ContentBuildInterface.CalculatePlayerDependenciesForScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache);
+#else
                     string outputFolder = m_Parameters.TempOutputFolder;
                     if (m_Parameters.UseCache && m_Cache != null)
                         outputFolder = m_Cache.GetCachedArtifactsDirectory(m_Cache.GetCacheEntry(scene, Version));
                     Directory.CreateDirectory(outputFolder);
 
-
-#if UNITY_2019_3_OR_NEWER
-                    sceneInfo = ContentBuildInterface.CalculatePlayerDependenciesForScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache);
-#else
                     sceneInfo = ContentBuildInterface.PrepareScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache, outputFolder);
 #endif
 

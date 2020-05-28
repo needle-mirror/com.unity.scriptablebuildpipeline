@@ -100,6 +100,23 @@ namespace UnityEditor.Build.Pipeline.Utilities
             EndBuildStepInternal(GetThreadSafeLog());
         }
 
+        private static void OffsetTimesR(LogStep step, double offset)
+        {
+            step.StartTime += offset;
+            if (step.HasEntries)
+            {
+                for (int i = 0; i < step.Entries.Count; i++)
+                {
+                    LogEntry e = step.Entries[i];
+                    e.Time = e.Time + offset;
+                    step.Entries[i] = e;
+                }
+            }
+            if (step.HasChildren)
+                foreach (LogStep subStep in step.Children)
+                    OffsetTimesR(subStep, offset);
+        }
+
         private static void EndBuildStepInternal(BuildLog log)
         {
             Debug.Assert(log.m_Stack.Count > 1);
@@ -108,26 +125,16 @@ namespace UnityEditor.Build.Pipeline.Utilities
             
             if (node.isThreaded)
             {
-                foreach (var subLog in log.m_ThreadedLogs.Values)
+                foreach (BuildLog subLog in log.m_ThreadedLogs.Values)
                 {
                     if (subLog != log)
                     {
+                        OffsetTimesR(subLog.Root, node.StartTime);
                         if (subLog.Root.HasChildren)
-                        {
-                            foreach(LogStep step in subLog.Root.Children)
-                                step.StartTime += node.StartTime;
                             node.Children.AddRange(subLog.Root.Children);
-                        }
+
                         if (subLog.Root.HasEntries)
-                        {
-                            for (int i = 0; i < subLog.Root.Entries.Count; i++)
-                            {
-                                LogEntry e = subLog.Root.Entries[i];
-                                e.Time = e.Time + node.StartTime;
-                                subLog.Root.Entries[i] = e;
-                            }
                             node.Entries.AddRange(subLog.Root.Entries);
-                        }
                     }
                 }
                 log.m_ThreadedLogs.Dispose();
@@ -174,17 +181,22 @@ namespace UnityEditor.Build.Pipeline.Utilities
             return builder.ToString();
         }
 
+        static string CleanJSONText(string message)
+        {
+            return message.Replace("\\", "\\\\");
+        }
+
         static IEnumerable<string> IterateTEPLines(bool includeSelf, BuildLog.LogStep node)
         {
             ulong us = (ulong)(node.StartTime * 1000);
             if (includeSelf)
-                yield return "{" + $"\"name\": \"{node.Name}\", \"ph\": \"X\", \"dur\": {node.DurationMS * 1000}, \"tid\": {node.ThreadId}, \"ts\": {us}, \"pid\": 1" + "}";
+                yield return "{" + $"\"name\": \"{CleanJSONText(node.Name)}\", \"ph\": \"X\", \"dur\": {node.DurationMS * 1000}, \"tid\": {node.ThreadId}, \"ts\": {us}, \"pid\": 1" + "}";
 
             foreach (var msg in node.Entries)
             {
                 string line = (msg.Level == LogLevel.Warning || msg.Level == LogLevel.Error) ? $"{msg.Level}: {msg.Message}" : msg.Message;
                 ulong us2 = (ulong)(node.StartTime * 1000);
-                yield return "{" + $"\"name\": \"{line}\", \"ph\": \"i\", \"tid\": {msg.ThreadId}, \"ts\": {us2}, \"pid\": 1" + "}";
+                yield return "{" + $"\"name\": \"{CleanJSONText(line)}\", \"ph\": \"i\", \"tid\": {msg.ThreadId}, \"ts\": {us2}, \"pid\": 1" + "}";
             }
             
             foreach (var child in node.Children)

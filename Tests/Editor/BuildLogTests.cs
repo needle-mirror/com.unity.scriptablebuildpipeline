@@ -63,7 +63,11 @@ namespace UnityEditor.Build.Pipeline.Tests
                     log.AddEntry(LogLevel.Info, "ThreadedMsg1");
                     Thread.Sleep(1);
                     using (log.ScopedStep(LogLevel.Info, "ThreadedStep"))
+                    {
                         Thread.Sleep(2);
+                        using (log.ScopedStep(LogLevel.Info, "ThreadedStepNested"))
+                            Thread.Sleep(2);
+                    }
                     Thread.Sleep(1);
                 });
                 t.Start();
@@ -74,12 +78,25 @@ namespace UnityEditor.Build.Pipeline.Tests
             double threadedMessageStart = log.Root.Children[0].Entries[0].Time;
             double threadedScopeStart = log.Root.Children[0].Children[0].StartTime;
             double threadedScopeEnd = threadedScopeStart + log.Root.Children[0].Children[0].DurationMS;
+            double threadedScopeNestedStart = log.Root.Children[0].Children[0].Children[0].StartTime;
             double testStepEnd = testStepStart + log.Root.Children[0].DurationMS;
 
+            Assert.Less(threadedScopeStart, threadedScopeNestedStart);
             Assert.Less(testStepStart, threadedMessageStart);
             Assert.Less(threadedMessageStart, threadedScopeStart);
             Assert.Less(threadedScopeStart, threadedScopeEnd);
             Assert.Less(threadedScopeEnd, testStepEnd);
+        }
+
+        [Test]
+        public void WhenConvertingToTraceEventFormat_BackslashesAreEscaped()
+        {
+            BuildLog log = new BuildLog();
+            using (log.ScopedStep(LogLevel.Info, "TestStep\\AfterSlash"))
+                log.AddEntry(LogLevel.Info, "TestEntry\\AfterSlash");
+            string text = log.FormatAsTraceEventProfiler();
+            StringAssert.Contains("TestStep\\\\AfterSlash", text);
+            StringAssert.Contains("TestStep\\\\AfterSlash", text);
         }
     }
 }

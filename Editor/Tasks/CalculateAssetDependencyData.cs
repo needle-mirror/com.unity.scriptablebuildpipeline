@@ -8,6 +8,7 @@ using UnityEditor.Build.Player;
 
 namespace UnityEditor.Build.Pipeline.Tasks
 {
+#if !UNITY_2020_2_OR_NEWER
     internal class CalculateAssetDependencyHooks
     {
         public virtual UnityEngine.Object[] LoadAllAssetRepresentationsAtPath(string assetPath)
@@ -15,6 +16,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             return AssetDatabase.LoadAllAssetRepresentationsAtPath(assetPath);
         }
     }
+#endif
 
     public class CalculateAssetDependencyData : IBuildTask
     {
@@ -55,7 +57,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
             public IProgressTracker ProgressTracker;
             public BuildUsageTagGlobal GlobalUsage;
             public BuildUsageCache DependencyUsageCache;
+#if !UNITY_2020_2_OR_NEWER
             public CalculateAssetDependencyHooks EngineHooks;
+#endif
         }
 
         internal struct AssetOutput
@@ -129,9 +133,56 @@ namespace UnityEditor.Build.Pipeline.Tasks
             return code;
         }
 
+#if !UNITY_2020_2_OR_NEWER
+        static internal void GatherAssetRepresentations(string assetPath, System.Func<string, UnityEngine.Object[]> loadAllAssetRepresentations, ObjectIdentifier[] includedObjects, out ExtendedAssetData extendedData)
+        {
+            extendedData = null;
+            var representations = loadAllAssetRepresentations(assetPath);
+            if (representations.IsNullOrEmpty())
+                return;
+
+            var resultData = new ExtendedAssetData();
+            for (int j = 0; j < representations.Length; j++)
+            {
+                if (representations[j] == null)
+                {
+                    BuildLogger.LogWarning($"SubAsset {j} inside {assetPath} is null. It will not be included in the build.");
+                    continue;
+                }
+
+                if (AssetDatabase.IsMainAsset(representations[j]))
+                    continue;
+
+                string guid;
+                long localId;
+                if (!AssetDatabase.TryGetGUIDAndLocalFileIdentifier(representations[j], out guid, out localId))
+                    continue;
+
+                resultData.Representations.AddRange(includedObjects.Where(x => x.localIdentifierInFile == localId));
+            }
+
+            if (resultData.Representations.Count > 0)
+                extendedData = resultData;
+        }
+#else
+        static internal void GatherAssetRepresentations(GUID asset, BuildTarget target, out ExtendedAssetData extendedData)
+        {
+            extendedData = null;
+            ObjectIdentifier[] representations = ContentBuildInterface.GetPlayerAssetRepresentations(asset, target);
+            // Main Asset always returns at index 0, we only want representations, so check for greater than 1 length
+            if (representations.IsNullOrEmpty() || representations.Length < 2)
+                return;
+
+            extendedData = new ExtendedAssetData();
+            extendedData.Representations.AddRange(representations.Skip(1));
+        }
+#endif
+
         static internal ReturnCode RunInternal(TaskInput input, out TaskOutput output)
         {
+#if !UNITY_2020_2_OR_NEWER
             input.EngineHooks = input.EngineHooks != null ? input.EngineHooks : new CalculateAssetDependencyHooks();
+#endif
             output = new TaskOutput();
             output.AssetResults = new AssetOutput[input.Assets.Count];
 
@@ -190,29 +241,11 @@ namespace UnityEditor.Build.Pipeline.Tasks
 #endif
                 }
 
-                var representations = input.EngineHooks.LoadAllAssetRepresentationsAtPath(assetPath);
-                if (!representations.IsNullOrEmpty())
-                {
-                    assetResult.extendedData = new ExtendedAssetData();
-                    for(int j = 0; j < representations.Length; j++)
-                    {
-                        if (representations[j] == null)
-                        {
-                            BuildLogger.LogWarning($"SubAsset {j} inside {assetPath} is null. It will not be included in the build.");
-                            continue;
-                        }
-
-                        if (AssetDatabase.IsMainAsset(representations[j]))
-                            continue;
-
-                        string guid;
-                        long localId;
-                        if (!AssetDatabase.TryGetGUIDAndLocalFileIdentifier(representations[j], out guid, out localId))
-                            continue;
-
-                        assetResult.extendedData.Representations.AddRange(includedObjects.Where(x => x.localIdentifierInFile == localId));
-                    }
-                }
+#if !UNITY_2020_2_OR_NEWER
+                GatherAssetRepresentations(assetPath, input.EngineHooks.LoadAllAssetRepresentationsAtPath, includedObjects, out assetResult.extendedData);
+#else
+                GatherAssetRepresentations(asset, input.Target, out assetResult.extendedData);
+#endif
                 output.AssetResults[i] = assetResult;
             }
 
