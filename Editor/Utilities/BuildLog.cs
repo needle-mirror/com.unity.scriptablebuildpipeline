@@ -2,6 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using UnityEditor.Build.Pipeline.Interfaces;
@@ -175,10 +177,13 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
         static public string FormatAsText(this BuildLog log)
         {
-            StringBuilder builder = new StringBuilder();
-            builder.AppendLine("Warning: The formatting in this file is subject to change.");
-            PrintNodeR(false, builder, -1, log.Root);
-            return builder.ToString();
+            using (new CultureScope())
+            {
+                StringBuilder builder = new StringBuilder();
+                builder.AppendLine("Warning: The formatting in this file is subject to change.");
+                PrintNodeR(false, builder, -1, log.Root);
+                return builder.ToString();
+            }
         }
 
         static string CleanJSONText(string message)
@@ -189,35 +194,63 @@ namespace UnityEditor.Build.Pipeline.Utilities
         static IEnumerable<string> IterateTEPLines(bool includeSelf, BuildLog.LogStep node)
         {
             ulong us = (ulong)(node.StartTime * 1000);
-            if (includeSelf)
-                yield return "{" + $"\"name\": \"{CleanJSONText(node.Name)}\", \"ph\": \"X\", \"dur\": {node.DurationMS * 1000}, \"tid\": {node.ThreadId}, \"ts\": {us}, \"pid\": 1" + "}";
 
-            foreach (var msg in node.Entries)
+            string argText = string.Empty;
+            if(node.Entries.Count > 0)
             {
-                string line = (msg.Level == LogLevel.Warning || msg.Level == LogLevel.Error) ? $"{msg.Level}: {msg.Message}" : msg.Message;
-                ulong us2 = (ulong)(node.StartTime * 1000);
-                yield return "{" + $"\"name\": \"{CleanJSONText(line)}\", \"ph\": \"i\", \"tid\": {msg.ThreadId}, \"ts\": {us2}, \"pid\": 1" + "}";
+                StringBuilder builder = new StringBuilder();
+                builder.Append(", \"args\": {");
+                for(int i = 0; i < node.Entries.Count;i++)
+                {
+                    string line = (node.Entries[i].Level == LogLevel.Warning || node.Entries[i].Level == LogLevel.Error) ? $"{node.Entries[i].Level}: {node.Entries[i].Message}" : node.Entries[i].Message;
+                    builder.Append($"\"{i}\":\"{CleanJSONText(line)}\"");
+                    if (i < (node.Entries.Count - 1))
+                        builder.Append(", ");
+                }
+                builder.Append("}");
+                argText = builder.ToString();
             }
+
+            if (includeSelf)
+                yield return "{" + $"\"name\": \"{CleanJSONText(node.Name)}\", \"ph\": \"X\", \"dur\": {node.DurationMS * 1000}, \"tid\": {node.ThreadId}, \"ts\": {us}, \"pid\": 1" + argText +"}";
             
             foreach (var child in node.Children)
                 foreach (var r in IterateTEPLines(true, child))
                     yield return r;
         }
 
+        class CultureScope : IDisposable
+        {
+            CultureInfo m_Prev;
+            public CultureScope()
+            {
+                m_Prev = Thread.CurrentThread.CurrentCulture;
+                Thread.CurrentThread.CurrentCulture = CultureInfo.InvariantCulture;
+            }
+
+            public void Dispose()
+            {
+                Thread.CurrentThread.CurrentCulture = m_Prev;
+            }
+        }
+
         static public string FormatAsTraceEventProfiler(this BuildLog log)
         {
-            StringBuilder builder = new StringBuilder();
-            builder.AppendLine("[");
-            int i = 0;
-            foreach (string line in IterateTEPLines(false, log.Root))
+            using (new CultureScope())
             {
-                if (i != 0)
-                    builder.Append(",");
-                builder.AppendLine(line);
-                i++;
+                StringBuilder builder = new StringBuilder();
+                builder.AppendLine("[");
+                int i = 0;
+                foreach (string line in IterateTEPLines(false, log.Root))
+                {
+                    if (i != 0)
+                        builder.Append(",");
+                    builder.AppendLine(line);
+                    i++;
+                }
+                builder.AppendLine("]");
+                return builder.ToString();
             }
-            builder.AppendLine("]");
-            return builder.ToString();
         }
     }
 }

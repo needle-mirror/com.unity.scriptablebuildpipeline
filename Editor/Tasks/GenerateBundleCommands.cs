@@ -103,7 +103,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
             {
                 abOp.Info = new AssetBundleInfo();
                 abOp.Info.bundleName = bundleName;
-                abOp.Info.bundleAssets = assets.Select(x => m_DependencyData.AssetInfo[x]).ToList();
+                abOp.Info.bundleAssets = assets.Select(x => m_DependencyData.AssetInfo[x])
+                    .OrderBy(loadInfo => loadInfo.asset)
+                    .ThenBy(loadInfo => loadInfo.includedObjects[0].localIdentifierInFile).ToList();
                 foreach (var loadInfo in abOp.Info.bundleAssets)
                     loadInfo.address = m_BuildContent.Addresses[loadInfo.asset];
             }

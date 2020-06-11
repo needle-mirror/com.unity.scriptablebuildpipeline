@@ -46,6 +46,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
         [InjectContext(ContextUsage.In, true)]
         IBuildCache m_Cache;
+
+        [InjectContext(ContextUsage.In, true)]
+        IBuildLogger m_Log;
 #pragma warning restore 649
 
         internal struct TaskInput
@@ -60,6 +63,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 #if !UNITY_2020_2_OR_NEWER
             public CalculateAssetDependencyHooks EngineHooks;
 #endif
+            public IBuildLogger Logger;
         }
 
         internal struct AssetOutput
@@ -103,6 +107,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             input.ProgressTracker = m_Tracker;
             input.DependencyUsageCache = m_DependencyData.DependencyUsageCache;
             input.GlobalUsage = m_DependencyData.GlobalUsage;
+            input.Logger = m_Log;
             foreach (SceneDependencyInfo sceneInfo in m_DependencyData.SceneInfo.Values)
                 input.GlobalUsage |= sceneInfo.globalUsage;
 
@@ -193,60 +198,63 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 input.BuildCache.LoadCachedData(entries, out cachedInfo);
             }
 
-            for (int i = 0; i < input.Assets.Count; i++)
+            using (input.Logger.ScopedStep(LogLevel.Info, "Calculate Dependencies"))
             {
-                AssetOutput assetResult = new AssetOutput();
-                assetResult.asset = input.Assets[i];
-                if (cachedInfo != null && cachedInfo[i] != null)
+                for (int i = 0; i < input.Assets.Count; i++)
                 {
-                    assetResult.assetInfo = cachedInfo[i].Data[0] as AssetLoadInfo;
-                    assetResult.usageTags = cachedInfo[i].Data[1] as BuildUsageTagSet;
-                    assetResult.spriteData = cachedInfo[i].Data[2] as SpriteImporterData;
-                    assetResult.extendedData = cachedInfo[i].Data[3] as ExtendedAssetData;
-                    output.AssetResults[i] = assetResult;
-                    output.CachedAssetCount++;
-                    continue;
-                }
+                    AssetOutput assetResult = new AssetOutput();
+                    assetResult.asset = input.Assets[i];
+                    if (cachedInfo != null && cachedInfo[i] != null)
+                    {
+                        assetResult.assetInfo = cachedInfo[i].Data[0] as AssetLoadInfo;
+                        assetResult.usageTags = cachedInfo[i].Data[1] as BuildUsageTagSet;
+                        assetResult.spriteData = cachedInfo[i].Data[2] as SpriteImporterData;
+                        assetResult.extendedData = cachedInfo[i].Data[3] as ExtendedAssetData;
+                        output.AssetResults[i] = assetResult;
+                        output.CachedAssetCount++;
+                        continue;
+                    }
 
-                GUID asset = input.Assets[i];
-                string assetPath = AssetDatabase.GUIDToAssetPath(asset.ToString());
+                    GUID asset = input.Assets[i];
+                    string assetPath = AssetDatabase.GUIDToAssetPath(asset.ToString());
 
-                if (!input.ProgressTracker.UpdateInfoUnchecked(assetPath))
-                    return ReturnCode.Canceled;
+                    if (!input.ProgressTracker.UpdateInfoUnchecked(assetPath))
+                        return ReturnCode.Canceled;
 
-                assetResult.assetInfo = new AssetLoadInfo();
-                assetResult.usageTags = new BuildUsageTagSet();
+                    assetResult.assetInfo = new AssetLoadInfo();
+                    assetResult.usageTags = new BuildUsageTagSet();
 
-                assetResult.assetInfo.asset = asset;
-                var includedObjects = ContentBuildInterface.GetPlayerObjectIdentifiersInAsset(asset, input.Target);
-                assetResult.assetInfo.includedObjects = new List<ObjectIdentifier>(includedObjects);
-                var referencedObjects = ContentBuildInterface.GetPlayerDependenciesForObjects(includedObjects, input.Target, input.TypeDB);
-                assetResult.assetInfo.referencedObjects = new List<ObjectIdentifier>(referencedObjects);
-                var allObjects = new List<ObjectIdentifier>(includedObjects);
-                allObjects.AddRange(referencedObjects);
-                ContentBuildInterface.CalculateBuildUsageTags(allObjects.ToArray(), includedObjects, input.GlobalUsage, assetResult.usageTags, input.DependencyUsageCache);
+                    assetResult.assetInfo.asset = asset;
+                    var includedObjects = ContentBuildInterface.GetPlayerObjectIdentifiersInAsset(asset, input.Target);
+                    assetResult.assetInfo.includedObjects = new List<ObjectIdentifier>(includedObjects);
+                    var referencedObjects = ContentBuildInterface.GetPlayerDependenciesForObjects(includedObjects, input.Target, input.TypeDB);
+                    assetResult.assetInfo.referencedObjects = new List<ObjectIdentifier>(referencedObjects);
+                    var allObjects = new List<ObjectIdentifier>(includedObjects);
+                    allObjects.AddRange(referencedObjects);
+                    ContentBuildInterface.CalculateBuildUsageTags(allObjects.ToArray(), includedObjects, input.GlobalUsage, assetResult.usageTags, input.DependencyUsageCache);
 
-                var importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
-                if (importer != null && importer.textureType == TextureImporterType.Sprite)
-                {
-                    assetResult.spriteData = new SpriteImporterData();
-                    assetResult.spriteData.PackedSprite = false;
-                    assetResult.spriteData.SourceTexture = includedObjects.First();
+                    var importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
+                    if (importer != null && importer.textureType == TextureImporterType.Sprite)
+                    {
+                        assetResult.spriteData = new SpriteImporterData();
+                        assetResult.spriteData.PackedSprite = false;
+                        assetResult.spriteData.SourceTexture = includedObjects.First();
 
-                    if (EditorSettings.spritePackerMode != SpritePackerMode.Disabled)
-                        assetResult.spriteData.PackedSprite = referencedObjects.Length > 0;
+                        if (EditorSettings.spritePackerMode != SpritePackerMode.Disabled)
+                            assetResult.spriteData.PackedSprite = referencedObjects.Length > 0;
 #if !UNITY_2020_1_OR_NEWER
-                    if (EditorSettings.spritePackerMode == SpritePackerMode.AlwaysOn || EditorSettings.spritePackerMode == SpritePackerMode.BuildTimeOnly)
-                        assetResult.spriteData.PackedSprite = !string.IsNullOrEmpty(importer.spritePackingTag);
+                        if (EditorSettings.spritePackerMode == SpritePackerMode.AlwaysOn || EditorSettings.spritePackerMode == SpritePackerMode.BuildTimeOnly)
+                            assetResult.spriteData.PackedSprite = !string.IsNullOrEmpty(importer.spritePackingTag);
 #endif
-                }
+                    }
 
 #if !UNITY_2020_2_OR_NEWER
-                GatherAssetRepresentations(assetPath, input.EngineHooks.LoadAllAssetRepresentationsAtPath, includedObjects, out assetResult.extendedData);
+                    GatherAssetRepresentations(assetPath, input.EngineHooks.LoadAllAssetRepresentationsAtPath, includedObjects, out assetResult.extendedData);
 #else
                 GatherAssetRepresentations(asset, input.Target, out assetResult.extendedData);
 #endif
-                output.AssetResults[i] = assetResult;
+                    output.AssetResults[i] = assetResult;
+                }
             }
 
             if (input.BuildCache != null)

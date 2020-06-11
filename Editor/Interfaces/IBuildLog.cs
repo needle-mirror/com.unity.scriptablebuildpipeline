@@ -21,10 +21,12 @@ namespace UnityEditor.Build.Pipeline.Interfaces
     internal struct ScopedBuildStep : IDisposable
     {
         IBuildLogger m_Logger;
-        public ScopedBuildStep(LogLevel level, string stepName, IBuildLogger logger, bool multiThreaded)
+        public ScopedBuildStep(LogLevel level, string stepName, IBuildLogger logger, bool multiThreaded, string context)
         {
             m_Logger = logger;
             m_Logger?.BeginBuildStep(level, stepName, multiThreaded);
+            if (!string.IsNullOrEmpty(context))
+                m_Logger?.AddEntrySafe(level, context);
         }
 
         public void Dispose()
@@ -45,7 +47,12 @@ namespace UnityEditor.Build.Pipeline.Interfaces
 
         public static ScopedBuildStep ScopedStep(this IBuildLogger log, LogLevel level, string stepName, bool multiThreaded=false)
         {
-            return new ScopedBuildStep(level, stepName, log, multiThreaded);
+            return new ScopedBuildStep(level, stepName, log, multiThreaded, null);
+        }
+
+        public static ScopedBuildStep ScopedStep(this IBuildLogger log, LogLevel level, string stepName, string context)
+        {
+            return new ScopedBuildStep(level, stepName, log, false, context);
         }
     }
  

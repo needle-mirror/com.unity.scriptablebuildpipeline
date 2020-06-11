@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -179,7 +179,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             TestRunCachedCallbacks<ItemContext> callbacks = new TestRunCachedCallbacks<ItemContext>();
             Dictionary<int, int> indexToResult = new Dictionary<int, int>();
             List<WorkItem<ItemContext>> list = Enumerable.Range(0, kIterations).
-                Select( i => new WorkItem<ItemContext>(new ItemContext(i * 10))).ToList();
+                Select(i => new WorkItem<ItemContext>(new ItemContext(i * 10))).ToList();
 
             callbacks.ProcessUncachedCB = (item) => item.Context.result = item.Context.input * 100;
             callbacks.PostProcessCB = (item) => indexToResult.Add(item.Context.input, item.Context.result);

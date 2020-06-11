@@ -82,7 +82,7 @@ namespace UnityEditor.Build.Pipeline.WriteTypes
                 foreach (var serializeObject in Command.serializeObjects)
                     hashObjects.Add(BuildCacheUtility.GetCacheEntry(serializeObject.serializationObject));
 
-            return HashingMethods.Calculate(Command, UsageSet.GetHash128(), ReferenceMap.GetHash128(), Scene, PreloadInfo, entry, Info, prefabHashes, hashObjects).ToHash128();
+            return HashingMethods.Calculate(Command.GetHash128(), UsageSet.GetHash128(), ReferenceMap.GetHash128(), Scene, PreloadInfo.GetHash128(), entry, Info, prefabHashes, hashObjects).ToHash128();
         }
     }
 }

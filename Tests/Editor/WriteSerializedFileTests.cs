@@ -184,11 +184,11 @@ namespace UnityEditor.Build.Pipeline.Tests
             m_Cache.Dispose();
         }
 
-        TestWriteOperation AddTestOperation()
+        TestWriteOperation AddTestOperation(string name = "testInternalName")
         {
             TestWriteOperation op = new TestWriteOperation();
             op.TestCommand = new WriteCommand();
-            op.TestCommand.internalName = "testInternalName";
+            op.TestCommand.internalName = name;
             m_WriteData.WriteOperations.Add(op);
             return op;
         }
@@ -284,5 +284,17 @@ namespace UnityEditor.Build.Pipeline.Tests
             FileAssert.Exists(reportedResult.resourceFiles[0].fileName);
         }
 
+        [Test]
+        public void Run_WithoutCache_Succeeds()
+        {
+            m_BuildParameters.UseCache = false;
+            AddTestOperation("testOp1");
+            AddTestOperation("testOp2");
+
+            ReturnCode result = m_Task.Run();
+            Assert.AreEqual(ReturnCode.Success, result);
+
+            m_BuildParameters.UseCache = true;
+        }
     }
 }

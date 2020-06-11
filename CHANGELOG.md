@@ -4,6 +4,11 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.8.6] - 2020-06-11
+- Improve caching performance of the WriteSerializedFiles task.
+- Fixed bug where asset bundles fail to build when not using build cache.
+- Fixed an issue where providing additional files for asset bundles required the internal name instead of the bundle name
+
 ## [1.8.4] - 2020-05-28
 - Updated CalculateAssetDependencyData to use a new fast path API for working with Asset Representations in 2020.2 and onward.
 - Fix issue with backslashes in trace event profiler build log report

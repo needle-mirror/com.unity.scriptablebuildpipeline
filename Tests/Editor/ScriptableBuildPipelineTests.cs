@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -29,6 +29,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         const string k_ScenePath = "Assets/testScene.unity";
         const string k_TestAssetsPath = "Assets/TestAssetsOnlyWillBeDeleted";
         const string k_CubePath = k_TestAssetsPath + "/Cube.prefab";
+        const string k_CubePath2 = k_TestAssetsPath + "/Cube2.prefab";
 
         [OneTimeSetUp]
         public void Setup()
@@ -37,10 +38,13 @@ namespace UnityEditor.Build.Pipeline.Tests
             Directory.CreateDirectory(k_TestAssetsPath);
 #if UNITY_2018_3_OR_NEWER
             PrefabUtility.SaveAsPrefabAsset(GameObject.CreatePrimitive(PrimitiveType.Cube), k_CubePath);
+            PrefabUtility.SaveAsPrefabAsset(GameObject.CreatePrimitive(PrimitiveType.Cube), k_CubePath2);
 #else
             PrefabUtility.CreatePrefab(k_CubePath, GameObject.CreatePrimitive(PrimitiveType.Cube));
+            PrefabUtility.CreatePrefab(k_CubePath2, GameObject.CreatePrimitive(PrimitiveType.Cube));
 #endif
             AssetDatabase.ImportAsset(k_CubePath);
+            AssetDatabase.ImportAsset(k_CubePath2);
         }
 
         [OneTimeTearDown]
@@ -49,6 +53,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene);
             AssetDatabase.DeleteAsset(k_ScenePath);
             AssetDatabase.DeleteAsset(k_CubePath);
+            AssetDatabase.DeleteAsset(k_CubePath2);
             AssetDatabase.DeleteAsset(k_TestAssetsPath);
 
             if (Directory.Exists(k_FolderPath))
@@ -82,17 +87,24 @@ namespace UnityEditor.Build.Pipeline.Tests
             return buildParams;
         }
 
-        static IBundleBuildContent GetBundleContent()
+        static AssetBundleBuild CreateBundleBuild(string name, string path)
+        {
+            return new AssetBundleBuild()
+            {
+                addressableNames = new[] { path },
+                assetBundleName = name,
+                assetBundleVariant = "",
+                assetNames = new[] { path }
+            };
+        }
+
+        static IBundleBuildContent GetBundleContent(bool createAllBundles = false)
         {
             List<AssetBundleBuild> buildData = new List<AssetBundleBuild>();
-            AssetBundleBuild dataPoint1 = new AssetBundleBuild()
-            {
-                addressableNames = new[] { k_CubePath },
-                assetBundleName = "bundle",
-                assetBundleVariant = "",
-                assetNames = new[] { k_CubePath }
-            };
-            buildData.Add(dataPoint1);
+            buildData.Add(CreateBundleBuild("bundle", k_CubePath));
+            if(createAllBundles)
+                buildData.Add(CreateBundleBuild("bundle2", k_CubePath2));
+
             IBundleBuildContent buildContent = new BundleBuildContent(buildData);
             return buildContent;
         }
@@ -139,6 +151,8 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreEqual("testScene", SceneManager.GetActiveScene().name);
             objectWeAdded = GameObject.Find("Cube");
             Assert.IsNotNull(objectWeAdded, "No object after entering playmode");
+
+            EditorSceneManager.SaveScene(s, k_ScenePath);
         }
 
         [UnityTest]
@@ -406,6 +420,27 @@ namespace UnityEditor.Build.Pipeline.Tests
             string tepBuildLog = buildParameters.GetOutputFilePathForIdentifier("buildlogtep.json");
             FileAssert.DoesNotExist(buildLog);
             FileAssert.DoesNotExist(tepBuildLog);
+        }
+
+        [Test]
+        public void BuildAssetBundles_WithCache_Succeeds()
+        {
+            IBundleBuildParameters buildParameters = GetBuildParameters();
+            IBundleBuildContent buildContent = GetBundleContent(true);
+
+            ReturnCode exitCode = ContentPipeline.BuildAssetBundles(buildParameters, buildContent, out IBundleBuildResults results);
+            Assert.AreEqual(ReturnCode.Success, exitCode);
+        }
+
+        [Test]
+        public void BuildAssetBundles_WithoutCache_Succeeds()
+        {
+            IBundleBuildParameters buildParameters = GetBuildParameters();
+            buildParameters.UseCache = false;
+            IBundleBuildContent buildContent = GetBundleContent(true);
+
+            ReturnCode exitCode = ContentPipeline.BuildAssetBundles(buildParameters, buildContent, out IBundleBuildResults results);
+            Assert.AreEqual(ReturnCode.Success, exitCode);
         }
     }
 }

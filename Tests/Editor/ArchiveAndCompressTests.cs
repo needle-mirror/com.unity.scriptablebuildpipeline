@@ -64,9 +64,8 @@ namespace UnityEditor.Build.Pipeline.Tests
 #if UNITY_2019_3_OR_NEWER
                 yield return new TestCaseData(true, new Action<RebuildTestContext>((ctx) =>
                 {
-                    ctx._this.AddRawFileThatTargetsBundle(ctx.input, "internalName", "rawInternalName");
-                }
-                )).SetName("AddAdditionalFile");
+                    ctx._this.AddRawFileThatTargetsBundle(ctx.input, "mybundle", "rawInternalName");
+                })).SetName("AddAdditionalFile");
 #endif
             }
         }
@@ -152,7 +151,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         {
             get
             {
-                yield return new TestCaseData(true, new Action<ContentHashTestContext>((ctx) => 
+                yield return new TestCaseData(true, new Action<ContentHashTestContext>((ctx) =>
                 {
                     ctx.input.AssetToFilesDependencies[ctx.assetGUID] = new List<string>() { "internalName", "internalName3" };
                 })).SetName("DependencyChanges");
@@ -177,11 +176,11 @@ namespace UnityEditor.Build.Pipeline.Tests
             WriteResult result3 = AddSimpleBundle(ctx.input, "mybundle3", "internalName3");
             ctx.assetGUID = GUID.Generate();
             ctx.input.AssetToFilesDependencies.Add(ctx.assetGUID, new List<string>() { "internalName", "internalName2" });
-            
+
             ArchiveAndCompressBundles.Run(ctx.input, out ArchiveAndCompressBundles.TaskOutput output);
 
             postFirstBuildAction(ctx);
-            
+
             ArchiveAndCompressBundles.Run(ctx.input, out ArchiveAndCompressBundles.TaskOutput output2);
 
             Hash128 prevHash = output.BundleDetails["mybundle"].Hash;
@@ -330,7 +329,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             AddSimpleBundle(input, "mybundle", "internalName");
             ArchiveAndCompressBundles.Run(input, out ArchiveAndCompressBundles.TaskOutput output);
 
-            AddRawFileThatTargetsBundle(input, "internalName", "rawName");
+            AddRawFileThatTargetsBundle(input, "mybundle", "rawName");
             ArchiveAndCompressBundles.Run(input, out ArchiveAndCompressBundles.TaskOutput output2);
             Assert.IsTrue(output.BundleDetails["mybundle"].Hash.isValid);
             Assert.IsTrue(output2.BundleDetails["mybundle"].Hash.isValid);

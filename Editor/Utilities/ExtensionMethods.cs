@@ -42,5 +42,6 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 return HashingMethods.Calculate(settings.target, settings.group, settings.buildFlags).ToHash128();
             return HashingMethods.Calculate(settings.target, settings.group, settings.buildFlags, settings.typeDB.GetHash128()).ToHash128();
         }
+
     }
 }

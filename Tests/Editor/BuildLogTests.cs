@@ -27,6 +27,14 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
 
         [Test]
+        public void WhenMessageAddedWithScope_EntryIsCreated()
+        {
+            BuildLog log = new BuildLog();
+            log.ScopedStep(LogLevel.Info, "TestStep", "TestEntry").Dispose();
+            Assert.AreEqual("TestEntry", log.Root.Children[0].Entries[0].Message);
+        }
+
+        [Test]
         public void WhenScopeIsThreaded_AndThreadAddsNode_NodeEnteredInThreadedScope()
         {
             BuildLog log = new BuildLog();
@@ -96,7 +104,7 @@ namespace UnityEditor.Build.Pipeline.Tests
                 log.AddEntry(LogLevel.Info, "TestEntry\\AfterSlash");
             string text = log.FormatAsTraceEventProfiler();
             StringAssert.Contains("TestStep\\\\AfterSlash", text);
-            StringAssert.Contains("TestStep\\\\AfterSlash", text);
+            StringAssert.Contains("TestEntry\\\\AfterSlash", text);
         }
     }
 }

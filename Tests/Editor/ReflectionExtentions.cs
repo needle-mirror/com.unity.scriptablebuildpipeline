@@ -79,5 +79,13 @@ namespace UnityEditor.Build.Pipeline.Tests
             fieldInfo.SetValue(boxed, offset);
             serializedLocation = (SerializedLocation)boxed;
         }
+
+        public static void SetFilePath(this ref ObjectIdentifier obj, string filePath)
+        {
+            var fieldInfo = typeof(ObjectIdentifier).GetField("m_FilePath", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            object boxed = obj;
+            fieldInfo.SetValue(boxed, filePath);
+            obj = (ObjectIdentifier)boxed;
+        }
     }
 }

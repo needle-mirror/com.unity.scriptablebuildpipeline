@@ -163,7 +163,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             string targetDir = m_UseCache != null ? m_UseCache.GetCachedArtifactsDirectory(item.entry) : m_Parameters.TempOutputFolder;
             Directory.CreateDirectory(targetDir);
 
-            using (m_Log.ScopedStep(LogLevel.Info, $"Writing File {op.GetType().Name}"))
+            using (m_Log.ScopedStep(LogLevel.Info, $"Writing {op.GetType().Name}", op.Command.fileName))
                 item.Context.Result = op.Write(targetDir, m_BuildSettings, m_GlobalUsage);
 
             item.Context.MetaData = CalculateFileMetadata(ref item.Context.Result);

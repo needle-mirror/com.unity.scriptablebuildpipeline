@@ -41,6 +41,11 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 List<WorkItem<T>> nonCachedItems = workItems;
                 var cachedItems = new List<WorkItem<T>>();
 
+                for (int i = 0; i < workItems.Count; i++)
+                {
+                    workItems[i].Index = i;
+                }
+
                 IList<CachedInfo> cachedInfo = null;
 
                 if (cache != null)
@@ -48,7 +53,6 @@ namespace UnityEditor.Build.Pipeline.Utilities
                     using (log.ScopedStep(LogLevel.Info, "Creating Cache Entries"))
                         for (int i = 0; i < workItems.Count; i++)
                         {
-                            workItems[i].Index = i;
                             workItems[i].entry = cbs.CreateCacheEntry(workItems[i]);
                         }
 

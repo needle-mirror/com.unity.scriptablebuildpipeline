@@ -83,7 +83,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             if (destTime == time)
                 return;
 
-            using (log.ScopedStep(LogLevel.Verbose, $"Copying From Cache {srcPath} -> {destPath}"))
+            using (log.ScopedStep(LogLevel.Verbose, "Copying From Cache", $"{srcPath} -> {destPath}"))
             {
                 var directory = Path.GetDirectoryName(destPath);
                 Directory.CreateDirectory(directory);
@@ -145,7 +145,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             public Dictionary<string, WriteResult> InternalFilenameToWriteResults;
             public Dictionary<string, SerializedFileMetaData> InternalFilenameToWriteMetaData;
 #if UNITY_2019_3_OR_NEWER
-            public Dictionary<string, List<ResourceFile>> InternalFilenameToAdditionalFiles;
+            public Dictionary<string, List<ResourceFile>> BundleNameToAdditionalFiles;
 #endif
             public Dictionary<string, string> InternalFilenameToBundleName;
             public Func<string, BuildCompression> GetCompressionForIdentifier;
@@ -170,7 +170,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             TaskInput input = new TaskInput();
             input.InternalFilenameToWriteResults = m_Results.WriteResults;
 #if UNITY_2019_3_OR_NEWER
-            input.InternalFilenameToAdditionalFiles = m_Content.AdditionalFiles;
+            input.BundleNameToAdditionalFiles = m_Content.AdditionalFiles;
 #endif
             input.InternalFilenameToBundleName = m_WriteData.FileToBundle;
             input.GetCompressionForIdentifier = (x) => m_Parameters.GetCompressionForIdentifier(x);
@@ -233,7 +233,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 }
             }
         }
-        
+
         static ArchiveWorkItem GetOrCreateWorkItem(TaskInput input, string bundleName, Dictionary<string, ArchiveWorkItem> bundleToWorkItem)
         {
             if (!bundleToWorkItem.TryGetValue(bundleName, out ArchiveWorkItem item))
@@ -273,7 +273,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                     item.ResourceFiles.AddRange(pair.Value.resourceFiles);
 
 #if UNITY_2019_3_OR_NEWER
-                    if (input.InternalFilenameToAdditionalFiles.TryGetValue(internalName, out List<ResourceFile> additionalFiles))
+                    if (input.BundleNameToAdditionalFiles.TryGetValue(bundleName, out List<ResourceFile> additionalFiles))
                     {
                         RawHash hash = HashResourceFiles(additionalFiles);
                         item.SeriliazedFileMetaDatas.Add(new SerializedFileMetaData() { ContentHash = hash.ToHash128(), RawFileHash = hash.ToHash128() });
@@ -351,7 +351,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
         static private void ArchiveSingleItem(ArchiveWorkItem item, string tempOutputFolder, IBuildLogger log)
         {
-            using (log.ScopedStep(LogLevel.Info, $"Archive {item.BundleName}"))
+            using (log.ScopedStep(LogLevel.Info, "ArchiveSingleItem", item.BundleName))
             {
                 item.ResultDetails = new BundleDetails();
                 string writePath = string.Format("{0}/{1}", tempOutputFolder, item.BundleName);
@@ -361,7 +361,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 Directory.CreateDirectory(Path.GetDirectoryName(writePath));
                 item.ResultDetails.FileName = item.OutputFilePath;
                 item.ResultDetails.Crc = ContentBuildInterface.ArchiveAndCompress(item.ResourceFiles.ToArray(), writePath, item.Compression);
-                
+
                 CopyFileWithTimestampIfDifferent(writePath, item.ResultDetails.FileName, log);
             }
         }

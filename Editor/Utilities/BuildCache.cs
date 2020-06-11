@@ -272,6 +272,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
                     }
                 }
 
+                int cachedCount = 0;
                 using (m_Logger.ScopedStep(LogLevel.Info, "Read and deserialize cache info"))
                 {
                     // Start file reading
@@ -283,7 +284,6 @@ namespace UnityEditor.Build.Pipeline.Utilities
                     // Deserialize as files finish reading
                     Stopwatch deserializeTimer = Stopwatch.StartNew();
                     var formatter = new BinaryFormatter();
-                    int cachedCount = 0;
                     for (int index = 0; index < entries.Count; index++)
                     {
                         // Basic wait lock
@@ -317,7 +317,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
                     deserializeTimer.Stop();
                     m_Logger.AddEntrySafe(LogLevel.Info, $"Time spent deserializing: {deserializeTimer.ElapsedMilliseconds}ms");
-                    m_Logger.AddEntrySafe(LogLevel.Info, $"Cache hit count: {cachedCount}");
+                    m_Logger.AddEntrySafe(LogLevel.Info, $"Local Cache hit count: {cachedCount}");
                 }
 
                 using (m_Logger.ScopedStep(LogLevel.Info, "Check for changed dependencies"))
@@ -330,11 +330,17 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 }
 
                 // If we have a cache server connection, download & check any missing info
+                int downloadedCount = 0;
                 if (m_Downloader != null)
                 {
                     using (m_Logger.ScopedStep(LogLevel.Info, "Download Missing Entries"))
+                    {
                         m_Downloader.DownloadMissing(entries, cachedInfos);
+                        downloadedCount = cachedInfos.Count(i => i != null) - cachedCount;
+                    }
                 }
+
+                m_Logger.AddEntrySafe(LogLevel.Info, $"Local Cache hit count: {cachedCount}, Cache Server hit count: {downloadedCount}");
 
                 Assert.AreEqual(entries.Count, cachedInfos.Count);
             }
@@ -346,7 +352,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             if (infos == null || infos.Count == 0)
                 return;
 
-            using (m_Logger.ScopedStep(LogLevel.Info, $"SaveCachedData"))
+            using (m_Logger.ScopedStep(LogLevel.Info, "SaveCachedData"))
             {
                 m_Logger.AddEntrySafe(LogLevel.Info, $"Saving {infos.Count} infos");
                 // Setup Operations

@@ -132,7 +132,7 @@ public class ArchiveAndCompressTestFixture
 
         input.InternalFilenameToWriteResults = new Dictionary<string, WriteResult>();
 #if UNITY_2019_3_OR_NEWER
-        input.InternalFilenameToAdditionalFiles = new Dictionary<string, List<ResourceFile>>();
+        input.BundleNameToAdditionalFiles = new Dictionary<string, List<ResourceFile>>();
 #endif
         input.InternalFilenameToBundleName = new Dictionary<string, string>();
         input.AssetToFilesDependencies = new Dictionary<UnityEditor.GUID, List<string>>();
@@ -166,20 +166,20 @@ public class ArchiveAndCompressTestFixture
     }
 
 #if UNITY_2019_3_OR_NEWER
-    internal void AddRawFileThatTargetsBundle(ArchiveAndCompressBundles.TaskInput input, string targetBundleInternalName, string rawFileInternalName, string filePath)
+    internal void AddRawFileThatTargetsBundle(ArchiveAndCompressBundles.TaskInput input, string targetBundleName, string rawFileInternalName, string filePath)
     {
         ResourceFile file = new ResourceFile();
         file.SetFileName(filePath);
         file.SetFileAlias(rawFileInternalName);
         file.SetSerializedFile(false);
         List<ResourceFile> files = new List<ResourceFile> { file };
-        input.InternalFilenameToAdditionalFiles.Add(targetBundleInternalName, files);
+        input.BundleNameToAdditionalFiles.Add(targetBundleName, files);
     }
 
-    internal void AddRawFileThatTargetsBundle(ArchiveAndCompressBundles.TaskInput input, string targetBundleInternalName, string rawFileInternalName)
+    internal void AddRawFileThatTargetsBundle(ArchiveAndCompressBundles.TaskInput input, string targetBundleName, string rawFileInternalName)
     {
         string tempFilename = CreateFileOfSize(GetUniqueFilename(Path.Combine(m_FixtureTempDir, "src", "rawfile.bin")), 1024);
-        AddRawFileThatTargetsBundle(input, targetBundleInternalName, rawFileInternalName, tempFilename);
+        AddRawFileThatTargetsBundle(input, targetBundleName, rawFileInternalName, tempFilename);
     }
 #endif
 
