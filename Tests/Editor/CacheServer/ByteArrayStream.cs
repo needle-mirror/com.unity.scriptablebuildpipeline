@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Security.Cryptography;
@@ -8,33 +8,33 @@ namespace UnityEditor.CacheServerTests
     internal class ByteArrayStream : Stream
     {
         private int m_pos;
-    
+
         public override bool CanRead
         {
             get { return true; }
         }
-    
+
         public override bool CanSeek
         {
             get { return true; }
         }
-    
+
         public override bool CanWrite
         {
             get { return true; }
         }
-    
+
         public override long Length
         {
             get { return BackingBuffer.Length; }
         }
-    
+
         public override long Position
         {
             get { return m_pos; }
             set
             {
-                m_pos = Math.Min((int) value, BackingBuffer.Length - 1);
+                m_pos = Math.Min((int)value, BackingBuffer.Length - 1);
                 Debug.Assert(m_pos >= 0);
             }
         }
@@ -46,9 +46,9 @@ namespace UnityEditor.CacheServerTests
             BackingBuffer = new byte[size];
             RandomNumberGenerator.Create().GetBytes(BackingBuffer);
         }
-    
-        public override void SetLength(long value){}
-        public override void Flush(){}
+
+        public override void SetLength(long value) {}
+        public override void Flush() {}
 
         public override void Write(byte[] buffer, int offset, int count)
         {
@@ -57,7 +57,7 @@ namespace UnityEditor.CacheServerTests
             Buffer.BlockCopy(buffer, offset, BackingBuffer, m_pos, count);
             m_pos += count;
         }
-    
+
         public override int Read(byte[] buffer, int offset, int count)
         {
             count = Math.Min(count, BackingBuffer.Length - m_pos); // Don't copy more bytes than we have
@@ -72,19 +72,19 @@ namespace UnityEditor.CacheServerTests
             switch (origin)
             {
                 case SeekOrigin.Begin:
-                    Position = (int) offset;
+                    Position = (int)offset;
                     break;
-                
+
                 case SeekOrigin.Current:
-                    Position += (int) offset;
+                    Position += (int)offset;
                     break;
                 case SeekOrigin.End:
-                    Position = BackingBuffer.Length - (int) offset - 1;
+                    Position = BackingBuffer.Length - (int)offset - 1;
                     break;
                 default:
                     throw new ArgumentOutOfRangeException("origin", origin, null);
             }
-        
+
             return Position;
         }
     }

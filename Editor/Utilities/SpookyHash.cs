@@ -1,4 +1,4 @@
-﻿#if UNITY_2019_3_OR_NEWER
+#if UNITY_2019_3_OR_NEWER
 using System.Security.Cryptography;
 using UnityEngine;
 
@@ -25,8 +25,8 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
         protected override void HashCore(byte[] array, int ibStart, int cbSize)
         {
-            fixed (byte* data = &array[ibStart])
-            fixed (byte* hash = &m_Hash[0])
+            fixed(byte* data = &array[ibStart])
+            fixed(byte* hash = &m_Hash[0])
             {
                 var dataSize = (ulong)cbSize;
                 var lower = (ulong*)&hash[0];

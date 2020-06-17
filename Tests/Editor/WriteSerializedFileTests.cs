@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -16,7 +16,6 @@ using UnityEngine;
 
 namespace UnityEditor.Build.Pipeline.Tests
 {
-
     public class WriteSerializedFileTests
     {
         class TestBuildParameters : TestBuildParametersBase
@@ -53,7 +52,7 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             public override Dictionary<string, SerializedFileMetaData> WriteResultsMetaData => m_MetaData;
         }
-        
+
         class TestWriteOperation : IWriteOperation
         {
             internal int TestWriteCount;
@@ -136,7 +135,7 @@ namespace UnityEditor.Build.Pipeline.Tests
                     WriteResultReflection.SetSerializedObjects(ref result, new ObjectSerializedInfo[] { obj1, obj2 });
                 }
 
-                
+
                 return result;
             }
         }
@@ -197,7 +196,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         {
             get
             {
-                yield return new TestCaseData(false, new Action<WriteSerializedFileTests>((_this) => { })).SetName("NoChanges");
+                yield return new TestCaseData(false, new Action<WriteSerializedFileTests>((_this) => {})).SetName("NoChanges");
                 yield return new TestCaseData(true, new Action<WriteSerializedFileTests>((_this) => { _this.m_BuildParameters.TestBuildSettings.buildFlags |= ContentBuildFlags.DisableWriteTypeTree; })).SetName("BuildSettings");
                 yield return new TestCaseData(true, new Action<WriteSerializedFileTests>((_this) => { ((TestWriteOperation)_this.m_WriteData.WriteOperations[0]).SetDebugHash(27); })).SetName("OperationHash");
                 yield return new TestCaseData(true, new Action<WriteSerializedFileTests>((_this) => { ScriptableBuildPipeline.s_Settings.slimWriteResults = true; })).SetName("SlimWriteResults");
@@ -219,7 +218,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
 
         [Test]
-        public void WhenFileHasSerializedObjects_AndSlimMode_OnlyFirstObjectInWriteResults([Values]bool slimEnabled)
+        public void WhenFileHasSerializedObjects_AndSlimMode_OnlyFirstObjectInWriteResults([Values] bool slimEnabled)
         {
             TestWriteOperation op = AddTestOperation();
             op.OutputSerializedFile = true;

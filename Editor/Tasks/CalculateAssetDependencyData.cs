@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Linq;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Injector;
@@ -20,7 +20,6 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
     public class CalculateAssetDependencyData : IBuildTask
     {
-
         internal const int kVersion = 3;
         /// <inheritdoc />
         public int Version { get { return kVersion; } }
@@ -77,7 +76,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
         internal struct TaskOutput
         {
-            public AssetOutput [] AssetResults;
+            public AssetOutput[] AssetResults;
             public int CachedAssetCount;
         }
 
@@ -169,6 +168,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             if (resultData.Representations.Count > 0)
                 extendedData = resultData;
         }
+
 #else
         static internal void GatherAssetRepresentations(GUID asset, BuildTarget target, out ExtendedAssetData extendedData)
         {
@@ -181,6 +181,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             extendedData = new ExtendedAssetData();
             extendedData.Representations.AddRange(representations.Skip(1));
         }
+
 #endif
 
         static internal ReturnCode RunInternal(TaskInput input, out TaskOutput output)
@@ -251,7 +252,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 #if !UNITY_2020_2_OR_NEWER
                     GatherAssetRepresentations(assetPath, input.EngineHooks.LoadAllAssetRepresentationsAtPath, includedObjects, out assetResult.extendedData);
 #else
-                GatherAssetRepresentations(asset, input.Target, out assetResult.extendedData);
+                    GatherAssetRepresentations(asset, input.Target, out assetResult.extendedData);
 #endif
                     output.AssetResults[i] = assetResult;
                 }

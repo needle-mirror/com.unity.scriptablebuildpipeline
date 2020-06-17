@@ -1,4 +1,4 @@
-﻿using UnityEditor.Build.Pipeline.Injector;
+using UnityEditor.Build.Pipeline.Injector;
 using UnityEditor.Build.Pipeline.Interfaces;
 
 namespace UnityEditor.Build.Pipeline.Tasks

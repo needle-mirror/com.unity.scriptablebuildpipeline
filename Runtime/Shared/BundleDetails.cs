@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 
 namespace UnityEngine.Build.Pipeline
 {
@@ -77,12 +77,12 @@ namespace UnityEngine.Build.Pipeline
             }
         }
 
-        public static bool operator ==(BundleDetails a, BundleDetails b)
+        public static bool operator==(BundleDetails a, BundleDetails b)
         {
             return a.Equals(b);
         }
 
-        public static bool operator !=(BundleDetails a, BundleDetails b)
+        public static bool operator!=(BundleDetails a, BundleDetails b)
         {
             return !(a == b);
         }

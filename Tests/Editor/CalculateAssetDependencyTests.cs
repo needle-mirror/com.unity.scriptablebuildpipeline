@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -49,7 +49,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
 
         // Create a prefab and writes it to the specified path. The target file will have 2 objects in it: the GameObject and the Transform
-        GUID CreateGameObject(string assetPath, string name="go")
+        GUID CreateGameObject(string assetPath, string name = "go")
         {
             GameObject go = new GameObject(name);
             PrefabUtility.SaveAsPrefabAsset(go, assetPath);
@@ -100,9 +100,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             string assetPath = Path.Combine(kTestAssetFolder, "myPrefab.prefab");
             List<GUID> allGUIDs = new List<GUID>();
             List<GUID> cachedGUIDs = new List<GUID>();
-            for (int i = 0; i < kCachedCount;i++)
+            for (int i = 0; i < kCachedCount; i++)
             {
-                GUID cachedGUID = CreateGameObject(Path.Combine(kTestAssetFolder, $"myPrefab{i*2}.prefab"), $"go{i * 2}");
+                GUID cachedGUID = CreateGameObject(Path.Combine(kTestAssetFolder, $"myPrefab{i * 2}.prefab"), $"go{i * 2}");
                 cachedGUIDs.Add(cachedGUID);
                 allGUIDs.Add(cachedGUID);
                 allGUIDs.Add(CreateGameObject(Path.Combine(kTestAssetFolder, $"myPrefab{i * 2 + 1}.prefab"), $"go{i * 2 + 1}"));
@@ -121,7 +121,7 @@ namespace UnityEditor.Build.Pipeline.Tests
                 Assert.AreEqual(0, output.CachedAssetCount);
                 Assert.AreEqual(kCachedCount, output2.CachedAssetCount);
 
-                for(int i = 0; i < kCachedCount; i++)
+                for (int i = 0; i < kCachedCount; i++)
                 {
                     bool seqEqual = Enumerable.SequenceEqual(output.AssetResults[i].assetInfo.includedObjects, output2.AssetResults[i * 2].assetInfo.includedObjects);
                     Assert.IsTrue(seqEqual);
@@ -218,10 +218,10 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             var ids = output2.AssetResults[0].usageTags.GetObjectIdentifiers();
             Assert.IsTrue(ids.Count((x) => x.guid == shaderGUID) == 1, "Shader is not in build usage tags");
-            Assert.AreNotEqual(output.AssetResults[0].usageTags.GetHashCode(), output2.AssetResults[0].usageTags.GetHashCode(),"Build usage tags were not affected by material keywords");
+            Assert.AreNotEqual(output.AssetResults[0].usageTags.GetHashCode(), output2.AssetResults[0].usageTags.GetHashCode(), "Build usage tags were not affected by material keywords");
         }
 
-        static object [] SpriteTestCases =
+        static object[] SpriteTestCases =
         {
 #if UNITY_2020_1_OR_NEWER
             new object[] { SpritePackerMode.Disabled, "", false, false },
@@ -300,6 +300,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreEqual(2, output.AssetResults[0].assetInfo.includedObjects.Count); // GameObject and Transform
             Assert.AreEqual(0, output.AssetResults[0].assetInfo.referencedObjects.Count);
         }
+
 #endif
 
         [Test]
@@ -321,7 +322,7 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             CalculateAssetDependencyData.RunInternal(input, out CalculateAssetDependencyData.TaskOutput output);
 
-            ObjectIdentifier []allObjIDs = ContentBuildInterface.GetPlayerObjectIdentifiersInAsset(guid, EditorUserBuildSettings.activeBuildTarget);
+            ObjectIdentifier[] allObjIDs = ContentBuildInterface.GetPlayerObjectIdentifiersInAsset(guid, EditorUserBuildSettings.activeBuildTarget);
             HashSet<ObjectIdentifier> expectedReps = new HashSet<ObjectIdentifier>();
             for (int i = 1; i < allObjIDs.Length; i++)
                 expectedReps.Add(allObjIDs[i]);

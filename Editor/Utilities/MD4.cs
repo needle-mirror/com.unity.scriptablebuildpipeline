@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Security.Cryptography;
 
 /* Copyright (C) 1991-2, RSA Data Security, Inc. Created 1991. All
@@ -33,7 +33,8 @@ namespace UnityEditor.Build.Pipeline.Utilities
         uint[] m_Block;
         uint m_Bytes;
 
-        static readonly byte[] kPadding = {
+        static readonly byte[] kPadding =
+        {
             0x80, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0

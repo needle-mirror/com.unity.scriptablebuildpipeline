@@ -1,4 +1,3 @@
-
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -11,7 +10,11 @@ using UnityEditor.Build.Pipeline.Interfaces;
 namespace UnityEditor.Build.Pipeline.Utilities
 {
     [Serializable]
-    internal class BuildLog : IBuildLogger
+    /// <summary>
+    /// Basic implementation of IBuildLogger. Stores events in memory and can dump them to the trace event format.
+    /// <seealso cref="IBuildLogger"/>
+    /// </summary>
+    public class BuildLog : IBuildLogger
     {
         [Serializable]
         internal struct LogEntry
@@ -73,6 +76,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             return this;
         }
 
+        /// <inheritdoc />
         public void BeginBuildStep(LogLevel level, string stepName, bool multiThreaded)
         {
             BuildLog log = GetThreadSafeLog();
@@ -97,6 +101,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             }
         }
 
+        /// <inheritdoc />
         public void EndBuildStep()
         {
             EndBuildStepInternal(GetThreadSafeLog());
@@ -124,7 +129,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             Debug.Assert(log.m_Stack.Count > 1);
             LogStep node = log.m_Stack.Pop();
             node.Complete(log.m_WallTimer.Elapsed.TotalMilliseconds);
-            
+
             if (node.isThreaded)
             {
                 foreach (BuildLog subLog in log.m_ThreadedLogs.Values)
@@ -146,15 +151,13 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
         internal LogStep Root { get { return m_Root; } }
 
+        /// <inheritdoc />
         public void AddEntry(LogLevel level, string msg)
         {
             BuildLog log = GetThreadSafeLog();
             log.m_Stack.Peek().Entries.Add(new LogEntry() { Level = level, Message = msg, Time = log.m_WallTimer.Elapsed.TotalMilliseconds, ThreadId = Thread.CurrentThread.ManagedThreadId });
         }
-    }
-
-    internal static class BuildLogExtensions
-    {
+    
         static void AppendLineIndented(StringBuilder builder, int indentCount, string text)
         {
             for (int i = 0; i < indentCount; i++)
@@ -175,13 +178,12 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 PrintNodeR(true, builder, indentCount + 1, child);
         }
 
-        static public string FormatAsText(this BuildLog log)
+        internal string FormatAsText()
         {
             using (new CultureScope())
             {
                 StringBuilder builder = new StringBuilder();
-                builder.AppendLine("Warning: The formatting in this file is subject to change.");
-                PrintNodeR(false, builder, -1, log.Root);
+                PrintNodeR(false, builder, -1, Root);
                 return builder.ToString();
             }
         }
@@ -196,11 +198,11 @@ namespace UnityEditor.Build.Pipeline.Utilities
             ulong us = (ulong)(node.StartTime * 1000);
 
             string argText = string.Empty;
-            if(node.Entries.Count > 0)
+            if (node.Entries.Count > 0)
             {
                 StringBuilder builder = new StringBuilder();
                 builder.Append(", \"args\": {");
-                for(int i = 0; i < node.Entries.Count;i++)
+                for (int i = 0; i < node.Entries.Count; i++)
                 {
                     string line = (node.Entries[i].Level == LogLevel.Warning || node.Entries[i].Level == LogLevel.Error) ? $"{node.Entries[i].Level}: {node.Entries[i].Message}" : node.Entries[i].Message;
                     builder.Append($"\"{i}\":\"{CleanJSONText(line)}\"");
@@ -212,8 +214,8 @@ namespace UnityEditor.Build.Pipeline.Utilities
             }
 
             if (includeSelf)
-                yield return "{" + $"\"name\": \"{CleanJSONText(node.Name)}\", \"ph\": \"X\", \"dur\": {node.DurationMS * 1000}, \"tid\": {node.ThreadId}, \"ts\": {us}, \"pid\": 1" + argText +"}";
-            
+                yield return "{" + $"\"name\": \"{CleanJSONText(node.Name)}\", \"ph\": \"X\", \"dur\": {node.DurationMS * 1000}, \"tid\": {node.ThreadId}, \"ts\": {us}, \"pid\": 1" + argText + "}";
+
             foreach (var child in node.Children)
                 foreach (var r in IterateTEPLines(true, child))
                     yield return r;
@@ -234,14 +236,18 @@ namespace UnityEditor.Build.Pipeline.Utilities
             }
         }
 
-        static public string FormatAsTraceEventProfiler(this BuildLog log)
+        /// <summary>
+        /// Converts the captured build log events into the text Trace Event Profiler format
+        /// </summary>
+        /// <returns>Profile data.</returns>
+        public string FormatForTraceEventProfiler()
         {
             using (new CultureScope())
             {
                 StringBuilder builder = new StringBuilder();
                 builder.AppendLine("[");
                 int i = 0;
-                foreach (string line in IterateTEPLines(false, log.Root))
+                foreach (string line in IterateTEPLines(false, Root))
                 {
                     if (i != 0)
                         builder.Append(",");

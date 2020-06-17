@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -114,8 +114,8 @@ class StreamHasher
 
     public StreamHasher()
     {
-         m_Stream = new MemoryStream();
-         Writer = new BinaryWriter(m_Stream);
+        m_Stream = new MemoryStream();
+        Writer = new BinaryWriter(m_Stream);
     }
 
     public Hash128 GetHash()

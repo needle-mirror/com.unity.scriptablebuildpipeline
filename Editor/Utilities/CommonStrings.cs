@@ -1,4 +1,4 @@
-﻿namespace UnityEditor.Build.Utilities
+namespace UnityEditor.Build.Utilities
 {
     /// <summary>
     /// Static class of common strings and string formats used through out the build process

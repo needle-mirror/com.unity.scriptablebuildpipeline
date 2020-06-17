@@ -1,4 +1,5 @@
 using NUnit.Framework;
+using System;
 using System.Threading;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Utilities;
@@ -30,7 +31,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         public void WhenMessageAddedWithScope_EntryIsCreated()
         {
             BuildLog log = new BuildLog();
-            log.ScopedStep(LogLevel.Info, "TestStep", "TestEntry").Dispose();
+            ((IDisposable)log.ScopedStep(LogLevel.Info, "TestStep", "TestEntry")).Dispose();
             Assert.AreEqual("TestEntry", log.Root.Children[0].Entries[0].Message);
         }
 
@@ -102,7 +103,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             BuildLog log = new BuildLog();
             using (log.ScopedStep(LogLevel.Info, "TestStep\\AfterSlash"))
                 log.AddEntry(LogLevel.Info, "TestEntry\\AfterSlash");
-            string text = log.FormatAsTraceEventProfiler();
+            string text = log.FormatForTraceEventProfiler();
             StringAssert.Contains("TestStep\\\\AfterSlash", text);
             StringAssert.Contains("TestEntry\\\\AfterSlash", text);
         }

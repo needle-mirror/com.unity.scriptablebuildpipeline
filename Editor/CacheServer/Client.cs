@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections;
 using System.Text;
 using System.Collections.Generic;
@@ -130,7 +130,7 @@ namespace UnityEditor.Build.CacheServer
     /// </summary>
     public class TransactionIsolationException : Exception
     {
-        public TransactionIsolationException(string msg) : base(msg) { }
+        public TransactionIsolationException(string msg) : base(msg) {}
     }
 
     /// <summary>

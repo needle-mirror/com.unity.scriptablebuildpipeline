@@ -98,7 +98,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             Func<int, int> transform = (x) => x * 27;
             const int kFirstPassCount = 5;
             const int kSecondPassCount = 12;
-            
+
             Dictionary<int, int> indexToResult = new Dictionary<int, int>();
 
             Action<int> AssertResults = (count) =>
@@ -107,17 +107,18 @@ namespace UnityEditor.Build.Pipeline.Tests
                 indexToResult.Keys.ToList().ForEach(x => Assert.AreEqual(transform(x), indexToResult[x]));
             };
 
-            List<int> pass1Inputs = Enumerable.Range(0, kFirstPassCount).Select(x=>x*2).ToList();
+            List<int> pass1Inputs = Enumerable.Range(0, kFirstPassCount).Select(x => x * 2).ToList();
             List<int> pass2Inputs = Enumerable.Range(0, kSecondPassCount).ToList();
-            
-            List<WorkItem<ItemContext>> workerInput1 = 
+
+            List<WorkItem<ItemContext>> workerInput1 =
                 pass1Inputs.Select(i => new WorkItem<ItemContext>(new ItemContext(i))).ToList();
 
             List<WorkItem<ItemContext>> workerInput2 =
                 pass2Inputs.Select(i => new WorkItem<ItemContext>(new ItemContext(i))).ToList();
 
             TestRunCachedCallbacks<ItemContext> callbacks = new TestRunCachedCallbacks<ItemContext>();
-            callbacks.CreateCacheEntryCB = (item) => {
+            callbacks.CreateCacheEntryCB = (item) =>
+            {
                 return new CacheEntry()
                 {
                     Guid = HashingMethods.Calculate("Test").ToGUID(),
@@ -128,9 +129,10 @@ namespace UnityEditor.Build.Pipeline.Tests
             callbacks.ProcessUncachedCB = (item) => item.Context.result = transform(item.Context.input);
             callbacks.ProcessCachedCB = (item, info) => item.Context.result = (int)info.Data[0];
             callbacks.PostProcessCB = (item) => indexToResult.Add(item.Context.input, item.Context.result);
-            callbacks.CreateCachedInfoCB = (item) => {
+            callbacks.CreateCachedInfoCB = (item) =>
+            {
                 return new CachedInfo() { Data = new object[] { item.Context.result }, Dependencies = new CacheEntry[0], Asset = item.entry };
-                };
+            };
 
             BuildCache.PurgeCache(false);
             using (BuildCache cache = new BuildCache())
@@ -156,7 +158,6 @@ namespace UnityEditor.Build.Pipeline.Tests
             }
         }
 
-
         [Test]
         public void RunCachedOperation_WhenCancelled_DoesNotContinueProcessing()
         {
@@ -166,7 +167,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             FakeTracker tracker = new FakeTracker();
 
             callbacks.ProcessUncachedCB = (item) => { tracker.shouldCancel = true; };
-            callbacks.PostProcessCB = (item) => { };
+            callbacks.PostProcessCB = (item) => {};
             ReturnCode code = TaskCachingUtility.RunCachedOperation<int>(null, null, tracker, list, callbacks);
             Assert.AreEqual(1, callbacks.ProcessUncachedCount);
             Assert.AreEqual(code, ReturnCode.Canceled);

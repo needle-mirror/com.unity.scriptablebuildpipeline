@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Threading;
 using System.Collections.Generic;
 using System.IO;
@@ -100,6 +100,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             provider.guiHandler = sarchContext => OnGUI();
             return provider;
         }
+
 #else
         [PreferenceItem("Scriptable Build Pipeline")]
 #endif

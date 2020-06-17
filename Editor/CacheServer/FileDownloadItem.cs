@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using UnityEngine;
 
@@ -22,7 +22,7 @@ namespace UnityEditor.Build.CacheServer
         /// The type of the FileDownloadItems desired item.
         /// </summary>
         public FileType Type { get; private set; }
-        
+
         /// <summary>
         /// File path where downloaded file data is saved. Data is first written to a temporary file location, and moved
         /// into place when the Finish() method is called by the Cache Server Client.
@@ -57,7 +57,7 @@ namespace UnityEditor.Build.CacheServer
             Type = fileType;
             FilePath = path;
         }
-        
+
         /// <summary>
         /// Dispose the FileDownloadItems write stream and move the data from the temporary path to its final destination.
         /// </summary>
@@ -65,13 +65,13 @@ namespace UnityEditor.Build.CacheServer
         {
             if (m_writeStream == null)
                 return;
-            
+
             m_writeStream.Dispose();
             try
             {
-                if(File.Exists(FilePath))
+                if (File.Exists(FilePath))
                     File.Delete(FilePath);
-                
+
                 File.Move(m_tmpPath, FilePath);
             }
             catch (Exception e)

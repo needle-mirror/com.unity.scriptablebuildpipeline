@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Interfaces;
@@ -8,7 +8,6 @@ using UnityEngine.Build.Pipeline;
 
 namespace UnityEditor.Build.Pipeline
 {
-    
     /// <summary>
     /// Additional MetaData that is associated with a serialized file write result
     /// <seealso cref="IBuildResults"/>

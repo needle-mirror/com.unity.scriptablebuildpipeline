@@ -104,7 +104,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 toHash.Add(resource.serializedFile);
                 toHash.Add(resource.fileAlias);
             }
-            toHash.AddRange(hashes.Select(x=>(object)x.RawFileHash));
+            toHash.AddRange(hashes.Select(x => (object)x.RawFileHash));
             entry.Hash = HashingMethods.Calculate(toHash).ToHash128();
             entry.Version = kVersion;
             return entry;
@@ -308,7 +308,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
                 cachedItems = allItems.Where(x => cachedInfo[x.Index] != null).ToList();
                 nonCachedItems = allItems.Where(x => cachedInfo[x.Index] == null).ToList();
-                foreach(ArchiveWorkItem i in allItems)
+                foreach (ArchiveWorkItem i in allItems)
                     i.CachedArtifactPath = string.Format("{0}/{1}", input.BuildCache.GetCachedArtifactsDirectory(cacheEntries[i.Index]), i.BundleName);
             }
 
@@ -403,7 +403,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             for (int i = 0; i < items.Count; i++)
             {
                 semaphore.Wait(srcToken.Token);
-                if (tracker != null && !tracker.UpdateInfoUnchecked($"Archive {i+1}/{items.Count}"))
+                if (tracker != null && !tracker.UpdateInfoUnchecked($"Archive {i + 1}/{items.Count}"))
                 {
                     srcToken.Cancel();
                     break;

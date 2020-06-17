@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Interfaces;
@@ -62,6 +62,5 @@ namespace UnityEditor.Build.Pipeline
             FileToReferenceMap = new Dictionary<string, BuildReferenceMap>();
             WriteOperations = new List<IWriteOperation>();
         }
-
     }
 }

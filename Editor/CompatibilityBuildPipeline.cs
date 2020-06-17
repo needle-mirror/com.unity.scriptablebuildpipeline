@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEngine;
@@ -11,7 +11,7 @@ namespace UnityEditor.Build.Pipeline
 #else
     using BuildCompression = UnityEditor.Build.Content.BuildCompression;
 #endif
-    
+
     /// <summary>
     /// Static class implementing API wrappers to match BuildPipeline APIs but use the Scriptable Build Pipeline.
     /// <seealso cref="BuildPipeline.BuildAssetBundles"/>
@@ -62,9 +62,9 @@ namespace UnityEditor.Build.Pipeline
             var parameters = new BundleBuildParameters(targetPlatform, group, outputPath);
             if ((options & BuildAssetBundleOptions.ForceRebuildAssetBundle) != 0)
                 parameters.UseCache = false;
-			
-			if ((options & BuildAssetBundleOptions.AppendHashToAssetBundleName) != 0)
-				parameters.AppendHash = true;
+
+            if ((options & BuildAssetBundleOptions.AppendHashToAssetBundleName) != 0)
+                parameters.AppendHash = true;
 
 #if UNITY_2018_3_OR_NEWER
             if ((options & BuildAssetBundleOptions.ChunkBasedCompression) != 0)

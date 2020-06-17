@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Player;
@@ -11,7 +11,7 @@ namespace UnityEditor.Build.Pipeline
 #else
     using BuildCompression = UnityEditor.Build.Content.BuildCompression;
 #endif
-    
+
     /// <summary>
     /// Basic implementation of IBuildParameters. Stores the set of parameters passed into the Scriptable Build Pipeline.
     /// <seealso cref="IBuildParameters"/>
@@ -61,8 +61,10 @@ namespace UnityEditor.Build.Pipeline
         public string CacheServerHost { get; set; }
         /// <inheritdoc />
         public int CacheServerPort { get; set; }
+        /// <inheritdoc />
+        public bool WriteLinkXML { get; set; }
 
-        internal BuildParameters() { }
+        internal BuildParameters() {}
 
         /// <summary>
         /// Default constructor, requires the target, group and output parameters at minimum for a successful build.
@@ -90,6 +92,7 @@ namespace UnityEditor.Build.Pipeline
             TempOutputFolder = ContentPipeline.kTempBuildPath;
             UseCache = true;
             CacheServerPort = 8126;
+            WriteLinkXML = false;
         }
 
         /// <inheritdoc />
@@ -131,11 +134,11 @@ namespace UnityEditor.Build.Pipeline
     [Serializable]
     public class BundleBuildParameters : BuildParameters, IBundleBuildParameters
     {
-        internal BundleBuildParameters() { }
+        internal BundleBuildParameters() {}
 
         /// <inheritdoc />
         public BundleBuildParameters(BuildTarget target, BuildTargetGroup group, string outputFolder)
-            : base(target, group, outputFolder) { }
+            : base(target, group, outputFolder) {}
 
         /// <inheritdoc />
         public bool AppendHash { get; set; }

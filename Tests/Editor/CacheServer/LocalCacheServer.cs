@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -17,15 +17,15 @@ namespace UnityEditor.CacheServerTests
         private void Create(int port, ulong size, string cachePath)
         {
             var nodeExecutable = Utils.Paths.Combine(EditorApplication.applicationContentsPath, "Tools", "nodejs");
-            nodeExecutable = Application.platform == RuntimePlatform.WindowsEditor 
-                ? Utils.Paths.Combine(nodeExecutable, "node.exe") 
+            nodeExecutable = Application.platform == RuntimePlatform.WindowsEditor
+                ? Utils.Paths.Combine(nodeExecutable, "node.exe")
                 : Utils.Paths.Combine(nodeExecutable, "bin", "node");
 
             if (!Directory.Exists(cachePath))
                 Directory.CreateDirectory(cachePath);
-            
+
             m_path = cachePath;
-            
+
             var cacheServerJs = Utils.Paths.Combine(EditorApplication.applicationContentsPath, "Tools", "CacheServer", "main.js");
             var processStartInfo = new ProcessStartInfo(nodeExecutable)
             {
@@ -43,7 +43,7 @@ namespace UnityEditor.CacheServerTests
                 CreateNoWindow = true
             };
 
-            var p = new Process {StartInfo = processStartInfo};
+            var p = new Process { StartInfo = processStartInfo };
             p.Start();
 
             m_port = port;
@@ -67,7 +67,7 @@ namespace UnityEditor.CacheServerTests
             instance.Create(GetRandomUnusedPort(), size, cachePath);
             WaitForServerToComeAlive(instance.m_port);
         }
-        
+
         public static void Kill()
         {
             if (instance.m_pid == -1)
@@ -91,7 +91,7 @@ namespace UnityEditor.CacheServerTests
             if (Directory.Exists(instance.m_path))
                 Directory.Delete(instance.m_path, true);
         }
-        
+
         private static void WaitForServerToComeAlive(int port)
         {
             var start = DateTime.Now;
@@ -103,7 +103,7 @@ namespace UnityEditor.CacheServerTests
                 break;
             }
         }
-       
+
         private static int GetRandomUnusedPort()
         {
             var listener = new TcpListener(IPAddress.Any, 0);

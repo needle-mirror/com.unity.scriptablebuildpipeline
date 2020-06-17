@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -106,12 +106,12 @@ public class ArchiveAndCompressTestFixture
         var process = new Process
         {
             StartInfo =
-                {
-                    FileName = webExtractPath,
-                    Arguments = string.Format(@"""{0}""", filePath),
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true
-                }
+            {
+                FileName = webExtractPath,
+                Arguments = string.Format(@"""{0}""", filePath),
+                UseShellExecute = false,
+                RedirectStandardOutput = true
+            }
         };
         process.Start();
 
@@ -181,6 +181,7 @@ public class ArchiveAndCompressTestFixture
         string tempFilename = CreateFileOfSize(GetUniqueFilename(Path.Combine(m_FixtureTempDir, "src", "rawfile.bin")), 1024);
         AddRawFileThatTargetsBundle(input, targetBundleName, rawFileInternalName, tempFilename);
     }
+
 #endif
 
     public static string GetUniqueFilename(string desiredFilename)
@@ -197,14 +198,15 @@ public class ArchiveAndCompressTestFixture
             }
         }
     }
+
     internal Dictionary<int, int> m_SizeCounts = new Dictionary<int, int>();
-    internal WriteResult AddSimpleBundle(ArchiveAndCompressBundles.TaskInput input, string bundleName, string internalName, int size=1024)
+    internal WriteResult AddSimpleBundle(ArchiveAndCompressBundles.TaskInput input, string bundleName, string internalName, int size = 1024)
     {
-        if(!m_SizeCounts.ContainsKey(size))
+        if (!m_SizeCounts.ContainsKey(size))
             m_SizeCounts[size] = 0;
         int count = m_SizeCounts[size]++;
         string tempFilename = Path.Combine(m_FixtureTempDir, "src", $"testfile_{size}_{count}.bin");
-        if(!File.Exists(tempFilename))
+        if (!File.Exists(tempFilename))
             CreateFileOfSize(tempFilename, size);
         return AddSimpleBundle(input, bundleName, internalName, tempFilename);
     }

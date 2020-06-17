@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -145,7 +145,7 @@ namespace UnityEditor.Build.Pipeline.Tests
                 new AssetLoadInfo() { address = "Test" },
                 new AssetLoadInfo() { asset = GUID.Generate()},
                 new AssetLoadInfo() { includedObjects = new List<ObjectIdentifier>(){ new ObjectIdentifier()} },
-                new AssetLoadInfo() { referencedObjects= new List<ObjectIdentifier>() { new ObjectIdentifier() } }
+                new AssetLoadInfo() { referencedObjects = new List<ObjectIdentifier>() { new ObjectIdentifier() } }
             };
             HashSet<Hash128> set = new HashSet<Hash128>(infos.Select(x => HashingHelpers.GetHash128(x)));
             Assert.AreEqual(infos.Length, set.Count);
@@ -164,7 +164,5 @@ namespace UnityEditor.Build.Pipeline.Tests
             HashSet<Hash128> set = new HashSet<Hash128>(infos.Select(x => HashingHelpers.GetHash128(x)));
             Assert.AreEqual(infos.Length, set.Count);
         }
-
-        
     }
 }

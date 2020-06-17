@@ -95,6 +95,7 @@ namespace UnityEditor.Build.Pipeline
             buildTasks.Add(new WriteSerializedFiles());
             buildTasks.Add(new ArchiveAndCompressBundles());
             buildTasks.Add(new AppendBundleHash());
+            buildTasks.Add(new GenerateLinkXml());
             buildTasks.Add(new PostWritingCallback());
 
             // Generate manifest files
@@ -137,6 +138,7 @@ namespace UnityEditor.Build.Pipeline
             buildTasks.Add(new WriteSerializedFiles());
             buildTasks.Add(new ArchiveAndCompressBundles());
             buildTasks.Add(new AppendBundleHash());
+            buildTasks.Add(new GenerateLinkXml());
             buildTasks.Add(new PostWritingCallback());
 
             // Generate manifest files

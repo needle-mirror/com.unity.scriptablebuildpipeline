@@ -1,4 +1,4 @@
-﻿using UnityEditor.Build.Content;
+using UnityEditor.Build.Content;
 
 namespace UnityEditor.Build.Pipeline.Utilities
 {
@@ -16,6 +16,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
         {
             return ContentBuildInterface.GetGlobalUsageFromGraphicsSettings();
         }
+
 #else
         static SerializedObject m_SerializedObject;
         static SerializedProperty m_LightmapStripping;
@@ -145,6 +146,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             globalUsage = (BuildUsageTagGlobal)boxedUsage;
             return globalUsage;
         }
+
 #endif
     }
 }

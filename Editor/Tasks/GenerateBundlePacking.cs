@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor.Build.Content;
@@ -89,7 +89,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
                 var references = new List<ObjectIdentifier>();
                 references.AddRange(assetInfo.referencedObjects);
-                assetToReferences[asset] = FilterReferencesForAsset(asset, references);
+                assetToReferences[asset] = FilterReferencesForAsset(m_DependencyData, asset, references);
 
                 allObjects.UnionWith(references);
                 m_WriteData.AssetToFiles[asset] = new List<string> { internalName };
@@ -119,13 +119,13 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
                 var references = new List<ObjectIdentifier>();
                 references.AddRange(sceneInfo.referencedObjects);
-                assetToReferences[scene] = FilterReferencesForAsset(scene, references, previousSceneObjects);
+                assetToReferences[scene] = FilterReferencesForAsset(m_DependencyData, scene, references, previousSceneObjects);
                 previousSceneObjects.UnionWith(references);
 
                 m_WriteData.FileToObjects.Add(internalName, references);
                 m_WriteData.FileToBundle.Add(internalName, bundleName);
 
-                var files = new List<string>{ internalName };
+                var files = new List<string> { internalName };
                 files.AddRange(sceneInternalNames);
                 m_WriteData.AssetToFiles[scene] = files;
 
@@ -133,57 +133,41 @@ namespace UnityEditor.Build.Pipeline.Tasks
             }
         }
 
-        List<GUID> FilterReferencesForAsset(GUID asset, List<ObjectIdentifier> references, HashSet<ObjectIdentifier> previousSceneObjects = null)
+        internal static List<GUID> FilterReferencesForAsset(IDependencyData dependencyData, GUID asset, List<ObjectIdentifier> references, HashSet<ObjectIdentifier> previousSceneObjects = null)
         {
             var referencedAssets = new HashSet<AssetLoadInfo>();
-
-            // First pass: Remove Default Resources and Includes for Assets assigned to Bundles
-            for (int i = references.Count - 1; i >= 0; --i)
+            var referencesPruned = new List<ObjectIdentifier>(references.Count);
+            // Remove Default Resources and Includes for Assets assigned to Bundles
+            foreach (ObjectIdentifier reference in references)
             {
-                var reference = references[i];
                 if (reference.filePath.Equals(CommonStrings.UnityDefaultResourcePath, StringComparison.OrdinalIgnoreCase))
+                    continue;
+                if (dependencyData.AssetInfo.TryGetValue(reference.guid, out AssetLoadInfo referenceInfo))
                 {
-                    references.RemoveAt(i);
-                    continue; // TODO: Fix this so we can pull these in
-                }
-
-                AssetLoadInfo referenceInfo;
-                if (m_DependencyData.AssetInfo.TryGetValue(reference.guid, out referenceInfo))
-                {
-                    references.RemoveAt(i);
                     referencedAssets.Add(referenceInfo);
                     continue;
                 }
+                referencesPruned.Add(reference);
             }
+            references.Clear();
+            references.AddRange(referencesPruned);
 
-            // Second pass: Remove References also included by non-circular Referenced Assets
-            foreach (var referencedAsset in referencedAssets)
+            var referencedAssetsGuids = new List<GUID>(referencedAssets.Count);
+            // Remove References also included by non-circular Referenced Assets
+            // Remove References also included by circular Referenced Assets if Asset's GUID is higher than Referenced Asset's GUID
+            foreach (AssetLoadInfo referencedAsset in referencedAssets)
             {
-                var circularRef = referencedAsset.referencedObjects.Select(x => x.guid).Contains(asset);
-                if (circularRef)
-                    continue;
-
-                references.RemoveAll(x => referencedAsset.referencedObjects.Contains(x));
-            }
-
-            // Final pass: Remove References also included by circular Referenced Assets if Asset's GUID is higher than Referenced Asset's GUID
-            foreach (var referencedAsset in referencedAssets)
-            {
-                var circularRef = referencedAsset.referencedObjects.Select(x => x.guid).Contains(asset);
-                if (!circularRef)
-                    continue;
-
-                if (asset < referencedAsset.asset)
-                    continue;
-
-                references.RemoveAll(x => referencedAsset.referencedObjects.Contains(x));
+                var refObjectIdLookup = new HashSet<ObjectIdentifier>(referencedAsset.referencedObjects);
+                bool circularRef = refObjectIdLookup.Select(x => x.guid).Contains(asset);
+                if (!circularRef || (circularRef && asset > referencedAsset.asset || asset == referencedAsset.asset))
+                    references.RemoveAll(refObjectIdLookup.Contains);
+                referencedAssetsGuids.Add(referencedAsset.asset);
             }
 
             // Special path for scenes, they can use data from previous sharedAssets in the same bundle
             if (!previousSceneObjects.IsNullOrEmpty())
                 references.RemoveAll(previousSceneObjects.Contains);
-
-            return referencedAssets.Select(x => x.asset).ToList();
+            return referencedAssetsGuids;
         }
     }
 }

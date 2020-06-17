@@ -1,4 +1,4 @@
-﻿using System.IO;
+using System.IO;
 using NUnit.Framework;
 using UnityEditor.Build.Pipeline.Utilities;
 
@@ -9,7 +9,8 @@ namespace UnityEditor.Build.Pipeline.Tests
     {
         const string k_SourceDirectory = "Compressor";
 
-        static readonly string[] k_SourceFiles =  {
+        static readonly string[] k_SourceFiles =
+        {
             "/File1.json",
             "/Subdir/File2.json",
             "\\File3.json",
@@ -66,7 +67,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         {
             var success = FileCompressor.Compress(k_SourceDirectory, "artifacts1.sbpGz");
             Assert.IsTrue(success);
-            
+
             success = FileCompressor.Compress(k_SourceDirectory + "/", "artifacts2.sbpGz");
             Assert.IsTrue(success);
 

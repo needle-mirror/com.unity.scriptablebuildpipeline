@@ -1,4 +1,4 @@
-﻿using UnityEditor.Build.Content;
+using UnityEditor.Build.Content;
 using UnityEditor.Build.Player;
 using UnityEngine;
 
@@ -60,6 +60,11 @@ namespace UnityEditor.Build.Pipeline.Interfaces
         /// The port for the cache server to use
         /// </summary>
         int CacheServerPort { get; set; }
+
+        /// <summary>
+        /// Writes out a link.xml file to the output folder to use with Unity managed code stripping.
+        /// </summary>
+        bool WriteLinkXML { get; set; }
 
         /// <summary>
         /// Constructs and returns the BuildSettings struct to use for content building.

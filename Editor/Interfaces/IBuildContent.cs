@@ -1,11 +1,10 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Tasks;
 
 namespace UnityEditor.Build.Pipeline.Interfaces
 {
-
 #if UNITY_2019_3_OR_NEWER
     /// <summary>
     /// Custom Content struct mapping a source asset to a processor to generate custom data for that asset.

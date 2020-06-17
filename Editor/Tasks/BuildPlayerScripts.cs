@@ -1,4 +1,4 @@
-﻿using UnityEditor.Build.Pipeline.Injector;
+using UnityEditor.Build.Pipeline.Injector;
 using UnityEditor.Build.Pipeline.Utilities;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Player;

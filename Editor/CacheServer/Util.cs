@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Diagnostics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
@@ -11,7 +11,7 @@ namespace UnityEditor.Build.CacheServer
     internal static class Util
     {
         private const string IpAddressKey = "CacheServerIPAddress";
-        
+
         private static int ReverseByte(int b)
         {
             return ((b & 0x0F) << 4) | ((b >> 4) & 0x0F);
@@ -23,7 +23,7 @@ namespace UnityEditor.Build.CacheServer
             for (var i = 0; i < input.Length; i += 2)
             {
                 var b = Convert.ToByte(input.Substring(i, 2), 16);
-                bytes[i / 2] = asGuid ? (byte) ReverseByte(b) : b;
+                bytes[i / 2] = asGuid ? (byte)ReverseByte(b) : b;
             }
 
             return bytes;
@@ -50,7 +50,7 @@ namespace UnityEditor.Build.CacheServer
             Debug.Assert(guidStr.Length == 32);
             return StringToByteArray(guidStr, true);
         }
-        
+
         /// <summary>
         /// Parse an ascii byte array at <paramref name="index"/>start as an int value
         /// </summary>
@@ -73,7 +73,7 @@ namespace UnityEditor.Build.CacheServer
         {
             return Encoding.ASCII.GetBytes(input.ToString(minLength ? "X" : "X8"));
         }
-        
+
         /// <summary>
         /// Parse a subset of an ascii byte array as a long value
         /// </summary>
@@ -106,7 +106,7 @@ namespace UnityEditor.Build.CacheServer
         {
             return ar1.Length == ar2.Length && ByteArraysAreEqual(ar1, 0, ar2, 0, ar1.Length);
         }
-        
+
         /// <summary>
         /// Compare two byte arrays for value equality at specific offsets and length
         /// </summary>
@@ -119,12 +119,12 @@ namespace UnityEditor.Build.CacheServer
         public static bool ByteArraysAreEqual(byte[] ar1, int start1, byte[] ar2, int start2, int count)
         {
             Debug.Assert(start1 >= 0 && start2 >= 0 && count >= 0);
-            if(start1 + count > ar1.Length)
+            if (start1 + count > ar1.Length)
                 return false;
 
             if (start2 + count > ar2.Length)
                 return false;
-            
+
             for (var i = 0; i < count; i++)
                 if (ar1[start1 + i] != ar2[start2 + i])
                     return false;
@@ -150,10 +150,10 @@ namespace UnityEditor.Build.CacheServer
         {
             host = null;
             port = 8126;
-            
+
             var parts = address.Split(':');
-            
-            if(parts.Length > 0)
+
+            if (parts.Length > 0)
                 host = parts[0];
 
             if (parts.Length > 1)

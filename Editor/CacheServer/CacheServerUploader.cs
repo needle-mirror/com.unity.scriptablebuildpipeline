@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -42,8 +42,8 @@ namespace UnityEditor.Build.CacheServer
                 var hash = AssetDatabase.GetAssetDependencyHash(assetPath);
 
                 var libPath =
-                    new[] {projectRoot, "Library", "metadata", guid.Substring(0, 2), guid}
-                        .Aggregate(string.Empty, Path.Combine);
+                    new[] { projectRoot, "Library", "metadata", guid.Substring(0, 2), guid }
+                    .Aggregate(string.Empty, Path.Combine);
 
                 if (!File.Exists(libPath))
                 {
@@ -94,17 +94,17 @@ namespace UnityEditor.Build.CacheServer
 
             var assetPaths = AssetDatabase.GetAllAssetPaths();
             var len = assetPaths.Length;
-            
+
             for (var i = 0; i < len; i++)
             {
                 var path = assetPaths[i];
                 if (!File.Exists(path))
                     continue;
-                
-                var progress = (float) (i + 1) / (len + 1);
+
+                var progress = (float)(i + 1) / (len + 1);
 
                 if (EditorUtility.DisplayCancelableProgressBar("Uploading to Cache Server", path, progress)) break;
-                
+
                 try
                 {
                     var trx = Transaction.CreateForAssetPath(path);

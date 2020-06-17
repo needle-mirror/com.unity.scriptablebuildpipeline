@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor.Build.Content;
@@ -77,7 +77,7 @@ namespace UnityEditor.Build.Pipeline.WriteTypes
             CacheEntry entry = BuildCacheUtility.GetCacheEntry(ProcessedScene);
 #endif
             HashSet<CacheEntry> hashObjects = new HashSet<CacheEntry>();
-            
+
             if (Command.serializeObjects != null)
                 foreach (var serializeObject in Command.serializeObjects)
                     hashObjects.Add(BuildCacheUtility.GetCacheEntry(serializeObject.serializationObject));

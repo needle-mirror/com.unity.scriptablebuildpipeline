@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.Build.Content;
@@ -20,6 +20,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         public virtual bool UseCache { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
         public virtual string CacheServerHost { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
         public virtual int CacheServerPort { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
+        public virtual bool WriteLinkXML { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
 
         public virtual UnityEngine.BuildCompression GetCompressionForIdentifier(string identifier)
         {

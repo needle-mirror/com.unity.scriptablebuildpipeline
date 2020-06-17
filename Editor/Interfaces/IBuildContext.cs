@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 
 namespace UnityEditor.Build.Pipeline.Interfaces
 {
     /// <summary>
     /// Base interface for all objects that can be stored in <see cref="IBuildContext"/>.
     /// </summary>
-    public interface IContextObject { }
+    public interface IContextObject {}
 
     /// <summary>
     /// Base interface that handles processing the callbacks after script building step.

@@ -1,4 +1,4 @@
-﻿#if UNITY_2019_3_OR_NEWER
+#if UNITY_2019_3_OR_NEWER
 using NUnit.Framework;
 using System.Collections.Generic;
 using System.Reflection;
@@ -28,6 +28,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             public bool UseCache { get => throw new System.NotImplementedException("Should never be called by build task!"); set => throw new System.NotImplementedException("Should never be called by build task!"); }
             public string CacheServerHost { get => throw new System.NotImplementedException("Should never be called by build task!"); set => throw new System.NotImplementedException("Should never be called by build task!"); }
             public int CacheServerPort { get => throw new System.NotImplementedException("Should never be called by build task!"); set => throw new System.NotImplementedException("Should never be called by build task!"); }
+            public bool WriteLinkXML { get => throw new System.NotImplementedException("Should never be called by build task!"); set => throw new System.NotImplementedException("Should never be called by build task!"); }
 
             public UnityEngine.BuildCompression GetCompressionForIdentifier(string identifier)
             {
@@ -48,6 +49,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             {
                 throw new System.NotImplementedException("Should never be called by build task!");
             }
+
             #endregion
         }
 

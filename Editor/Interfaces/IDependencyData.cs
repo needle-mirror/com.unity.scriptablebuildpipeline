@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEditor.Build.Content;
 
 namespace UnityEditor.Build.Pipeline.Interfaces

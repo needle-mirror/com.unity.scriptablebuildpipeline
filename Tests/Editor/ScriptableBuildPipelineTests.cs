@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using NUnit.Framework;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Injector;
@@ -17,7 +18,6 @@ using UnityEngine.SceneManagement;
 using UnityEngine.TestTools;
 
 namespace UnityEditor.Build.Pipeline.Tests
-
 {
     [TestFixture]
 
@@ -102,7 +102,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         {
             List<AssetBundleBuild> buildData = new List<AssetBundleBuild>();
             buildData.Add(CreateBundleBuild("bundle", k_CubePath));
-            if(createAllBundles)
+            if (createAllBundles)
                 buildData.Add(CreateBundleBuild("bundle2", k_CubePath2));
 
             IBundleBuildContent buildContent = new BundleBuildContent(buildData);
@@ -153,6 +153,36 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.IsNotNull(objectWeAdded, "No object after entering playmode");
 
             EditorSceneManager.SaveScene(s, k_ScenePath);
+        }
+
+        [Test]
+        public void BuildPipeline_AssetBundleBuild_WritesLinkXMLFile()
+        {
+            IBundleBuildParameters buildParameters = GetBuildParameters();
+            buildParameters.WriteLinkXML = true;
+            IBundleBuildContent buildContent = GetBundleContent();
+            IBundleBuildResults results;
+
+            ReturnCode exitCode = ContentPipeline.BuildAssetBundles(buildParameters, buildContent, out results);
+            Assert.AreEqual(ReturnCode.Success, exitCode);
+
+
+            var assemblies = new HashSet<Assembly>();
+            var types = new HashSet<Type>();
+            foreach (var writeResult in results.WriteResults)
+            {
+                foreach (var type in writeResult.Value.includedTypes)
+                {
+                    assemblies.Add(type.Assembly);
+                    types.Add(type);
+                }
+            }
+
+            var xml = LinkXMLGeneratorTests.ReadLinkXML(buildParameters.GetOutputFilePathForIdentifier("link.xml"), out int assemblyCount, out int typeCount);
+            Assert.AreEqual(assemblyCount, assemblies.Count);
+            Assert.AreEqual(typeCount, types.Count);
+            foreach (var t in types)
+                LinkXMLGeneratorTests.AssertTypePreserved(xml, t);
         }
 
         [UnityTest]
@@ -400,9 +430,7 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             ContentPipeline.BuildAssetBundles(buildParameters, buildContent, out results);
 
-            string buildLog = buildParameters.GetOutputFilePathForIdentifier("buildlog.txt");
             string tepBuildLog = buildParameters.GetOutputFilePathForIdentifier("buildlogtep.json");
-            FileAssert.Exists(buildLog);
             FileAssert.Exists(tepBuildLog);
         }
 
@@ -416,9 +444,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             var taskList = DefaultBuildTasks.Create(DefaultBuildTasks.Preset.AssetBundleCompatible);
             ContentPipeline.BuildAssetBundles(buildParameters, buildContent, out results, taskList, new BuildLog());
 
-            string buildLog = buildParameters.GetOutputFilePathForIdentifier("buildlog.txt");
             string tepBuildLog = buildParameters.GetOutputFilePathForIdentifier("buildlogtep.json");
-            FileAssert.DoesNotExist(buildLog);
             FileAssert.DoesNotExist(tepBuildLog);
         }
 

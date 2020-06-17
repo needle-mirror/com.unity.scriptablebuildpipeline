@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor.Build.Pipeline.Interfaces;
@@ -15,7 +15,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             public int Index;
             public CacheEntry entry;
             public string StatusText;
-            public WorkItem(T context, string statusText="")
+            public WorkItem(T context, string statusText = "")
             {
                 this.Context = context;
                 this.StatusText = statusText;
@@ -33,7 +33,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
         public static ReturnCode RunCachedOperation<T>(IBuildCache cache, IBuildLogger log, IProgressTracker tracker, List<WorkItem<T>> workItems,
             IRunCachedCallbacks<T> cbs
-            )
+        )
         {
             using (log.ScopedStep(LogLevel.Info, "RunCachedOperation"))
             {

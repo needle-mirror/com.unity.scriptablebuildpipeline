@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 #if UNITY_2019_3_OR_NEWER
 using UnityEditor.Build.Content;
@@ -50,7 +50,7 @@ namespace UnityEditor.Build.Pipeline
         /// <summary>
         /// Default constructor, creates an empty BuildContent.
         /// </summary>
-        public BuildContent() { }
+        public BuildContent() {}
 
         /// <summary>
         /// Default constructor, takes a set of Assets and converts them to the appropriate properties.
@@ -110,7 +110,7 @@ namespace UnityEditor.Build.Pipeline
         /// <summary>
         /// Default constructor, creates an empty BundleBuildContent.
         /// </summary>
-        public BundleBuildContent() { }
+        public BundleBuildContent() {}
 
         /// <summary>
         /// Default constructor, takes a set of AssetBundleBuild and converts them to the appropriate properties.

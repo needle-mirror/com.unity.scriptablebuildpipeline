@@ -112,7 +112,6 @@ namespace UnityEditor.Build.Pipeline
                         buildContext.SetContextObject(buildLog);
                     }
                     buildCache.SetBuildLogger(logger);
-
                 }
                 catch (Exception e)
                 {
@@ -135,10 +134,9 @@ namespace UnityEditor.Build.Pipeline
 
                 if (buildLog != null)
                 {
-                    string buildLogPath = parameters.GetOutputFilePathForIdentifier("buildlog.txt");
+                    string buildLogPath = parameters.GetOutputFilePathForIdentifier("buildlogtep.json");
                     Directory.CreateDirectory(Path.GetDirectoryName(buildLogPath));
-                    File.WriteAllText(buildLogPath, buildLog.FormatAsText());
-                    File.WriteAllText(parameters.GetOutputFilePathForIdentifier("buildlogtep.json"), buildLog.FormatAsTraceEventProfiler());
+                    File.WriteAllText(parameters.GetOutputFilePathForIdentifier("buildlogtep.json"), buildLog.FormatForTraceEventProfiler());
                 }
             }
 

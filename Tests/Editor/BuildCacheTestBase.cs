@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using NUnit.Framework;
 using System.Collections;
 using System.Collections.Generic;
@@ -46,10 +46,10 @@ namespace UnityEditor.Build.Pipeline.Tests
 
         protected BuildCache m_Cache;
 
-        internal virtual void OneTimeSetupDerived() { }
-        internal virtual void OneTimeTearDownDerived() { }
-        internal virtual void SetupDerived() { }
-        internal virtual void TeardownDerived() { }
+        internal virtual void OneTimeSetupDerived() {}
+        internal virtual void OneTimeTearDownDerived() {}
+        internal virtual void SetupDerived() {}
+        internal virtual void TeardownDerived() {}
 
         [OneTimeSetUp]
         public void OneTimeSetUp()

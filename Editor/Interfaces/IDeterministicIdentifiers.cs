@@ -1,4 +1,4 @@
-﻿using UnityEditor.Build.Content;
+using UnityEditor.Build.Content;
 
 namespace UnityEditor.Build.Pipeline.Interfaces
 {

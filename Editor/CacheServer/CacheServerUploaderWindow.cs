@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 
 namespace UnityEditor.Build.CacheServer
@@ -21,7 +21,7 @@ namespace UnityEditor.Build.CacheServer
             string host;
             int port;
             Util.ParseCacheServerIpAddress(m_address, out host, out port);
-            
+
             var c = new Client(host, port);
             try
             {
@@ -43,13 +43,13 @@ namespace UnityEditor.Build.CacheServer
             EditorGUILayout.LabelField("Cache Server Address: ");
             m_address = GUILayout.TextField(m_address);
             EditorGUILayout.EndHorizontal();
-            
+
             GUILayout.FlexibleSpace();
-            
+
             EditorGUILayout.BeginHorizontal();
-            
-            if (GUILayout.Button("Upload") && EditorUtility.DisplayDialog("Upload to Cache Server", 
-                    "This will upload all assets in your Library folder to the specified Cache Server.", "Continue", "Cancel"))
+
+            if (GUILayout.Button("Upload") && EditorUtility.DisplayDialog("Upload to Cache Server",
+                "This will upload all assets in your Library folder to the specified Cache Server.", "Continue", "Cancel"))
             {
                 GetWindow<CacheServerUploaderWindow>().Close();
                 if (!ValidateAddress())
@@ -57,7 +57,7 @@ namespace UnityEditor.Build.CacheServer
                     Debug.LogError("Could not connect to Cache Server");
                     return;
                 }
-              
+
                 string host;
                 int port;
                 Util.ParseCacheServerIpAddress(m_address, out host, out port);
@@ -68,7 +68,7 @@ namespace UnityEditor.Build.CacheServer
             {
                 GetWindow<CacheServerUploaderWindow>().Close();
             }
-            
+
             EditorGUILayout.EndHorizontal();
         }
 
@@ -76,8 +76,7 @@ namespace UnityEditor.Build.CacheServer
         {
             Repaint();
         }
-        
-        
+
         [MenuItem("Assets/Cache Server/Upload All Assets")]
         public static void UploadAllFilesToCacheServerMenuItem()
         {

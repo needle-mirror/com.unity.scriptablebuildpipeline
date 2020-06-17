@@ -4,8 +4,15 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.9.0] - 2020-06-17
+- Fixed a null reference exception in GenerateBundleCommands.cs when attempting to sort an empty list
+- LinkXmlGenerator moved to the Scriptable Build Pipeline package in the UnityEditor.Build.Pipeline.Utilities namespace.
+- Added new option WriteLinkXML to BuildParameters to write out a link.xml file containing the type information used in the asset bundles for use in the Unity manage code stripping system.
+- Improved performance of the GenerateBundlePacking task.
+- Adding the IBuildLogger interface and BuildLog class to capture high-level build performance data, and output it to the Trace Event Format.
+
 ## [1.8.6] - 2020-06-11
-- Improve caching performance of the WriteSerializedFiles task.
+- Improve caching performance of the WriteSerializedFiles task
 - Fixed bug where asset bundles fail to build when not using build cache.
 - Fixed an issue where providing additional files for asset bundles required the internal name instead of the bundle name
 
@@ -54,7 +61,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed poor performance of GenerateBundleCommands with large data sets.
 
 ## [1.5.10] - 2020-03-13
-- Fixed issue where asset bundles in the build cache weren't having the correct bundle hash assigned to it. 
+- Fixed issue where asset bundles in the build cache weren't having the correct bundle hash assigned to it.
 
 ## [1.5.9] - 2020-02-28
 - Updated CompatibilityAssetBundleManifest so hash version is properly serializable.
@@ -110,8 +117,8 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed a null reference error in GenerateBundleCommands::GetSortIndex
 
 ## [1.2.0-preview] - 2018-11-29
-- Renamed LegacyBuildPipeline & LegacyAssetBundleManifest to CompatibilityBuildPipeline & CompatibilityAssetBundleManifest. 
-- Moved CompatibilityAssetBundleManifest & BundleDetails into a new runtime assembly: com.unity.scriptablebuildpipeline. 
+- Renamed LegacyBuildPipeline & LegacyAssetBundleManifest to CompatibilityBuildPipeline & CompatibilityAssetBundleManifest.
+- Moved CompatibilityAssetBundleManifest & BundleDetails into a new runtime assembly: com.unity.scriptablebuildpipeline.
 - Changed CompatibilityAssetBundleManifest to inherit from ScriptableObject and updated it and BundleDetails to properly serialize using Unity's serialization systems.
 
 ## [1.1.1-preview] - 2018-10-20
@@ -135,7 +142,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed an issue where you could not force rebuild asset bundles using LegacyBuildPipeline
 - Implemented IEquatable<T> on public structs
 - Breaking API Change: LegacyBuildPipeline.BuildAssetBundles now returns LegacyAssetBundleManifest
-	- LegacyAssetBundleManifest's API is identical to AssetBundleManifest
+    - LegacyAssetBundleManifest's API is identical to AssetBundleManifest
 
 ## [0.2.0-preview] - 2018-07-23
 - Removed ProjectInCleanState & ValidateBundleAssignments tasks and integrated them directly indo the data validation or running methods
@@ -191,4 +198,3 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [0.0.5-preview] - 2018-02-08
 - Initial submission for package distribution
-

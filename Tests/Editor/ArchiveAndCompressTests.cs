@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -53,8 +53,9 @@ namespace UnityEditor.Build.Pipeline.Tests
         {
             get
             {
-                yield return new TestCaseData(false, new Action<RebuildTestContext>((ctx) => { })).SetName("NoChanges");
-                yield return new TestCaseData(true, new Action<RebuildTestContext>((ctx) => {
+                yield return new TestCaseData(false, new Action<RebuildTestContext>((ctx) => {})).SetName("NoChanges");
+                yield return new TestCaseData(true, new Action<RebuildTestContext>((ctx) =>
+                {
                     ctx.input.InternalFilenameToWriteMetaData["internalName"] = new SerializedFileMetaData() { ContentHash = new Hash128(0, 1), RawFileHash = new Hash128(1, 2) };
                 })).SetName("SourceFileHashChanges");
                 yield return new TestCaseData(true, new Action<RebuildTestContext>((ctx) =>
@@ -161,7 +162,7 @@ namespace UnityEditor.Build.Pipeline.Tests
                 })).SetName("ContentHashChanges");
                 yield return new TestCaseData(false, new Action<ContentHashTestContext>((ctx) =>
                 {
-                    ctx.input.InternalFilenameToWriteMetaData["internalName"].RawFileHash= new Hash128(128, 128);
+                    ctx.input.InternalFilenameToWriteMetaData["internalName"].RawFileHash = new Hash128(128, 128);
                 })).SetName("RawHashChanges");
             }
         }
@@ -211,6 +212,7 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             AssertDirectoriesEqual(Path.Combine(m_TestTempDir, "bundleoutdir_nothreading"), Path.Combine(m_TestTempDir, "bundleoutdir_threading"), kBundleCount);
         }
+
 #endif
 
         // Start is called before the first frame update
@@ -341,12 +343,14 @@ namespace UnityEditor.Build.Pipeline.Tests
         {
             Assert.IsTrue(ArchiveAndCompressBundles.SupportsMultiThreadedArchiving);
         }
+
 #else
         [Test]
         public void SupportsMultiThreadedArchiving_WhenEditorIsBefore20193_IsFalse()
         {
             Assert.IsFalse(ArchiveAndCompressBundles.SupportsMultiThreadedArchiving);
         }
+
 #endif
     }
 }

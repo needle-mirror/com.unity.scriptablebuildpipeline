@@ -1,4 +1,4 @@
-﻿using UnityEditor.Build.Pipeline.Injector;
+using UnityEditor.Build.Pipeline.Injector;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Sprites;
 using UnityEditor.U2D;

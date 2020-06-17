@@ -1,9 +1,9 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 
 namespace UnityEditor.Build.Pipeline.Utilities
 {
     using Debug = UnityEngine.Debug;
-    
+
     public static class BuildLogger
     {
         [Conditional("BUILD_CACHE_DEBUG")]

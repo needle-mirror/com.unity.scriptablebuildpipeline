@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEditor.Build.Content;
@@ -86,6 +86,29 @@ namespace UnityEditor.Build.Pipeline.Tasks
             return command;
         }
 
+        // Sort function to ensure Asset Bundle's path container is ordered deterministically everytime
+        internal static int AssetLoadInfoCompare(AssetLoadInfo x, AssetLoadInfo y)
+        {
+            if (x.asset != y.asset)
+                return x.asset.CompareTo(y.asset);
+            if (x.includedObjects.IsNullOrEmpty() && !y.includedObjects.IsNullOrEmpty())
+                return -1;
+            if (!x.includedObjects.IsNullOrEmpty() && y.includedObjects.IsNullOrEmpty())
+                return 1;
+            if (!x.includedObjects.IsNullOrEmpty() && !y.includedObjects.IsNullOrEmpty())
+            {
+                if (x.includedObjects[0] < y.includedObjects[0]) return -1;
+                if (x.includedObjects[0] > y.includedObjects[0]) return 1;
+            }
+            if (string.IsNullOrEmpty(x.address) && !string.IsNullOrEmpty(y.address))
+                return -1;
+            if (!string.IsNullOrEmpty(x.address) && string.IsNullOrEmpty(y.address))
+                return 1;
+            if (!string.IsNullOrEmpty(x.address) && !string.IsNullOrEmpty(y.address))
+                return x.address.CompareTo(y.address);
+            return 0;
+        }
+
         void CreateAssetBundleCommand(string bundleName, string internalName, List<GUID> assets)
         {
             var abOp = new AssetBundleWriteOperation();
@@ -103,9 +126,8 @@ namespace UnityEditor.Build.Pipeline.Tasks
             {
                 abOp.Info = new AssetBundleInfo();
                 abOp.Info.bundleName = bundleName;
-                abOp.Info.bundleAssets = assets.Select(x => m_DependencyData.AssetInfo[x])
-                    .OrderBy(loadInfo => loadInfo.asset)
-                    .ThenBy(loadInfo => loadInfo.includedObjects[0].localIdentifierInFile).ToList();
+                abOp.Info.bundleAssets = assets.Select(x => m_DependencyData.AssetInfo[x]).ToList();
+                abOp.Info.bundleAssets.Sort(AssetLoadInfoCompare);
                 foreach (var loadInfo in abOp.Info.bundleAssets)
                     loadInfo.address = m_BuildContent.Addresses[loadInfo.asset];
             }
@@ -144,6 +166,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 sortedObjects.Add(new SortObject { sortIndex = GetSortIndex(types[i]), objectId = objects[i] });
             return sortedObjects.OrderBy(x => x.sortIndex).Select(x => x.objectId).ToList();
         }
+
 #endif
 
         void CreateSceneBundleCommand(string bundleName, string internalName, GUID asset, List<GUID> assets)

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.Serialization.Formatters.Binary;
@@ -107,7 +107,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
                 // Wait for info download
                 m_Semaphore.WaitOne();
-                
+
                 string tempInfoFile = GetCachedInfoFile(entries[index]);
                 if (!File.Exists(tempInfoFile))
                     continue;

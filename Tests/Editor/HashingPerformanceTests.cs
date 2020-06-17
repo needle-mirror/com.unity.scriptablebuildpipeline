@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -81,6 +81,7 @@ namespace UnityEditor.Build.Pipeline.Tests
                 Assert.AreEqual(first, hash);
             UnityEngine.Debug.Log($"SpookyHash Hash Time {timer.Elapsed}");
         }
+
 #endif
     }
 }

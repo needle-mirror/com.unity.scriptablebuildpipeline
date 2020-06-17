@@ -1,4 +1,4 @@
-﻿using UnityEditor.Build.Content;
+using UnityEditor.Build.Content;
 
 namespace UnityEditor.Build.Pipeline.Tests
 {
@@ -78,6 +78,38 @@ namespace UnityEditor.Build.Pipeline.Tests
             object boxed = serializedLocation;
             fieldInfo.SetValue(boxed, offset);
             serializedLocation = (SerializedLocation)boxed;
+        }
+
+        public static void SetObjectIdentifier(this ref ObjectIdentifier obj, GUID guid, long localIdentifierInFile, FileType fileType, string filePath)
+        {
+            SetGuid(ref obj, guid);
+            SetLocalIdentifierInFile(ref obj, localIdentifierInFile);
+            SetFileType(ref obj, fileType);
+            SetFilePath(ref obj, filePath);
+        }
+
+        public static void SetGuid(this ref ObjectIdentifier obj, GUID guid)
+        {
+            var fieldInfo = typeof(ObjectIdentifier).GetField("m_GUID", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            object boxed = obj;
+            fieldInfo.SetValue(boxed, guid);
+            obj = (ObjectIdentifier)boxed;
+        }
+
+        public static void SetLocalIdentifierInFile(this ref ObjectIdentifier obj, long localIdentifierInFile)
+        {
+            var fieldInfo = typeof(ObjectIdentifier).GetField("m_LocalIdentifierInFile", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            object boxed = obj;
+            fieldInfo.SetValue(boxed, localIdentifierInFile);
+            obj = (ObjectIdentifier)boxed;
+        }
+
+        public static void SetFileType(this ref ObjectIdentifier obj, FileType fileType)
+        {
+            var fieldInfo = typeof(ObjectIdentifier).GetField("m_FileType", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+            object boxed = obj;
+            fieldInfo.SetValue(boxed, fileType);
+            obj = (ObjectIdentifier)boxed;
         }
 
         public static void SetFilePath(this ref ObjectIdentifier obj, string filePath)

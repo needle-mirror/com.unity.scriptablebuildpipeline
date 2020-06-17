@@ -1,4 +1,4 @@
-﻿namespace UnityEditor.Build.Pipeline.Interfaces
+namespace UnityEditor.Build.Pipeline.Interfaces
 {
     /// <summary>
     /// Base interface for the build progress tracker

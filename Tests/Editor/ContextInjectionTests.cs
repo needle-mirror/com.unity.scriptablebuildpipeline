@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using NUnit.Framework;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Injector;
@@ -27,7 +27,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         {
             public int Version { get { return 1; } }
             public int NewState { get; private set; }
-            
+
 #pragma warning disable 649
             [InjectContext]
             internal IInjectionContext InjectedObject;
@@ -50,7 +50,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         {
             public int Version { get { return 1; } }
             public int NewState { get; private set; }
-            
+
 #pragma warning disable 649
             [InjectContext]
             internal IInjectionContext InjectedObject;
@@ -71,7 +71,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         class TaskContext : IBuildTask
         {
             public int Version { get { return 1; } }
-            
+
 #pragma warning disable 649
             [InjectContext]
             internal IBuildContext InjectedContext;
@@ -106,13 +106,12 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             ReturnCode result = task.Run();
             Assert.AreEqual(ReturnCode.Success, result);
-            
+
             ContextInjector.Extract(context, task);
 
             IInjectionContext modifiedInjection = context.GetContextObject<IInjectionContext>();
             Assert.AreEqual(task.NewState, modifiedInjection.State);
         }
-
 
         [Test]
         public void CanInjectAndExtractWithClasses()
@@ -133,7 +132,7 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             ReturnCode result = task.Run();
             Assert.AreEqual(ReturnCode.Success, result);
-            
+
             ContextInjector.Extract(context, task);
 
             IInjectionContext modifiedInjection = context.GetContextObject<IInjectionContext>();

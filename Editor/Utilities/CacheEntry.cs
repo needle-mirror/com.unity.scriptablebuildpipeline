@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using UnityEngine;
 
 namespace UnityEditor.Build.Pipeline.Utilities
 {
-    interface ICachedData { }
+    interface ICachedData {}
 
     [Serializable]
     public class CachedInfo : ICachedData
@@ -41,12 +41,12 @@ namespace UnityEditor.Build.Pipeline.Utilities
             return obj is CacheEntry && Equals((CacheEntry)obj);
         }
 
-        public static bool operator ==(CacheEntry x, CacheEntry y)
+        public static bool operator==(CacheEntry x, CacheEntry y)
         {
             return x.Hash == y.Hash && x.Guid == y.Guid;
         }
 
-        public static bool operator !=(CacheEntry x, CacheEntry y)
+        public static bool operator!=(CacheEntry x, CacheEntry y)
         {
             return !(x == y);
         }
