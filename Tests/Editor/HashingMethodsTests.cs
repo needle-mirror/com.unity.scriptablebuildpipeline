@@ -136,5 +136,20 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.IsTrue(hash1.Equals(hash2));
 #endif
         }
+
+        [Test]
+        public void HashingMethodsSupportUnicodeStrings()
+        {
+            // It might not look it at first glance, but the below 2 strings are indeed different!
+            // The ASCII byte representation of both of these strings is identical, which was causing
+            // hashing methods to return identical hashes as we had used ASCII for everything.
+            string str1 = "[기본]양손무기";
+            string str2 = "[기본]한손무기";
+            RawHash hash1 = HashingMethods.Calculate(str1);
+            RawHash hash2 = HashingMethods.Calculate(str2);
+
+            Assert.AreNotEqual(str1, str2);
+            Assert.AreNotEqual(hash1, hash2);
+        }
     }
 }

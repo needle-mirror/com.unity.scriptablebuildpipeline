@@ -62,7 +62,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             var entry = new CacheEntry();
             entry.Type = CacheEntry.EntryType.Data;
             entry.Guid = HashingMethods.Calculate("WriteSerializedFiles").ToGUID();
-            entry.Hash = HashingMethods.Calculate(Version, operation.GetHash128(), settings.GetHash128(), globalUsage, onlySaveFirstSerializedObject).ToHash128();
+            entry.Hash = HashingMethods.Calculate(Version, operation.GetHash128(), settings.GetHash128(), globalUsage, onlySaveFirstSerializedObject, PlayerSettings.stripUnusedMeshComponents, PlayerSettings.bakeCollisionMeshes).ToHash128();
             entry.Version = Version;
             return entry;
         }

@@ -99,5 +99,10 @@ namespace UnityEditor.Build.Pipeline.Interfaces
         /// Append the hash to the assetBundle file name.
         /// </summary>
         bool AppendHash { get; set; }
+
+        /// <summary>
+        /// Packs assets in bundles contiguously based on the ordering of the source asset which results in improved asset loading times.
+        /// </summary>
+        bool ContiguousBundles { get; set; }
     }
 }

@@ -57,12 +57,28 @@ namespace UnityEditor.Build.Pipeline.Utilities
         [NonSerialized]
         Stopwatch m_WallTimer;
 
-        public BuildLog()
+        void Init(bool onThread)
         {
             m_WallTimer = Stopwatch.StartNew();
             m_Root = new LogStep();
             m_Stack = new Stack<LogStep>();
             m_Stack.Push(m_Root);
+            
+            AddMetaData("Date", DateTime.Now.ToString());
+            AddMetaData(ScriptableBuildPipelineVersion.kPackageName, ScriptableBuildPipelineVersion.kPackageVersion);
+            if (!onThread)
+                AddMetaData("UnityVersion", UnityEngine.Application.unityVersion);
+            
+        }
+
+        public BuildLog()
+        {
+            Init(false);
+        }
+
+        internal BuildLog(bool onThread)
+        {
+            Init(onThread);
         }
 
         private BuildLog GetThreadSafeLog()
@@ -70,7 +86,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             if (m_ThreadedLogs != null)
             {
                 if (!m_ThreadedLogs.IsValueCreated)
-                    m_ThreadedLogs.Value = new BuildLog();
+                    m_ThreadedLogs.Value = new BuildLog(true);
                 return m_ThreadedLogs.Value;
             }
             return this;
@@ -234,6 +250,18 @@ namespace UnityEditor.Build.Pipeline.Utilities
             {
                 Thread.CurrentThread.CurrentCulture = m_Prev;
             }
+        }       
+
+        private List<Tuple<string, string>> m_MetaData = new List<Tuple<string, string>>();
+
+        /// <summary>
+        /// Adds a key value pair to the MetaData list. This can be used to store things like package version numbers.
+        /// </summary>
+        /// <param name="key">The key for the MetaData.</param>
+        /// <param name="value">The value of the MetaData.</param>
+        public void AddMetaData(string key, string value)
+        {
+            m_MetaData.Add(new Tuple<string, string>(key, value));
         }
 
         /// <summary>
@@ -245,7 +273,12 @@ namespace UnityEditor.Build.Pipeline.Utilities
             using (new CultureScope())
             {
                 StringBuilder builder = new StringBuilder();
-                builder.AppendLine("[");
+                builder.AppendLine("{");
+
+                foreach(Tuple<string, string> tuple in m_MetaData)
+                    builder.AppendLine($"\"{tuple.Item1}\": \"{tuple.Item2}\",");
+
+                builder.AppendLine("\"traceEvents\": [");
                 int i = 0;
                 foreach (string line in IterateTEPLines(false, Root))
                 {
@@ -255,6 +288,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
                     i++;
                 }
                 builder.AppendLine("]");
+                builder.AppendLine("}");
                 return builder.ToString();
             }
         }

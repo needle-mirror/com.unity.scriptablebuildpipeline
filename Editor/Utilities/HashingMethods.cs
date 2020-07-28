@@ -145,7 +145,12 @@ namespace UnityEditor.Build.Pipeline.Utilities
             }
             else if (currObj is string)
             {
-                var bytes = Encoding.ASCII.GetBytes((string)currObj);
+                byte[] bytes;
+                var str = (string)currObj;
+                if (str.Any(c => c > 127))
+                    bytes = Encoding.Unicode.GetBytes(str);
+                else
+                    bytes = Encoding.ASCII.GetBytes(str);
                 stream.Write(bytes, 0, bytes.Length);
             }
             else if (currObj.GetType().IsEnum)

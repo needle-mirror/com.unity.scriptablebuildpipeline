@@ -4,6 +4,11 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.10.0] - 2020-07-28
+- Added IBundleBuildParameters.ContiguousBundles option, which when enabled will improve asset loading times.
+  - In testing, performance improvements varied from 10% improvement over all, with improvements up to 50% for large complex assets such as extensive UI prefabs.
+- Updated HashingMethods to support Unicode string hashing.
+
 ## [1.9.0] - 2020-06-17
 - Fixed a null reference exception in GenerateBundleCommands.cs when attempting to sort an empty list
 - LinkXmlGenerator moved to the Scriptable Build Pipeline package in the UnityEditor.Build.Pipeline.Utilities namespace.

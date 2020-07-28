@@ -107,5 +107,15 @@ namespace UnityEditor.Build.Pipeline.Tests
             StringAssert.Contains("TestStep\\\\AfterSlash", text);
             StringAssert.Contains("TestEntry\\\\AfterSlash", text);
         }
+
+        [Test]
+        public void WhenConvertingToTraceEventFormat_MetaDataIsAdded()
+        {
+            BuildLog log = new BuildLog();
+            log.AddMetaData("SOMEKEY", "SOMEVALUE");
+            string text = log.FormatForTraceEventProfiler();
+            StringAssert.Contains("SOMEKEY", text);
+            StringAssert.Contains("SOMEVALUE", text);
+        }
     }
 }

@@ -149,12 +149,18 @@ namespace UnityEditor.Build.Pipeline.Tests
         BuildContext m_Context;
         string m_TestTempDir;
         bool m_PreviousSlimSettings;
+        bool m_PreviousStripUnusedMeshComponents;
+        bool m_PreviousBakeCollisionMeshes;
 
         [SetUp]
         public void Setup()
         {
             m_PreviousSlimSettings = ScriptableBuildPipeline.slimWriteResults;
             ScriptableBuildPipeline.s_Settings.slimWriteResults = false;
+            m_PreviousStripUnusedMeshComponents = PlayerSettings.stripUnusedMeshComponents;
+            PlayerSettings.stripUnusedMeshComponents = false;
+            m_PreviousBakeCollisionMeshes = PlayerSettings.bakeCollisionMeshes;
+            PlayerSettings.bakeCollisionMeshes = false;
             BuildCache.PurgeCache(false);
 
             m_TestTempDir = Path.Combine("Temp", "test");
@@ -180,6 +186,8 @@ namespace UnityEditor.Build.Pipeline.Tests
         {
             Directory.Delete(m_TestTempDir, true);
             ScriptableBuildPipeline.s_Settings.slimWriteResults = m_PreviousSlimSettings;
+            PlayerSettings.stripUnusedMeshComponents = m_PreviousStripUnusedMeshComponents;
+            PlayerSettings.bakeCollisionMeshes = m_PreviousBakeCollisionMeshes;
             m_Cache.Dispose();
         }
 
@@ -200,6 +208,8 @@ namespace UnityEditor.Build.Pipeline.Tests
                 yield return new TestCaseData(true, new Action<WriteSerializedFileTests>((_this) => { _this.m_BuildParameters.TestBuildSettings.buildFlags |= ContentBuildFlags.DisableWriteTypeTree; })).SetName("BuildSettings");
                 yield return new TestCaseData(true, new Action<WriteSerializedFileTests>((_this) => { ((TestWriteOperation)_this.m_WriteData.WriteOperations[0]).SetDebugHash(27); })).SetName("OperationHash");
                 yield return new TestCaseData(true, new Action<WriteSerializedFileTests>((_this) => { ScriptableBuildPipeline.s_Settings.slimWriteResults = true; })).SetName("SlimWriteResults");
+                yield return new TestCaseData(true, new Action<WriteSerializedFileTests>((_this) => { PlayerSettings.stripUnusedMeshComponents = true; })).SetName("StripUnusedMeshComponents");
+                yield return new TestCaseData(true, new Action<WriteSerializedFileTests>((_this) => { PlayerSettings.bakeCollisionMeshes = true; })).SetName("BakeCollisionMeshes");
             }
         }
 

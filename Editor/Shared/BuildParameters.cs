@@ -142,5 +142,8 @@ namespace UnityEditor.Build.Pipeline
 
         /// <inheritdoc />
         public bool AppendHash { get; set; }
+
+        /// <inheritdoc />
+        public bool ContiguousBundles { get; set; }
     }
 }
