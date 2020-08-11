@@ -10,6 +10,7 @@ namespace UnityEditor.Build.Pipeline.WriteTypes
     /// Explicit implementation for writing a serialized file that can be used with the upcoming raw loading systems.
     /// </summary>
     [Serializable]
+    [Obsolete("RawWriteOperation obsolete and no longer maintained.")]
     public class RawWriteOperation : IWriteOperation
     {
         /// <inheritdoc />

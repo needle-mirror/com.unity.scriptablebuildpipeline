@@ -31,6 +31,8 @@ namespace UnityEditor.Build.Pipeline.Tests
         const string k_CubePath = k_TestAssetsPath + "/Cube.prefab";
         const string k_CubePath2 = k_TestAssetsPath + "/Cube2.prefab";
 
+        ScriptableBuildPipeline.Settings m_Settings;
+
         [OneTimeSetUp]
         public void Setup()
         {
@@ -45,6 +47,8 @@ namespace UnityEditor.Build.Pipeline.Tests
 #endif
             AssetDatabase.ImportAsset(k_CubePath);
             AssetDatabase.ImportAsset(k_CubePath2);
+
+            m_Settings = LoadSettingsFromFile();
         }
 
         [OneTimeTearDown]
@@ -60,6 +64,9 @@ namespace UnityEditor.Build.Pipeline.Tests
                 Directory.Delete(k_FolderPath, true);
             if (Directory.Exists(k_TmpPath))
                 Directory.Delete(k_TmpPath, true);
+
+            ScriptableBuildPipeline.s_Settings = m_Settings;
+            ScriptableBuildPipeline.SaveSettings();
         }
 
         static ReturnCode RunTask<T>(params IContextObject[] args) where T : IBuildTask
@@ -449,6 +456,36 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
 
         [Test]
+        public void BuildParameters_SetsBuildCacheServerParameters_WhenUseBuildCacheServerEnabled()
+        {
+            int port = 9999;
+            string host = "fake host";
+
+            using (new StoreCacheServerConfig(true, host, port))
+            {
+                IBundleBuildParameters buildParameters = GetBuildParameters();
+
+                Assert.AreEqual(port, buildParameters.CacheServerPort);
+                Assert.AreEqual(host, buildParameters.CacheServerHost);
+            }
+        }
+
+        [Test]
+        public void BuildParameters_DoesNotSetBuildCacheServerParameters_WhenUseBuildCacheServerDisabled()
+        {
+            int port = 9999;
+            string host = "testHost";
+
+            using (new StoreCacheServerConfig(false, host, port))
+            {
+                IBundleBuildParameters buildParameters = GetBuildParameters();
+
+                Assert.AreEqual(8126, buildParameters.CacheServerPort);
+                Assert.AreEqual(null, buildParameters.CacheServerHost);
+            }
+        }
+
+        [Test]
         public void BuildAssetBundles_WithCache_Succeeds()
         {
             IBundleBuildParameters buildParameters = GetBuildParameters();
@@ -467,6 +504,87 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             ReturnCode exitCode = ContentPipeline.BuildAssetBundles(buildParameters, buildContent, out IBundleBuildResults results);
             Assert.AreEqual(ReturnCode.Success, exitCode);
+        }
+
+        ScriptableBuildPipeline.Settings LoadSettingsFromFile()
+        {
+            var settings = new ScriptableBuildPipeline.Settings();
+            if (File.Exists(ScriptableBuildPipeline.kSettingPath))
+            {
+                var json = File.ReadAllText(ScriptableBuildPipeline.kSettingPath);
+                EditorJsonUtility.FromJsonOverwrite(json, settings);
+            }
+            return settings;
+        }
+
+        void AssertSettingsChanged(ScriptableBuildPipeline.Settings preSettings, ScriptableBuildPipeline.Settings postSettings, FieldInfo[] fields, int fieldChanged)
+        {
+            for (int i = 0; i < fields.Length; i++)
+            {
+                if (i == fieldChanged)
+                    Assert.AreNotEqual(fields[i].GetValue(preSettings), fields[i].GetValue(postSettings), $"Unexpected field '{fields[i].Name}' value is unchanged.");
+                else
+                    Assert.AreEqual(fields[i].GetValue(preSettings), fields[i].GetValue(postSettings), $"Unexpected field '{fields[i].Name}' value is changed.");
+            }
+        }
+
+        [Test]
+        public void PreferencesProperties_ChangesSerializeToDisk()
+        {
+            PropertyInfo[] properties = typeof(ScriptableBuildPipeline).GetProperties(BindingFlags.Public | BindingFlags.Static);
+            FieldInfo[] fields = typeof(ScriptableBuildPipeline.Settings).GetFields(BindingFlags.Public | BindingFlags.Instance);
+
+            for (int i = 0; i < properties.Length; i++)
+            {
+                var preSettings = LoadSettingsFromFile();
+
+                if (properties[i].PropertyType == typeof(bool))
+                {
+                    bool previousValue = (bool)fields[i].GetValue(preSettings);
+                    properties[i].SetValue(null, !previousValue);
+                }
+                else if (properties[i].PropertyType == typeof(int))
+                {
+                    int previousValue = (int)fields[i].GetValue(preSettings);
+                    properties[i].SetValue(null, previousValue + 5);
+                }
+                else if (properties[i].PropertyType == typeof(string))
+                {
+                    string previousValue = (string) fields[i].GetValue(preSettings);
+                    properties[i].SetValue(null, previousValue + "Test");
+                }
+                else
+                {
+                    Assert.Fail($"Unhandled property type '{properties[i].PropertyType.Name}' in test '{nameof(PreferencesProperties_ChangesSerializeToDisk)}'");
+                }
+
+                AssertSettingsChanged(preSettings, LoadSettingsFromFile(), fields, i);
+            }
+        }
+
+        internal class StoreCacheServerConfig : IDisposable
+        {
+            private bool m_StoredUseServerFlag;
+            private string m_StoredServerHost;
+            private int m_UseServerPort;
+
+            public StoreCacheServerConfig(bool useCacheServer, string host, int port)
+            {
+                m_StoredUseServerFlag = ScriptableBuildPipeline.UseBuildCacheServer;
+                ScriptableBuildPipeline.UseBuildCacheServer = useCacheServer;
+
+                m_StoredServerHost = ScriptableBuildPipeline.CacheServerHost;
+                ScriptableBuildPipeline.CacheServerHost = host;
+
+                m_UseServerPort = ScriptableBuildPipeline.CacheServerPort;
+                ScriptableBuildPipeline.CacheServerPort = port;
+            }
+            public void Dispose()
+            {
+                ScriptableBuildPipeline.UseBuildCacheServer = m_StoredUseServerFlag;
+                ScriptableBuildPipeline.CacheServerHost = m_StoredServerHost;
+                ScriptableBuildPipeline.CacheServerPort = m_UseServerPort;
+            }
         }
     }
 }

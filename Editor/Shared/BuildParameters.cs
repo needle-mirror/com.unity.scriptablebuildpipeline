@@ -1,6 +1,7 @@
 using System;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Interfaces;
+using UnityEditor.Build.Pipeline.Utilities;
 using UnityEditor.Build.Player;
 using UnityEngine;
 
@@ -92,6 +93,12 @@ namespace UnityEditor.Build.Pipeline
             TempOutputFolder = ContentPipeline.kTempBuildPath;
             UseCache = true;
             CacheServerPort = 8126;
+            if (ScriptableBuildPipeline.UseBuildCacheServer)
+            {
+                CacheServerHost = ScriptableBuildPipeline.CacheServerHost;
+                CacheServerPort = ScriptableBuildPipeline.CacheServerPort;
+            }
+
             WriteLinkXML = false;
         }
 

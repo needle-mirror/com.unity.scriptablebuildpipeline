@@ -6,7 +6,10 @@ using UnityEditor.Build.Pipeline.Tasks;
 
 namespace UnityEditor.Build.Pipeline.Utilities
 {
-    static class ScriptableBuildPipeline
+    /// <summary>
+    /// Static class containing per project build settings.
+    /// </summary>
+    public static class ScriptableBuildPipeline
     {
         private class GUIScope : GUI.Scope
         {
@@ -45,6 +48,10 @@ namespace UnityEditor.Build.Pipeline.Utilities
             public static readonly GUIContent pruneCache = EditorGUIUtility.TrTextContent("Prune Cache");
             public static readonly GUIContent cacheSizeIs = EditorGUIUtility.TrTextContent("Cache size is");
             public static readonly GUIContent pleaseWait = EditorGUIUtility.TrTextContent("Please wait...");
+            public static readonly GUIContent cacheServerConfig = EditorGUIUtility.TrTextContent("Cache Server Configuration");
+            public static readonly GUIContent useBuildCacheServer = EditorGUIUtility.TrTextContent("Use Build Cache Server");
+            public static readonly GUIContent cacheServerHost = EditorGUIUtility.TrTextContent("Cache Server Host");
+            public static readonly GUIContent cacheServerPort = EditorGUIUtility.TrTextContent("Cache Server Port");
             public static bool startedCalculation = false;
             public static long currentCacheSize = -1;
         }
@@ -52,19 +59,90 @@ namespace UnityEditor.Build.Pipeline.Utilities
         [System.Serializable]
         internal class Settings
         {
+            public bool useBuildCacheServer = false;
+            public string cacheServerHost = "";
+            public int cacheServerPort = 8126;
             public bool threadedArchiving = true;
             public bool logCacheMiss = false;
             public bool slimWriteResults = true;
-            public int maximumCacheSize = 200;
+            public int maximumCacheSize = 20;
         }
 
         internal static Settings s_Settings = new Settings();
 
-        public static bool threadedArchiving => s_Settings.threadedArchiving;
+        /// <summary>
+        /// Flag to determine if the Build Cache Server is to be used.
+        /// </summary>
+        public static bool UseBuildCacheServer
+        {
+            get => s_Settings.useBuildCacheServer;
+            set => CompareAndSet(ref s_Settings.useBuildCacheServer, value);
+        }
 
-        public static bool logCacheMiss => s_Settings.logCacheMiss;
-        public static bool slimWriteResults => s_Settings.slimWriteResults;
-        public static int maximumCacheSize => s_Settings.maximumCacheSize;
+        /// <summary>
+        /// The host of the Build Cache Server.
+        /// </summary>
+        public static string CacheServerHost
+        {
+            get => s_Settings.cacheServerHost;
+            set => CompareAndSet(ref s_Settings.cacheServerHost, value);
+        }
+
+        /// <summary>
+        /// The port number for the Build Cache Server.
+        /// </summary>
+        public static int CacheServerPort
+        {
+            get => s_Settings.cacheServerPort;
+            set => CompareAndSet(ref s_Settings.cacheServerPort, value);
+        }
+
+        /// <summary>
+        /// Thread the archiving and compress build stage.
+        /// </summary>
+        public static bool threadedArchiving
+        {
+            get => s_Settings.threadedArchiving;
+            set => CompareAndSet(ref s_Settings.threadedArchiving, value);
+        }
+
+        /// <summary>
+        /// Log a warning on build cache misses. Warning will contain which asset and dependency caused the miss.
+        /// </summary>
+        public static bool logCacheMiss
+        {
+            get => s_Settings.logCacheMiss;
+            set => CompareAndSet(ref s_Settings.logCacheMiss, value);
+        }
+
+        /// <summary>
+        /// Reduces the caching of WriteResults data down to the bare minimum for improved cache performance.
+        /// </summary>
+        public static bool slimWriteResults
+        {
+            get => s_Settings.slimWriteResults;
+            set => CompareAndSet(ref s_Settings.slimWriteResults, value);
+        }
+
+        /// <summary>
+        /// The size of the Build Cache folder will be kept below this maximum value when possible.
+        /// </summary>
+        public static int maximumCacheSize
+        {
+            get => s_Settings.maximumCacheSize;
+            set => CompareAndSet(ref s_Settings.maximumCacheSize, value);
+        }
+
+        static void CompareAndSet<T>(ref T property, T value)
+        {
+            if (property.Equals(value))
+                return;
+
+            property = value;
+            SaveSettings();
+        }
+
+        internal const string kSettingPath = "ProjectSettings/ScriptableBuildPipeline.json";
 
         internal static void LoadSettings()
         {
@@ -72,11 +150,14 @@ namespace UnityEditor.Build.Pipeline.Utilities
             s_Settings.threadedArchiving = EditorPrefs.GetBool("ScriptableBuildPipeline.threadedArchiving", s_Settings.threadedArchiving);
             s_Settings.logCacheMiss = EditorPrefs.GetBool("ScriptableBuildPipeline.logCacheMiss", s_Settings.logCacheMiss);
             s_Settings.maximumCacheSize = EditorPrefs.GetInt("BuildCache.maximumSize", s_Settings.maximumCacheSize);
+            s_Settings.useBuildCacheServer = EditorPrefs.GetBool("ScriptableBuildPipeline.UseBuildCacheServer", s_Settings.useBuildCacheServer);
+            s_Settings.cacheServerHost = EditorPrefs.GetString("ScriptableBuildPipeline.CacheServerHost", s_Settings.cacheServerHost);
+            s_Settings.cacheServerPort = EditorPrefs.GetInt("ScriptableBuildPipeline.CacheServerPort", s_Settings.cacheServerPort);
 
             // Load new settings from Json
-            if (File.Exists("ProjectSettings/ScriptableBuildPipeline.json"))
+            if (File.Exists(kSettingPath))
             {
-                var json = File.ReadAllText("ProjectSettings/ScriptableBuildPipeline.json");
+                var json = File.ReadAllText(kSettingPath);
                 EditorJsonUtility.FromJsonOverwrite(json, s_Settings);
             }
         }
@@ -84,7 +165,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
         internal static void SaveSettings()
         {
             var json = EditorJsonUtility.ToJson(s_Settings, true);
-            File.WriteAllText("ProjectSettings/ScriptableBuildPipeline.json", json);
+            File.WriteAllText(kSettingPath, json);
         }
 
         static ScriptableBuildPipeline()
@@ -162,6 +243,16 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 GUILayout.Label(Properties.cacheSizeIs.text + " " + EditorUtility.FormatBytes(Properties.currentCacheSize));
             else
                 GUILayout.Label(Properties.cacheSizeIs.text + " is being calculated...");
+
+            GUILayout.Space(15);
+            GUILayout.Label(Properties.cacheServerConfig, EditorStyles.boldLabel);
+
+            s_Settings.useBuildCacheServer = EditorGUILayout.Toggle(Properties.useBuildCacheServer, s_Settings.useBuildCacheServer);
+            if (s_Settings.useBuildCacheServer)
+            {
+                s_Settings.cacheServerHost = EditorGUILayout.TextField(Properties.cacheServerHost, s_Settings.cacheServerHost);
+                s_Settings.cacheServerPort = EditorGUILayout.IntField(Properties.cacheServerPort, s_Settings.cacheServerPort);
+            }
         }
     }
 }

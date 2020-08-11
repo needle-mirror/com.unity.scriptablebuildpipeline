@@ -20,6 +20,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
     {
         const string k_CachePath = "Library/BuildCache";
         const int k_Version = 2;
+        internal const long k_BytesToGigaBytes = 1073741824L;
 
         Thread m_ActiveWriteThread;
 
@@ -450,7 +451,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
         public static void PruneCache()
         {
             int maximumSize = ScriptableBuildPipeline.maximumCacheSize;
-            long maximumCacheSize = maximumSize * 1073741824L; // gigabytes to bytes
+            long maximumCacheSize = maximumSize * k_BytesToGigaBytes;
 
             // Get sizes based on common directory root for a guid / hash
             ComputeCacheSizeAndFolders(out long currentCacheSize, out List<CacheFolder> cacheFolders);

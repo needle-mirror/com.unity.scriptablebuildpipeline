@@ -65,10 +65,16 @@ namespace UnityEditor.Build.Pipeline.Utilities
             m_Stack.Push(m_Root);
             
             AddMetaData("Date", DateTime.Now.ToString());
-            AddMetaData(ScriptableBuildPipelineVersion.kPackageName, ScriptableBuildPipelineVersion.kPackageVersion);
+
             if (!onThread)
+            {
                 AddMetaData("UnityVersion", UnityEngine.Application.unityVersion);
-            
+#if UNITY_2019_2_OR_NEWER // PackageManager package inspection APIs didn't exist until 2019.2
+                PackageManager.PackageInfo info = PackageManager.PackageInfo.FindForAssembly(typeof(BuildLog).Assembly);
+                if(info != null)
+                    AddMetaData(info.name, info.version);
+#endif
+            }
         }
 
         public BuildLog()

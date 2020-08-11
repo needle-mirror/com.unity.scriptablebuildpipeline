@@ -70,7 +70,18 @@ namespace UnityEditor.Build.Pipeline
                 return ReturnCode.UnsavedChanges;
             }
 
-            AssetDatabase.SaveAssets();
+            BuildContext buildContext = new BuildContext(contextObjects);
+            BuildLog buildLog = null;
+
+            IBuildLogger logger;
+            if (!buildContext.TryGetContextObject<IBuildLogger>(out logger))
+            {
+                logger = buildLog = new BuildLog();
+                buildContext.SetContextObject(buildLog);
+            }
+
+            using (logger.ScopedStep(LogLevel.Info, "AssetDatabase.SaveAssets"))
+                AssetDatabase.SaveAssets();
 
             ReturnCode exitCode;
             result = new BundleBuildResults();
@@ -86,12 +97,8 @@ namespace UnityEditor.Build.Pipeline
                     {
                         Directory.CreateDirectory(parameters.TempOutputFolder);
 
-                        BuildContext buildContext;
-                        BuildLog buildLog = null;
-
                         try
                         {
-                            buildContext = new BuildContext(contextObjects);
                             buildContext.SetContextObject(parameters);
                             buildContext.SetContextObject(content);
                             buildContext.SetContextObject(result);
@@ -104,13 +111,6 @@ namespace UnityEditor.Build.Pipeline
                             buildContext.SetContextObject(new BuildDependencyData());
                             buildContext.SetContextObject(new BundleWriteData());
                             buildContext.SetContextObject(BuildCallbacks);
-
-                            IBuildLogger logger;
-                            if (!buildContext.TryGetContextObject<IBuildLogger>(out logger))
-                            {
-                                logger = buildLog = new BuildLog();
-                                buildContext.SetContextObject(buildLog);
-                            }
                             buildCache.SetBuildLogger(logger);
                         }
                         catch (Exception e)
@@ -141,8 +141,11 @@ namespace UnityEditor.Build.Pipeline
                     }
 
 
-            long maximumCacheSize = ScriptableBuildPipeline.maximumCacheSize * 1073741824L; // gigabytes to bytes
-            ThreadPool.QueueUserWorkItem(PruneCache, maximumCacheSize);
+            long maximumCacheSize = ScriptableBuildPipeline.maximumCacheSize * BuildCache.k_BytesToGigaBytes;
+            if (UnityEngine.Application.isBatchMode)
+                BuildCache.PruneCache_Background(maximumCacheSize);
+            else
+                ThreadPool.QueueUserWorkItem(PruneCache, maximumCacheSize);
             return exitCode;
         }
 
