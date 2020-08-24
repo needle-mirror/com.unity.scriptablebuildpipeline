@@ -10,22 +10,40 @@ using System.Threading;
 namespace UnityEditor.Build.CacheServer
 {
     /// <summary>
-    /// The type of a particular file.
+    /// Options for the type of a particular file.
     /// </summary>
     public enum FileType
     {
+        /// <summary>
+        /// Use to indicate that the file is an asset.
+        /// </summary>
         Asset = 'a',
+        /// <summary>
+        /// Use to indicate that the file holds information for an asset/resource.
+        /// </summary>
         Info = 'i',
+        /// <summary>
+        /// Use to indicate that the file is a resource.
+        /// </summary>
         Resource = 'r'
     }
 
     /// <summary>
-    /// The result returned by a download operation.
+    /// Options for the result returned by a download operation.
     /// </summary>
     public enum DownloadResult
     {
+        /// <summary>
+        /// Use to indicate that the operation failed.
+        /// </summary>
         Failure = 0,
+        /// <summary>
+        /// Use to indicate that the operation failed because it could not locate the specified file.
+        /// </summary>
         FileNotFound = 1,
+        /// <summary>
+        /// Use to indicate that the operation succedeed.
+        /// </summary>
         Success = 2
     }
 
@@ -130,6 +148,10 @@ namespace UnityEditor.Build.CacheServer
     /// </summary>
     public class TransactionIsolationException : Exception
     {
+        /// <summary>
+        /// Creates a new exception for when an upload operation is not properly isolated within a begin/end transaction.
+        /// </summary>
+        /// <param name="msg">The text containing information to display.</param>
         public TransactionIsolationException(string msg) : base(msg) {}
     }
 

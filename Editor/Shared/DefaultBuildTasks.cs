@@ -11,12 +11,21 @@ namespace UnityEditor.Build.Pipeline
     public static class DefaultBuildTasks
     {
         /// <summary>
-        /// Enum of the different preset build pipelines
+        /// Options for different preset build pipelines
         /// </summary>
         public enum Preset
         {
+            /// <summary>
+            /// Use to indicate that the pipeline only executes player scripts.
+            /// </summary>
             PlayerScriptsOnly,
+            /// <summary>
+            /// Use to indicate that the pipeline should create asset bundles.
+            /// </summary>
             AssetBundleCompatible,
+            /// <summary>
+            /// Use to indicate that the pipeline should create asset bundles and the built-in shader bundle.
+            /// </summary>
             AssetBundleBuiltInShaderExtraction,
         }
 

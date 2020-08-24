@@ -7,7 +7,7 @@ namespace UnityEditor.Build.Pipeline
 {
     /// <summary>
     /// Generates a deterministic identifier using a MD4 hash algorithm and does not require object ordering to be deterministic.
-    /// This algorithm generates identical results to what is used internally in <seealso cref="BuildPipeline.BuildAssetbundles"/>.
+    /// This algorithm generates identical results to what is used internally in <c>BuildPipeline.BuildAssetbundles</c>.
     /// </summary>
     public class Unity5PackedIdentifiers : IDeterministicIdentifiers
     {

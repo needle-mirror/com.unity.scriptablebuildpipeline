@@ -22,8 +22,6 @@ namespace UnityEditor.Build.Pipeline.Utilities
         const int k_Version = 2;
         internal const long k_BytesToGigaBytes = 1073741824L;
 
-        Thread m_ActiveWriteThread;
-
         [NonSerialized]
         IBuildLogger m_Logger;
 
@@ -36,11 +34,19 @@ namespace UnityEditor.Build.Pipeline.Utilities
         [NonSerialized]
         CacheServerDownloader m_Downloader;
 
+        /// <summary>
+        /// Creates a new build cache object.
+        /// </summary>
         public BuildCache()
         {
             m_GlobalHash = CalculateGlobalArtifactVersionHash();
         }
 
+        /// <summary>
+        /// Creates a new remote build cache object.
+        /// </summary>
+        /// <param name="host">The server host.</param>
+        /// <param name="port">The server port.</param>
         public BuildCache(string host, int port = 8126)
         {
             m_GlobalHash = CalculateGlobalArtifactVersionHash();
@@ -76,11 +82,11 @@ namespace UnityEditor.Build.Pipeline.Utilities
             BuildCacheUtility.ClearCacheHashes();
         }
 
+        /// <summary>
+        /// Disposes the build cache instance.
+        /// </summary>
         public void Dispose()
         {
-            SyncPendingSaves();
-            if (m_Uploader != null)
-                m_Uploader.Dispose();
             if (m_Downloader != null)
                 m_Downloader.Dispose();
             m_Uploader = null;
@@ -225,7 +231,6 @@ namespace UnityEditor.Build.Pipeline.Utilities
             {
                 // Basic spin lock
                 ops.waitLock.WaitOne();
-
                 var op = ops.data[index];
                 if (op.bytes != null && op.bytes.Length > 0)
                 {
@@ -369,9 +374,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 }
 
                 // Start writing thread
-                SyncPendingSaves();
-                m_ActiveWriteThread = new Thread(Write);
-                m_ActiveWriteThread.Start(ops);
+                ThreadingManager.QueueTask(ThreadingManager.ThreadQueues.SaveQueue, Write, ops);
 
                 using (m_Logger.ScopedStep(LogLevel.Info, "SerializingCacheInfos"))
                 {
@@ -405,12 +408,8 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
         internal void SyncPendingSaves()
         {
-            if (m_ActiveWriteThread != null)
-            {
-                using (m_Logger.ScopedStep(LogLevel.Info, "SyncPendingSaves"))
-                    m_ActiveWriteThread.Join();
-                m_ActiveWriteThread = null;
-            }
+            using (m_Logger.ScopedStep(LogLevel.Info, "SyncPendingSaves"))
+                ThreadingManager.WaitForOutstandingTasks();
         }
 
         internal struct CacheFolder
@@ -425,8 +424,13 @@ namespace UnityEditor.Build.Pipeline.Utilities
             }
         }
 
+        /// <summary>
+        /// Deletes the build cache directory.
+        /// </summary>
+        /// <param name="prompt">The message to display in the popup window.</param>
         public static void PurgeCache(bool prompt)
         {
+            ThreadingManager.WaitForOutstandingTasks();
             BuildCacheUtility.ClearCacheHashes();
             if (!Directory.Exists(k_CachePath))
             {
@@ -448,8 +452,12 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 Directory.Delete(k_CachePath, true);
         }
 
+        /// <summary>
+        /// Prunes the build cache so that its size is within the maximum cache size.
+        /// </summary>
         public static void PruneCache()
         {
+            ThreadingManager.WaitForOutstandingTasks();
             int maximumSize = ScriptableBuildPipeline.maximumCacheSize;
             long maximumCacheSize = maximumSize * k_BytesToGigaBytes;
 
@@ -472,14 +480,24 @@ namespace UnityEditor.Build.Pipeline.Utilities
             EditorUtility.ClearProgressBar();
         }
 
+        /// <summary>
+        /// Prunes the build cache without showing UI prompts.
+        /// </summary>
+        /// <param name="maximumCacheSize">The maximum cache size.</param>
         public static void PruneCache_Background(long maximumCacheSize)
         {
+            ThreadingManager.QueueTask(ThreadingManager.ThreadQueues.PruneQueue, PruneCache_Background_Internal, maximumCacheSize);
+        }
+
+        internal static void PruneCache_Background_Internal(object maximumCacheSize)
+        {
+            long maxCacheSize = (long)maximumCacheSize;
             // Get sizes based on common directory root for a guid / hash
             ComputeCacheSizeAndFolders(out long currentCacheSize, out List<CacheFolder> cacheFolders);
-            if (currentCacheSize < maximumCacheSize)
+            if (currentCacheSize < maxCacheSize)
                 return;
 
-            PruneCacheFolders(maximumCacheSize, currentCacheSize, cacheFolders);
+            PruneCacheFolders(maxCacheSize, currentCacheSize, cacheFolders);
         }
 
         internal static void ComputeCacheSizeAndFolders(out long currentCacheSize, out List<CacheFolder> cacheFolders)

@@ -27,6 +27,9 @@ using System.Security.Cryptography;
 
 namespace UnityEditor.Build.Pipeline.Utilities
 {
+    /// <summary>
+    /// Implementation of the MD4 hashing algorithm.
+    /// </summary>
     public sealed class MD4 : HashAlgorithm
     {
         uint[] m_Buffer;
@@ -45,11 +48,18 @@ namespace UnityEditor.Build.Pipeline.Utilities
             Initialize();
         }
 
+        /// <summary>
+        /// Creates a new MD4 hashing algorithm object.
+        /// </summary>
+        /// <returns>Returns the new MD4 hashing algorithm instance.</returns>
         public new static MD4 Create()
         {
             return new MD4();
         }
 
+        /// <summary>
+        /// Resets the hash algorithm to its initial state.
+        /// </summary>
         public override void Initialize()
         {
             m_Buffer = new uint[]
@@ -64,6 +74,12 @@ namespace UnityEditor.Build.Pipeline.Utilities
             m_Bytes = 0;
         }
 
+        /// <summary>
+        /// When overridden in a derived class, routes data written to the object into the hash algorithm for computing the hash.
+        /// </summary>
+        /// <param name="array">The input to compute the hash code for.</param>
+        /// <param name="ibStart">The offset into the byte array from which to begin using data.</param>
+        /// <param name="cbSize">The number of bytes in the byte array to use as data.</param>
         protected override void HashCore(byte[] array, int ibStart, int cbSize)
         {
             if (array == null)
@@ -84,6 +100,10 @@ namespace UnityEditor.Build.Pipeline.Utilities
             }
         }
 
+        /// <summary>
+        /// When overridden in a derived class, finalizes the hash computation after the last data is processed by the cryptographic hash algorithm.
+        /// </summary>
+        /// <returns>Returns the computed hash.</returns>
         protected override byte[] HashFinal()
         {
             var bytes = BitConverter.GetBytes(m_Bytes << 3);

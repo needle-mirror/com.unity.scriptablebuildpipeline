@@ -8,6 +8,9 @@ using UnityEditor.Build.Pipeline.WriteTypes;
 
 namespace UnityEditor.Build.Pipeline.Tasks
 {
+    /// <summary>
+    /// Creates sub asset load information.
+    /// </summary>
     public class GenerateSubAssetPathMaps : IBuildTask
     {
         /// <inheritdoc />

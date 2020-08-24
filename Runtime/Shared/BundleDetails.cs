@@ -3,7 +3,7 @@ using System;
 namespace UnityEngine.Build.Pipeline
 {
     /// <summary>
-    /// Struct containing detailed information about a built asset bundle
+    /// Struct containing detailed information about a built asset bundle.
     /// </summary>
     [Serializable]
     public struct BundleDetails : IEquatable<BundleDetails>
@@ -58,6 +58,11 @@ namespace UnityEngine.Build.Pipeline
             set { m_Dependencies = value; }
         }
 
+        /// <summary>
+        /// Determines if the current bundle details instance is equivalent the specified bundle details.
+        /// </summary>
+        /// <param name="obj">The bundle details to compare to.</param>
+        /// <returns>Returns true if the bundle details are equivalent. Returns false otherwise.</returns>
         public override bool Equals(object obj)
         {
             if (ReferenceEquals(null, obj))
@@ -65,6 +70,10 @@ namespace UnityEngine.Build.Pipeline
             return obj is BundleDetails && Equals((BundleDetails)obj);
         }
 
+        /// <summary>
+        /// Creates the hash code of the bundle information.
+        /// </summary>
+        /// <returns>Returns the created hash code.</returns>
         public override int GetHashCode()
         {
             unchecked
@@ -77,16 +86,23 @@ namespace UnityEngine.Build.Pipeline
             }
         }
 
+        /// <inheritdoc/>
         public static bool operator==(BundleDetails a, BundleDetails b)
         {
             return a.Equals(b);
         }
 
+        /// <inheritdoc/>
         public static bool operator!=(BundleDetails a, BundleDetails b)
         {
             return !(a == b);
         }
 
+        /// <summary>
+        /// Determines if the current instance is equivalent to the specified bundle details object.
+        /// </summary>
+        /// <param name="other">The object to compare to.</param>
+        /// <returns>Returns true if the bundle details objects are equivalent. Returns false otherwise.</returns>
         public bool Equals(BundleDetails other)
         {
             return string.Equals(FileName, other.FileName) && Crc == other.Crc && Hash.Equals(other.Hash) && Equals(Dependencies, other.Dependencies);

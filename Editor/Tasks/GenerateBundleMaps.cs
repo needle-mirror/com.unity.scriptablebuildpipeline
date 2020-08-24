@@ -7,6 +7,9 @@ using UnityEditor.Build.Pipeline.Utilities;
 
 namespace UnityEditor.Build.Pipeline.Tasks
 {
+    /// <summary>
+    /// Generates reference maps and usage sets for asset bundles.
+    /// </summary>
     public class GenerateBundleMaps : IBuildTask
     {
         /// <inheritdoc />

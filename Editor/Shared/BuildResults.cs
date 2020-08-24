@@ -37,6 +37,7 @@ namespace UnityEditor.Build.Pipeline
         public ScriptCompilationResult ScriptResults { get; set; }
         /// <inheritdoc />
         public Dictionary<string, WriteResult> WriteResults { get; private set; }
+        /// <inheritdoc />
         public Dictionary<string, SerializedFileMetaData> WriteResultsMetaData { get; private set; }
 
         /// <summary>

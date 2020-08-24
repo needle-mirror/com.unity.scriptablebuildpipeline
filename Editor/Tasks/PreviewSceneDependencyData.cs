@@ -8,6 +8,9 @@ using UnityEditor.Build.Pipeline.Utilities;
 
 namespace UnityEditor.Build.Pipeline.Tasks
 {
+    /// <summary>
+    /// Validates scene dependency data and stores it in the cache.
+    /// </summary>
     public class PreviewSceneDependencyData : IBuildTask
     {
         /// <inheritdoc />

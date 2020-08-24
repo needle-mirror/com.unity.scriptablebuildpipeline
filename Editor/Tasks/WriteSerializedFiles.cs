@@ -29,6 +29,10 @@ namespace UnityEditor.Build.Pipeline.Tasks
             result = (WriteResult)boxed;
         }
     }
+
+    /// <summary>
+    /// Serializes all cache data.
+    /// </summary>
     public class WriteSerializedFiles : IBuildTask, IRunCachedCallbacks<WriteSerializedFiles.Item>
     {
         /// <inheritdoc />
@@ -151,11 +155,13 @@ namespace UnityEditor.Build.Pipeline.Tasks
             return data;
         }
 
+        /// <inheritdoc/>
         CacheEntry IRunCachedCallbacks<Item>.CreateCacheEntry(WorkItem<Item> item)
         {
             return GetCacheEntry(m_WriteData.WriteOperations[item.Index], m_BuildSettings, m_GlobalUsage, ScriptableBuildPipeline.slimWriteResults);
         }
 
+        /// <inheritdoc/>
         void IRunCachedCallbacks<Item>.ProcessUncached(WorkItem<Item> item)
         {
             IWriteOperation op = m_WriteData.WriteOperations[item.Index];
@@ -172,12 +178,14 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 SlimifySerializedObjects(ref item.Context.Result);
         }
 
+        /// <inheritdoc/>
         void IRunCachedCallbacks<Item>.ProcessCached(WorkItem<Item> item, CachedInfo info)
         {
             item.Context.Result = (WriteResult)info.Data[0];
             item.Context.MetaData = (SerializedFileMetaData)info.Data[1];
         }
 
+        /// <inheritdoc/>
         void IRunCachedCallbacks<Item>.PostProcess(WorkItem<Item> item)
         {
             IWriteOperation op = m_WriteData.WriteOperations[item.Index];
@@ -185,6 +193,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             m_Results.WriteResultsMetaData.Add(op.Command.internalName, item.Context.MetaData);
         }
 
+        /// <inheritdoc/>
         CachedInfo IRunCachedCallbacks<Item>.CreateCachedInfo(WorkItem<Item> item)
         {
             return GetCachedInfo(item.entry, item.Context.Result, item.Context.MetaData);

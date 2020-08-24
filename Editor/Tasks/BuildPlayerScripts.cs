@@ -5,6 +5,9 @@ using UnityEditor.Build.Player;
 
 namespace UnityEditor.Build.Pipeline.Tasks
 {
+    /// <summary>
+    /// Compiles all player scripts.
+    /// </summary>
     public class BuildPlayerScripts : IBuildTask
     {
         /// <inheritdoc />

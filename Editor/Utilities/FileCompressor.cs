@@ -6,11 +6,19 @@ using System.Text;
 
 namespace UnityEditor.Build.Pipeline.Utilities
 {
-    // Since C# only has GZipStream until .NET 4.0, we are forced to implement our own packing system
-    // for artifact files. We compact all artifacts into a single GZip Stream with the header before
-    // the file name and contents. The header contains the file name length and file length (in bytes).
+    /// <summary>
+    /// Since C# only has GZipStream until .NET 4.0, we are forced to implement our own packing system
+    /// for artifact files. We compact all artifacts into a single GZip Stream with the header before
+    /// the file name and contents. The header contains the file name length and file length (in bytes).
+    /// </summary>
     public class FileCompressor
     {
+        /// <summary>
+        /// Compresses all artifacts located at a specified directory.
+        /// </summary>
+        /// <param name="directoryPath">The directory containing the artifacts.</param>
+        /// <param name="archiveFilePath">The file path at which the archive will be created.</param>
+        /// <returns>Returns true if the directory was found and compressed. Returns false otherwise.</returns>
         public static bool Compress(string directoryPath, string archiveFilePath)
         {
             if (!directoryPath.EndsWith("/") && !directoryPath.EndsWith("\\"))
@@ -61,6 +69,12 @@ namespace UnityEditor.Build.Pipeline.Utilities
             return true;
         }
 
+        /// <summary>
+        /// Extracts all artifacts compressed in an archive.
+        /// </summary>
+        /// <param name="archiveFilePath">The archive to decompress.</param>
+        /// <param name="directoryPath">The path where the extracted artifacts will be stored.</param>
+        /// <returns>Returns true if the archive was found and decompressed. Returns false otherwise.</returns>
         public static bool Decompress(string archiveFilePath, string directoryPath)
         {
             var archiveFile = new FileInfo(archiveFilePath);

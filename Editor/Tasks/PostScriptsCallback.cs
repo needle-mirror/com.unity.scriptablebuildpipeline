@@ -3,6 +3,9 @@ using UnityEditor.Build.Pipeline.Interfaces;
 
 namespace UnityEditor.Build.Pipeline.Tasks
 {
+    /// <summary>
+    /// Processes all callbacks after the script building task.
+    /// </summary>
     public class PostScriptsCallback : IBuildTask
     {
         /// <inheritdoc />

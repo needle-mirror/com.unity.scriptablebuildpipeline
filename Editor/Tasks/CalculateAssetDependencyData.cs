@@ -18,6 +18,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
     }
 #endif
 
+    /// <summary>
+    /// Calculates the dependency data for all assets.
+    /// </summary>
     public class CalculateAssetDependencyData : IBuildTask
     {
         internal const int kVersion = 3;
@@ -239,7 +242,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                     {
                         assetResult.spriteData = new SpriteImporterData();
                         assetResult.spriteData.PackedSprite = false;
-                        assetResult.spriteData.SourceTexture = includedObjects.First();
+                        assetResult.spriteData.SourceTexture = includedObjects.FirstOrDefault();
 
                         if (EditorSettings.spritePackerMode != SpritePackerMode.Disabled)
                             assetResult.spriteData.PackedSprite = referencedObjects.Length > 0;

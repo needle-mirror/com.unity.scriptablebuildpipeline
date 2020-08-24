@@ -4,9 +4,8 @@ using UnityEngine;
 
 namespace UnityEditor.Build.CacheServer
 {
-    /// <inheritdoc />
     /// <summary>
-    /// IDownloadItem implementation for downloading to a file specified by path
+    /// IDownloadItem implementation for downloading to a file specified by path.
     /// </summary>
     public class FileDownloadItem : IDownloadItem
     {

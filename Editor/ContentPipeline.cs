@@ -47,6 +47,13 @@ namespace UnityEditor.Build.Pipeline
         /// <returns>Return code with status information about success or failure causes.</returns>
         public static ReturnCode BuildAssetBundles(IBundleBuildParameters parameters, IBundleBuildContent content, out IBundleBuildResults result, IList<IBuildTask> taskList, params IContextObject[] contextObjects)
         {
+            if (BuildPipeline.isBuildingPlayer)
+            {
+                result = null;
+                BuildLogger.LogException(new InvalidOperationException("Cannot build asset bundles while a build is in progress"));
+                return ReturnCode.Exception;
+            }
+
             // Avoid throwing exceptions in here as we don't want them bubbling up to calling user code
             if (parameters == null)
             {
@@ -70,6 +77,7 @@ namespace UnityEditor.Build.Pipeline
                 return ReturnCode.UnsavedChanges;
             }
 
+            ThreadingManager.WaitForOutstandingTasks();
             BuildContext buildContext = new BuildContext(contextObjects);
             BuildLog buildLog = null;
 
@@ -142,16 +150,8 @@ namespace UnityEditor.Build.Pipeline
 
 
             long maximumCacheSize = ScriptableBuildPipeline.maximumCacheSize * BuildCache.k_BytesToGigaBytes;
-            if (UnityEngine.Application.isBatchMode)
-                BuildCache.PruneCache_Background(maximumCacheSize);
-            else
-                ThreadPool.QueueUserWorkItem(PruneCache, maximumCacheSize);
+            BuildCache.PruneCache_Background(maximumCacheSize);
             return exitCode;
-        }
-
-        static void PruneCache(object state)
-        {
-            BuildCache.PruneCache_Background((long)state);
         }
     }
 }

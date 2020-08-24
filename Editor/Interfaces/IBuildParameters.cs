@@ -93,6 +93,9 @@ namespace UnityEditor.Build.Pipeline.Interfaces
         ScriptCompilationSettings GetScriptCompilationSettings();
     }
 
+    /// <summary>
+    /// Base interface for the parameters container for building bundles.
+    /// </summary>
     public interface IBundleBuildParameters : IBuildParameters
     {
         /// <summary>

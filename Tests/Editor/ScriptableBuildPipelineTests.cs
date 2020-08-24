@@ -550,7 +550,7 @@ namespace UnityEditor.Build.Pipeline.Tests
                 }
                 else if (properties[i].PropertyType == typeof(string))
                 {
-                    string previousValue = (string) fields[i].GetValue(preSettings);
+                    string previousValue = (string)fields[i].GetValue(preSettings);
                     properties[i].SetValue(null, previousValue + "Test");
                 }
                 else
@@ -579,6 +579,7 @@ namespace UnityEditor.Build.Pipeline.Tests
                 m_UseServerPort = ScriptableBuildPipeline.CacheServerPort;
                 ScriptableBuildPipeline.CacheServerPort = port;
             }
+
             public void Dispose()
             {
                 ScriptableBuildPipeline.UseBuildCacheServer = m_StoredUseServerFlag;

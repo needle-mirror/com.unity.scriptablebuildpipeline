@@ -16,7 +16,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
     }
 
     /// <summary>
-    /// Manages initialization and cleanup of Unity Editor IPreprocessShaders, IProcessScene, & IProcessSceneWithReport build callbacks.
+    /// Manages initialization and cleanup of Unity Editor IPreprocessShaders, IProcessScene, &amp; IProcessSceneWithReport build callbacks.
     /// </summary>
     public class BuildInterfacesWrapper : IDisposable, IEditorBuildCallbacks
     {
@@ -42,6 +42,10 @@ namespace UnityEditor.Build.Pipeline.Utilities
             GC.SuppressFinalize(this);
         }
 
+        /// <summary>
+        /// Disposes the build interfaces wrapper instance.
+        /// </summary>
+        /// <param name="disposing">Obsolete parameter.</param>
         protected virtual void Dispose(bool disposing)
         {
             if (m_Disposed)
@@ -52,7 +56,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
         }
 
         /// <summary>
-        /// Initializes Unity Editor IPreprocessShaders, IProcessScene, & IProcessSceneWithReport build callbacks.
+        /// Initializes Unity Editor IPreprocessShaders, IProcessScene, &amp; IProcessSceneWithReport build callbacks.
         /// </summary>
         public void InitializeCallbacks()
         {
@@ -61,7 +65,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
         }
 
         /// <summary>
-        /// Cleanup Unity Editor IPreprocessShaders, IProcessScene, & IProcessSceneWithReport build callbacks.
+        /// Cleanup Unity Editor IPreprocessShaders, IProcessScene, &amp; IProcessSceneWithReport build callbacks.
         /// </summary>
         public void CleanupCallbacks()
         {

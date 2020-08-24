@@ -3,6 +3,9 @@ using UnityEditor.Build.Pipeline.Interfaces;
 
 namespace UnityEditor.Build.Pipeline.Tasks
 {
+    /// <summary>
+    /// Processes all callbacks after the dependency calculation task.
+    /// </summary>
     public class PostDependencyCallback : IBuildTask
     {
         /// <inheritdoc />

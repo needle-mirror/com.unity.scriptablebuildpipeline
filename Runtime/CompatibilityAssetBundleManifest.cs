@@ -5,6 +5,9 @@ using System.Text;
 
 namespace UnityEngine.Build.Pipeline
 {
+    /// <summary>
+    /// Accesses information about all the asset bundles stored in a manifest file.
+    /// </summary>
     [Serializable]
     public class CompatibilityAssetBundleManifest : ScriptableObject, ISerializationCallbackReceiver
     {
@@ -16,11 +19,19 @@ namespace UnityEngine.Build.Pipeline
         [SerializeField]
         List<BundleDetails> m_Values;
 
+        /// <summary>
+        /// Stores the bundle information.
+        /// </summary>
+        /// <param name="results">The bundle information.</param>
         public void SetResults(Dictionary<string, BundleDetails> results)
         {
             m_Details = new Dictionary<string, BundleDetails>(results);
         }
 
+        /// <summary>
+        /// Retrieves the names of all the asset bundles.
+        /// </summary>
+        /// <returns>Returns the names of all the asset bundles.</returns>
         public string[] GetAllAssetBundles()
         {
             string[] bundles = m_Details.Keys.ToArray();
@@ -28,11 +39,20 @@ namespace UnityEngine.Build.Pipeline
             return bundles;
         }
 
+        /// <summary>
+        /// Oboslete method.
+        /// </summary>
+        /// <returns>Returns an empty array.</returns>
         public string[] GetAllAssetBundlesWithVariant()
         {
             return new string[0];
         }
 
+        /// <summary>
+        /// Retrieves the hash of the asset bundle.
+        /// </summary>
+        /// <param name="assetBundleName">The name of the bundle.</param>
+        /// <returns>Returns the hash.</returns>
         public Hash128 GetAssetBundleHash(string assetBundleName)
         {
             BundleDetails details;
@@ -41,6 +61,11 @@ namespace UnityEngine.Build.Pipeline
             return new Hash128();
         }
 
+        /// <summary>
+        /// Retrieves the cyclic redundancy check information for specified asset bundle.
+        /// </summary>
+        /// <param name="assetBundleName">The bundle name.</param>
+        /// <returns>Returns the cyclic redundancy check information for specified asset bundle.</returns>
         public uint GetAssetBundleCrc(string assetBundleName)
         {
             BundleDetails details;
@@ -49,11 +74,21 @@ namespace UnityEngine.Build.Pipeline
             return 0;
         }
 
+        /// <summary>
+        /// Retrieves all bundle dependencies based on the specified bundle name.
+        /// </summary>
+        /// <param name="assetBundleName">The bundle name to lookup.</param>
+        /// <returns>Returns all the dependencies of the bundle.</returns>
         public string[] GetDirectDependencies(string assetBundleName)
         {
             return GetAllDependencies(assetBundleName);
         }
 
+        /// <summary>
+        /// Retrieves all bundle dependencies based on the specified bundle name.
+        /// </summary>
+        /// <param name="assetBundleName">The bundle name to lookup.</param>
+        /// <returns>Returns all the dependencies of the bundle.</returns>
         public string[] GetAllDependencies(string assetBundleName)
         {
             BundleDetails details;
@@ -62,6 +97,10 @@ namespace UnityEngine.Build.Pipeline
             return new string[0];
         }
 
+        /// <summary>
+        /// Converts the information about the manifest file to a formatted string.
+        /// </summary>
+        /// <returns>Returns information about the manifest file.</returns>
         public override string ToString()
         {
             StringBuilder builder = new StringBuilder();
@@ -95,6 +134,9 @@ namespace UnityEngine.Build.Pipeline
             return builder.ToString();
         }
 
+        /// <summary>
+        /// Converts our data to a serialized structure before a domain reload.
+        /// </summary>
         public void OnBeforeSerialize()
         {
             m_Keys = new List<string>();
@@ -107,6 +149,9 @@ namespace UnityEngine.Build.Pipeline
             }
         }
 
+        /// <summary>
+        /// Puts back the converted data into its original data structure after a domain reload.
+        /// </summary>
         public void OnAfterDeserialize()
         {
             m_Details = new Dictionary<string, BundleDetails>();

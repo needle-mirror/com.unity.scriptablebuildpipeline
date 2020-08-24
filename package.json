@@ -1,7 +1,7 @@
 {
   "name": "com.unity.scriptablebuildpipeline",
   "displayName": "Scriptable Build Pipeline",
-  "version": "1.11.1",
+  "version": "1.11.2",
   "unity": "2018.4",
   "description": "The Scriptable Build Pipeline moves the asset bundle build pipeline to C#.  Use the pre-defined build flows, or create your own using the divided up APIs.  This system improves build time, fixes incremental build, and provides greater flexibility.",
   "keywords": [
@@ -16,9 +16,9 @@
   "repository": {
     "url": "https://github.cds.internal.unity3d.com/unity/Addressables.git",
     "type": "git",
-    "revision": "c2b406223598e6f2ea290dbeff4f468ba70f5b75"
+    "revision": "6153ab9cab33f86c6be23b90720c3f8365c32ed3"
   },
   "upmCi": {
-    "footprint": "6d4b73b073f73c5d8acb67a33dfa7a23ec9f76d3"
+    "footprint": "66585c1d26ac10d0ef1f3e82c4da6b8f7d963f28"
   }
 }

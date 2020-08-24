@@ -4,6 +4,9 @@ using UnityEditor.Build.Pipeline.Utilities;
 
 namespace UnityEditor.Build.Pipeline.Tasks
 {
+    /// <summary>
+    /// Sets the target build platform based on the build parameters.
+    /// </summary>
     public class SwitchToBuildPlatform : IBuildTask
     {
         /// <inheritdoc />

@@ -19,7 +19,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
 #else
     using BuildCompression = UnityEditor.Build.Content.BuildCompression;
 #endif
-
+    /// <summary>
+    /// Archives and compresses all asset bundles.
+    /// </summary>
     public class ArchiveAndCompressBundles : IBuildTask
     {
         private const int kVersion = 1;

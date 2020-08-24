@@ -8,6 +8,9 @@ using UnityEditor.Build.Pipeline.Utilities;
 
 namespace UnityEditor.Build.Pipeline.Tasks
 {
+    /// <summary>
+    /// Calculates the dependency data for all scenes.
+    /// </summary>
     public class CalculateSceneDependencyData : IBuildTask
     {
         /// <inheritdoc />

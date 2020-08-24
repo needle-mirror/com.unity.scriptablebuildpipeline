@@ -77,6 +77,9 @@ namespace UnityEditor.Build.CacheServer
             Repaint();
         }
 
+        /// <summary>
+        /// Uploads all assets to the cache server.
+        /// </summary>
         [MenuItem("Assets/Cache Server/Upload All Assets")]
         public static void UploadAllFilesToCacheServerMenuItem()
         {

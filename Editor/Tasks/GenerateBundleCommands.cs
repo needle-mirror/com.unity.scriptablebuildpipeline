@@ -15,6 +15,9 @@ using UnityEngine;
 
 namespace UnityEditor.Build.Pipeline.Tasks
 {
+    /// <summary>
+    /// Creates bundle commands for assets and scenes.
+    /// </summary>
     public class GenerateBundleCommands : IBuildTask
     {
         /// <inheritdoc />

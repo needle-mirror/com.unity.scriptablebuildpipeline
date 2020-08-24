@@ -23,10 +23,16 @@ namespace UnityEditor.Build.Pipeline
         /// <inheritdoc />
         public Dictionary<GUID, BuildUsageTagSet> SceneUsage { get; private set; }
 
+        /// <summary>
+        /// Stores how lighting information is being used during a build.
+        /// </summary>
         public BuildUsageTagGlobal GlobalUsage { get; private set; }
 
         [NonSerialized]
         BuildUsageCache m_BuildUsageCache;
+        /// <summary>
+        /// Stores the dependency caching object.
+        /// </summary>
         public BuildUsageCache DependencyUsageCache
         {
             get

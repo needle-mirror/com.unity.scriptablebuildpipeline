@@ -25,8 +25,15 @@ namespace UnityEditor.Build.Pipeline.Tasks
         IBundleExplictObjectLayout m_Layout;
 #pragma warning restore 649
 
+        /// <summary>
+        /// Stores the name for the built-in shaders bundle.
+        /// </summary>
         public string ShaderBundleName { get; set; }
 
+        /// <summary>
+        /// Create the built-in shaders bundle.
+        /// </summary>
+        /// <param name="bundleName">The name of the bundle.</param>
         public CreateBuiltInShadersBundle(string bundleName)
         {
             ShaderBundleName = bundleName;

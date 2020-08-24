@@ -5,6 +5,9 @@ using UnityEditor.U2D;
 
 namespace UnityEditor.Build.Pipeline.Tasks
 {
+    /// <summary>
+    /// Builds the cache data for all sprite atlases.
+    /// </summary>
     public class RebuildSpriteAtlasCache : IBuildTask
     {
         /// <inheritdoc />

@@ -4,13 +4,27 @@ using UnityEditor.Build.Pipeline.Interfaces;
 
 namespace UnityEditor.Build.Pipeline.Injector
 {
+    /// <summary>
+    /// Use to pass around information between build tasks.
+    /// </summary>
     [AttributeUsage(AttributeTargets.Field)]
     public class InjectContextAttribute : Attribute
     {
         //public string Identifier { get; set; }
+        /// <summary>
+        /// Stores the how the attribute is used among build tasks.
+        /// </summary>
         public ContextUsage Usage { get; set; }
+        /// <summary>
+        /// Stores whether using the context attribute is optional.
+        /// </summary>
         public bool Optional { get; set; }
 
+        /// <summary>
+        /// Creates a new context attribute that stores information that can be passed between build tasks.
+        /// </summary>
+        /// <param name="usage">The usage behavior for the attribute. By default it is set to <see cref="ContextUsage.InOut"/>.</param>
+        /// <param name="optional">Set to true if using the attribute is optional. Set to false otherwise.</param>
         public InjectContextAttribute(ContextUsage usage = ContextUsage.InOut, bool optional = false)
         {
             this.Usage = usage;
@@ -18,10 +32,22 @@ namespace UnityEditor.Build.Pipeline.Injector
         }
     }
 
+    /// <summary>
+    /// Options for how the attribute is used among build tasks. It can be either injected to and or extracted from a build task.
+    /// </summary>
     public enum ContextUsage
     {
+        /// <summary>
+        /// Use to indicate that the attribute can be injected to and extracted from a build task.
+        /// </summary>
         InOut,
+        /// <summary>
+        /// Use to indicate that the attribute can only be injected to a build task.
+        /// </summary>
         In,
+        /// <summary>
+        /// Use to indicate that the attribute can only be extracted from a build task.
+        /// </summary>
         Out
     }
 

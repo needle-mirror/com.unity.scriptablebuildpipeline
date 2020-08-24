@@ -4,6 +4,9 @@ using UnityEditor.Build.Pipeline.Utilities;
 
 namespace UnityEditor.Build.Pipeline.Tasks
 {
+    /// <summary>
+    /// Creates a link.xml file in the output folder to use with Unity managed code stripping.
+    /// </summary>
     public class GenerateLinkXml : IBuildTask
     {
         /// <inheritdoc />
@@ -19,6 +22,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
         const string k_LinkXml = "link.xml";
 
+        /// <inheritdoc/>
         public ReturnCode Run()
         {
             if (!m_Parameters.WriteLinkXML)

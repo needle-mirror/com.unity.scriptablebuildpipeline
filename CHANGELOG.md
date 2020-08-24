@@ -4,6 +4,9 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.11.2] - 2020-08-24
+- Improved thread handling of the Cache Save, Upload, and Prune operations.
+
 ## [1.11.1] - 2020-08-11
 - Exposed the ScriptableBuildPipeline static class to allow setting per project properties from script.
 - Fixed an edge case where pruning the build cache would not run in Unity's batchmode.

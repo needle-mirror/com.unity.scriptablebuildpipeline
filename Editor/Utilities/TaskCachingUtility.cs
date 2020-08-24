@@ -24,10 +24,37 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
         public interface IRunCachedCallbacks<T>
         {
+            /// <summary>
+            /// Creates a cache entry for the specified work item.
+            /// </summary>
+            /// <param name="item">The work item.</param>
+            /// <returns>Returns the created entry.</returns>
             CacheEntry CreateCacheEntry(WorkItem<T> item);
+
+            /// <summary>
+            /// Process the uncached work item.
+            /// </summary>
+            /// <param name="item">The work item.</param>
             void ProcessUncached(WorkItem<T> item);
+
+            /// <summary>
+            /// Process the cached work item.
+            /// </summary>
+            /// <param name="item">The work item.</param>
+            /// <param name="info">The cached information for the work item.</param>
             void ProcessCached(WorkItem<T> item, CachedInfo info);
+
+            /// <summary>
+            /// Post processes the work item.
+            /// </summary>
+            /// <param name="item">The work item.</param>
             void PostProcess(WorkItem<T> item);
+
+            /// <summary>
+            /// Creates cached information for the specified work item.
+            /// </summary>
+            /// <param name="item">The work item.</param>
+            /// <returns>Returns the cached information created.</returns>
             CachedInfo CreateCachedInfo(WorkItem<T> item);
         }
 

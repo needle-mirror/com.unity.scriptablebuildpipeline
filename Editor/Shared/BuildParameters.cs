@@ -138,6 +138,9 @@ namespace UnityEditor.Build.Pipeline
         }
     }
 
+    /// <summary>
+    /// Stores the set of parameters passed into Scriptable Build Pipeline when building bundles.
+    /// </summary>
     [Serializable]
     public class BundleBuildParameters : BuildParameters, IBundleBuildParameters
     {

@@ -7,6 +7,9 @@ using UnityEditor.Build.Utilities;
 
 namespace UnityEditor.Build.Pipeline.Tasks
 {
+    /// <summary>
+    /// Updates the layout for bundle objects.
+    /// </summary>
     public class UpdateBundleObjectLayout : IBuildTask
     {
         /// <inheritdoc />

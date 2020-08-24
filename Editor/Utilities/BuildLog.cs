@@ -9,11 +9,11 @@ using UnityEditor.Build.Pipeline.Interfaces;
 
 namespace UnityEditor.Build.Pipeline.Utilities
 {
-    [Serializable]
     /// <summary>
     /// Basic implementation of IBuildLogger. Stores events in memory and can dump them to the trace event format.
     /// <seealso cref="IBuildLogger"/>
     /// </summary>
+    [Serializable]
     public class BuildLog : IBuildLogger
     {
         [Serializable]
@@ -63,7 +63,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             m_Root = new LogStep();
             m_Stack = new Stack<LogStep>();
             m_Stack.Push(m_Root);
-            
+
             AddMetaData("Date", DateTime.Now.ToString());
 
             if (!onThread)
@@ -77,6 +77,9 @@ namespace UnityEditor.Build.Pipeline.Utilities
             }
         }
 
+        /// <summary>
+        /// Creates a new build log object.
+        /// </summary>
         public BuildLog()
         {
             Init(false);
@@ -179,7 +182,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             BuildLog log = GetThreadSafeLog();
             log.m_Stack.Peek().Entries.Add(new LogEntry() { Level = level, Message = msg, Time = log.m_WallTimer.Elapsed.TotalMilliseconds, ThreadId = Thread.CurrentThread.ManagedThreadId });
         }
-    
+
         static void AppendLineIndented(StringBuilder builder, int indentCount, string text)
         {
             for (int i = 0; i < indentCount; i++)
@@ -256,7 +259,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             {
                 Thread.CurrentThread.CurrentCulture = m_Prev;
             }
-        }       
+        }
 
         private List<Tuple<string, string>> m_MetaData = new List<Tuple<string, string>>();
 
@@ -281,7 +284,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 StringBuilder builder = new StringBuilder();
                 builder.AppendLine("{");
 
-                foreach(Tuple<string, string> tuple in m_MetaData)
+                foreach (Tuple<string, string> tuple in m_MetaData)
                     builder.AppendLine($"\"{tuple.Item1}\": \"{tuple.Item2}\",");
 
                 builder.AppendLine("\"traceEvents\": [");

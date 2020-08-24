@@ -6,6 +6,9 @@ using UnityEditor.Build.Pipeline.Interfaces;
 
 namespace UnityEditor.Build.Pipeline.Tasks
 {
+    /// <summary>
+    /// Removes all unusued sprite source data from asset references and scene references.
+    /// </summary>
     public class StripUnusedSpriteSources : IBuildTask
     {
         /// <inheritdoc />

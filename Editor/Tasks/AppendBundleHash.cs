@@ -5,6 +5,9 @@ using UnityEditor.Build.Pipeline.Interfaces;
 
 namespace UnityEditor.Build.Pipeline.Tasks
 {
+    /// <summary>
+    /// Append a hash to each bundle name.
+    /// </summary>
     public class AppendBundleHash : IBuildTask
     {
         /// <inheritdoc />

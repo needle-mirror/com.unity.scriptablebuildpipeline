@@ -9,6 +9,9 @@ using UnityEditor.Build.Utilities;
 
 namespace UnityEditor.Build.Pipeline.Tasks
 {
+    /// <summary>
+    /// Packs each asset bundle and calculates the asset load file dependency list.
+    /// </summary>
     public class GenerateBundlePacking : IBuildTask
     {
         /// <inheritdoc />
