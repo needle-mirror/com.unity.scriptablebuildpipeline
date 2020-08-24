@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Utilities;
+using UnityEngine;
 
 namespace UnityEditor.Build.Pipeline
 {
@@ -22,6 +23,8 @@ namespace UnityEditor.Build.Pipeline
         public Dictionary<GUID, SceneDependencyInfo> SceneInfo { get; private set; }
         /// <inheritdoc />
         public Dictionary<GUID, BuildUsageTagSet> SceneUsage { get; private set; }
+        /// <inheritdoc />
+        public Dictionary<GUID, Hash128> DependencyHash { get; private set; }
 
         /// <summary>
         /// Stores how lighting information is being used during a build.
@@ -52,6 +55,7 @@ namespace UnityEditor.Build.Pipeline
             AssetUsage = new Dictionary<GUID, BuildUsageTagSet>();
             SceneInfo = new Dictionary<GUID, SceneDependencyInfo>();
             SceneUsage = new Dictionary<GUID, BuildUsageTagSet>();
+            DependencyHash = new Dictionary<GUID, Hash128>();
             m_BuildUsageCache = new BuildUsageCache();
             GlobalUsage = GraphicsSettingsApi.GetGlobalUsage();
         }

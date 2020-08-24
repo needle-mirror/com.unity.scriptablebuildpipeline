@@ -1,4 +1,5 @@
 using UnityEditor.Build.Content;
+using UnityEditor.Build.Pipeline.Utilities;
 using UnityEngine;
 
 namespace UnityEditor.Build.Pipeline.Interfaces
@@ -27,6 +28,11 @@ namespace UnityEditor.Build.Pipeline.Interfaces
         BuildReferenceMap ReferenceMap { get; set; }
 
         /// <summary>
+        /// The hash that represents the unique set of input dependencies for caching this write command.
+        /// </summary>
+        Hash128 DependencyHash { get; set; }
+
+        /// <summary>
         /// Write function that wraps the low level WriteSerializeFile APIs that takes the common minimum set of parameters.
         /// </summary>
         /// <param name="outputFolder">The location to write data to disk.</param>
@@ -40,5 +46,12 @@ namespace UnityEditor.Build.Pipeline.Interfaces
         /// </summary>
         /// <returns>Unique hash for the contents of this write operation.</returns>
         Hash128 GetHash128();
+
+        /// <summary>
+        /// Optimized hash function for use with the Build Cache system.
+        /// </summary>
+        /// <param name="log">The build log.</param>
+        /// <returns>Unique hash for the contents of this write operation.</returns>
+        Hash128 GetHash128(IBuildLogger log);
     }
 }

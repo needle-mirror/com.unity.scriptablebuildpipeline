@@ -1,7 +1,7 @@
 # Usage Examples
 
 ## Basic Example
-This example assumes that your are already familiar with the basic usage of the two `BuildPipeline.BuildAssetBundles` methods and want to switch to using Scriptable Build Pipeline with as little effort  as possible. 
+This example assumes that your are already familiar with the basic usage of the two `BuildPipeline.BuildAssetBundles` methods and want to switch to using Scriptable Build Pipeline with as little effort  as possible.
 
 The following code example shows how AssetBundles are currently built:
 
@@ -60,9 +60,10 @@ This following example shows how to share build artifacts between team members o
 
 Requirements:
 1. A separate Cache Server instance dedicated to build artifacts. It cannot be shared as an Asset Cache Server as data collisions will occur.
-2. The build code must use the `ContentPipeline.BuildAssetBundles` method. 
-3. `BundleBuildParameters.UseCache` is set to true.
-4. `BundleBuildParameters.CacheServerHost` and `BundleBuildParameters.CacheServerPort` are set to the cache server instance host or IP address and port respectively.
+2. High Reliability mode turned off on the Build Cache Server instance. The build cache uses dynamic dependencies which is incompatible with high reliability mode.
+3. The build code must use the `ContentPipeline.BuildAssetBundles` method.
+4. `BundleBuildParameters.UseCache` is set to true.
+5. `BundleBuildParameters.CacheServerHost` and `BundleBuildParameters.CacheServerPort` are set to the cache server instance host or IP address and port respectively.
 
 Example code:
 
@@ -89,7 +90,7 @@ public static class BuildAssetBundlesExample
 ```
 
 ## Per-Bundle Compression Example
-The following example shows how to build your AssetBundles using different compression levels for each AssetBundle.This is useful if you are planning on shipping part of your bundles as Lz4 or Uncompressed with Player and want to download the remainder as Lzma later. 
+The following example shows how to build your AssetBundles using different compression levels for each AssetBundle.This is useful if you are planning on shipping part of your bundles as Lz4 or Uncompressed with Player and want to download the remainder as Lzma later.
 
 The simplest implementation is to create a custom build parameters class that inherits from `BundleBuildParameters` and override the `GetCompressionForIdentifier` method. Then construct and pass this into the `ContentPipeline.BuildAssetBundles` method.
 

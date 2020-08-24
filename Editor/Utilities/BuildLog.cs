@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
-using System.Linq;
 using System.Text;
 using System.Threading;
 using UnityEditor.Build.Pipeline.Interfaces;
@@ -14,7 +13,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
     /// <seealso cref="IBuildLogger"/>
     /// </summary>
     [Serializable]
-    public class BuildLog : IBuildLogger
+    public class BuildLog : IBuildLogger, IDeferredBuildLogger
     {
         [Serializable]
         internal struct LogEntry
@@ -57,6 +56,14 @@ namespace UnityEditor.Build.Pipeline.Utilities
         [NonSerialized]
         Stopwatch m_WallTimer;
 
+        bool m_ShouldOverrideWallTimer;
+        double m_WallTimerOverride;
+
+        double GetWallTime()
+        {
+            return m_ShouldOverrideWallTimer ? m_WallTimerOverride : m_WallTimer.Elapsed.TotalMilliseconds;
+        }
+
         void Init(bool onThread)
         {
             m_WallTimer = Stopwatch.StartNew();
@@ -71,7 +78,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 AddMetaData("UnityVersion", UnityEngine.Application.unityVersion);
 #if UNITY_2019_2_OR_NEWER // PackageManager package inspection APIs didn't exist until 2019.2
                 PackageManager.PackageInfo info = PackageManager.PackageInfo.FindForAssembly(typeof(BuildLog).Assembly);
-                if(info != null)
+                if (info != null)
                     AddMetaData(info.name, info.version);
 #endif
             }
@@ -113,7 +120,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             LogStep node = new LogStep();
             node.Level = level;
             node.Name = stepName;
-            node.StartTime = log.m_WallTimer.Elapsed.TotalMilliseconds;
+            node.StartTime = log.GetWallTime();
             node.ThreadId = Thread.CurrentThread.ManagedThreadId;
             log.m_Stack.Peek().Children.Add(node);
             log.m_Stack.Push(node);
@@ -153,7 +160,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
         {
             Debug.Assert(log.m_Stack.Count > 1);
             LogStep node = log.m_Stack.Pop();
-            node.Complete(log.m_WallTimer.Elapsed.TotalMilliseconds);
+            node.Complete(log.GetWallTime());
 
             if (node.isThreaded)
             {
@@ -180,7 +187,38 @@ namespace UnityEditor.Build.Pipeline.Utilities
         public void AddEntry(LogLevel level, string msg)
         {
             BuildLog log = GetThreadSafeLog();
-            log.m_Stack.Peek().Entries.Add(new LogEntry() { Level = level, Message = msg, Time = log.m_WallTimer.Elapsed.TotalMilliseconds, ThreadId = Thread.CurrentThread.ManagedThreadId });
+            log.m_Stack.Peek().Entries.Add(new LogEntry() { Level = level, Message = msg, Time = log.GetWallTime(), ThreadId = Thread.CurrentThread.ManagedThreadId });
+        }
+
+        void IDeferredBuildLogger.HandleDeferredEventStream(IEnumerable<DeferredEvent> events)
+        {
+            HandleDeferredEventStreamInternal(events);
+        }
+
+        internal void HandleDeferredEventStreamInternal(IEnumerable<DeferredEvent> events)
+        {
+            // now make all those times relative to the active event
+            LogStep startStep = m_Stack.Peek();
+
+            using (this.ScopedStep(LogLevel.Info, "Profiler Overhead"))
+            {
+                m_ShouldOverrideWallTimer = true;
+                foreach (DeferredEvent e in events)
+                {
+                    m_WallTimerOverride = e.Time + startStep.StartTime;
+                    if (e.Type == DeferredEventType.Begin)
+                        BeginBuildStep(e.Level, e.Name, false);
+                    else if (e.Type == DeferredEventType.End)
+                        EndBuildStep();
+                    else
+                        AddEntry(e.Level, e.Name);
+                }
+                m_ShouldOverrideWallTimer = false;
+            }
+
+            LogStep stopStep = m_Stack.Peek();
+            if (stopStep != startStep)
+                throw new Exception("Deferred events did not line up as expected");
         }
 
         static void AppendLineIndented(StringBuilder builder, int indentCount, string text)

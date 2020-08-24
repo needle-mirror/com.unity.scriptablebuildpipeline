@@ -1,25 +1,81 @@
 using NUnit.Framework;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Tasks;
 using UnityEditor.Build.Pipeline.Utilities;
+using UnityEngine;
 
 namespace UnityEditor.Build.Pipeline.Tests
 {
     [TestFixture]
     class AssetLoadInfoSortingTests
     {
-        const string k_TestAsset = "Packages/com.unity.scriptablebuildpipeline/Tests/Editor/TestAssets/SpriteTexture32x32.png";
+        const string kTestAssetFolder = "Assets/TestAssets";
+        const string kTestAsset = "Assets/TestAssets/SpriteTexture32x32.png";
+
+        [OneTimeSetUp]
+        public void OneTimeSetUp()
+        {
+            Directory.CreateDirectory(kTestAssetFolder);
+            CreateTestSpriteTexture();
+        }
+
+        [OneTimeTearDown]
+        public void OneTimeTearDown()
+        {
+            Directory.Delete(kTestAssetFolder, true);
+            File.Delete(kTestAssetFolder + ".meta");
+            AssetDatabase.Refresh();
+        }
+
+        static void CreateTestSpriteTexture()
+        {
+            var data = ImageConversion.EncodeToPNG(new Texture2D(32, 32));
+            File.WriteAllBytes(kTestAsset, data);
+            AssetDatabase.ImportAsset(kTestAsset, ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
+            var importer = AssetImporter.GetAtPath(kTestAsset) as TextureImporter;
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Multiple;
+            importer.spritesheet = new[]
+            {
+                new SpriteMetaData
+                {
+                    name = "WhiteTexture32x32_0",
+                    rect = new Rect(0, 19, 32, 13),
+                    alignment = 0,
+                    pivot = new Vector2(0.5f, 0.5f),
+                    border = new Vector4(0, 0, 0, 0)
+                },
+                new SpriteMetaData
+                {
+                    name = "WhiteTexture32x32_1",
+                    rect = new Rect(4, 19, 24, 11),
+                    alignment = 0,
+                    pivot = new Vector2(0.5f, 0.5f),
+                    border = new Vector4(0, 0, 0, 0)
+                },
+                new SpriteMetaData
+                {
+                    name = "WhiteTexture32x32_2",
+                    rect = new Rect(9, 5, 12, 7),
+                    alignment = 0,
+                    pivot = new Vector2(0.5f, 0.5f),
+                    border = new Vector4(0, 0, 0, 0)
+                }
+            };
+            importer.SaveAndReimport();
+        }
 
         static AssetLoadInfo GetTestAssetLoadInfo()
         {
-            GUID asset = new GUID(AssetDatabase.AssetPathToGUID(k_TestAsset));
+            GUID asset = new GUID(AssetDatabase.AssetPathToGUID(kTestAsset));
             ObjectIdentifier[] oId = ContentBuildInterface.GetPlayerObjectIdentifiersInAsset(asset, EditorUserBuildSettings.activeBuildTarget);
             AssetLoadInfo loadInfo = new AssetLoadInfo()
             {
                 asset = asset,
-                address = k_TestAsset,
+                address = kTestAsset,
                 includedObjects = oId.ToList(),
                 referencedObjects = new List<ObjectIdentifier>()
             };

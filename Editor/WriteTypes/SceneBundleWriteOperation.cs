@@ -20,6 +20,8 @@ namespace UnityEditor.Build.Pipeline.WriteTypes
         public BuildUsageTagSet UsageSet { get; set; }
         /// <inheritdoc />
         public BuildReferenceMap ReferenceMap { get; set; }
+        /// <inheritdoc />
+        public Hash128 DependencyHash { get; set; }
 
         /// <summary>
         /// Source scene asset path
@@ -68,21 +70,43 @@ namespace UnityEditor.Build.Pipeline.WriteTypes
         }
 
         /// <inheritdoc />
-        public Hash128 GetHash128()
+        public Hash128 GetHash128(IBuildLogger log)
         {
-            var prefabHashes = AssetDatabase.GetDependencies(Scene).Where(path => path.EndsWith(".prefab")).Select(AssetDatabase.GetAssetDependencyHash);
 #if UNITY_2019_3_OR_NEWER
             CacheEntry entry = BuildCacheUtility.GetCacheEntry(Scene);
 #else
             CacheEntry entry = BuildCacheUtility.GetCacheEntry(ProcessedScene);
 #endif
             HashSet<CacheEntry> hashObjects = new HashSet<CacheEntry>();
+            using (log.ScopedStep(LogLevel.Verbose, $"Gather Objects", Command.fileName))
+            {
+                if (Command.serializeObjects != null)
+                    foreach (var serializeObject in Command.serializeObjects)
+                        hashObjects.Add(BuildCacheUtility.GetCacheEntry(serializeObject.serializationObject));
+            }
 
-            if (Command.serializeObjects != null)
-                foreach (var serializeObject in Command.serializeObjects)
-                    hashObjects.Add(BuildCacheUtility.GetCacheEntry(serializeObject.serializationObject));
+            List<Hash128> hashes = new List<Hash128>();
+            using (log.ScopedStep(LogLevel.Verbose, $"Hashing Command", Command.fileName))
+                hashes.Add(Command.GetHash128());
+            using (log.ScopedStep(LogLevel.Verbose, $"Hashing UsageSet", Command.fileName))
+                hashes.Add(UsageSet.GetHash128());
+            using (log.ScopedStep(LogLevel.Verbose, $"Hashing ReferenceMap", Command.fileName))
+                hashes.Add(ReferenceMap.GetHash128());
+            using (log.ScopedStep(LogLevel.Verbose, $"Hashing PreloadInfo", Command.fileName))
+                hashes.Add(PreloadInfo.GetHash128());
+            using (log.ScopedStep(LogLevel.Verbose, $"Hashing Info", Command.fileName))
+                hashes.Add(Info.GetHash128());
+            using (log.ScopedStep(LogLevel.Verbose, $"Hashing Objects", Command.fileName))
+                hashes.Add(HashingMethods.Calculate(hashObjects).ToHash128());
+            hashes.Add(DependencyHash);
 
-            return HashingMethods.Calculate(Command.GetHash128(), UsageSet.GetHash128(), ReferenceMap.GetHash128(), Scene, PreloadInfo.GetHash128(), entry, Info, prefabHashes, hashObjects).ToHash128();
+            return HashingMethods.Calculate(hashes, Scene, entry).ToHash128();
+        }
+
+        /// <inheritdoc />
+        public Hash128 GetHash128()
+        {
+            return GetHash128(null);
         }
     }
 }

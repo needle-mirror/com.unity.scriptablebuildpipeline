@@ -43,6 +43,24 @@ static class HashingHelpers
         }
     }
 
+    internal static void WriteHashData(SceneLoadInfo info, BinaryWriter writer)
+    {
+        writer.Write(info.asset.ToString());
+        writer.Write(info.address ?? string.Empty);
+        writer.Write(info.internalName ?? string.Empty);
+    }
+
+    internal static void WriteHashData(SceneBundleInfo info, BinaryWriter writer)
+    {
+        if (info != null)
+        {
+            writer.Write(info.bundleName ?? string.Empty);
+            if (info.bundleScenes != null)
+                foreach (SceneLoadInfo sli in info.bundleScenes)
+                    WriteHashData(sli, writer);
+        }
+    }
+
     internal static void WriteHashData(PreloadInfo info, BinaryWriter writer)
     {
         if (info != null)
@@ -85,6 +103,13 @@ static class HashingHelpers
     }
 
     public static Hash128 GetHash128(this AssetBundleInfo info)
+    {
+        StreamHasher hasher = new StreamHasher();
+        HashingHelpers.WriteHashData(info, hasher.Writer);
+        return hasher.GetHash();
+    }
+
+    public static Hash128 GetHash128(this SceneBundleInfo info)
     {
         StreamHasher hasher = new StreamHasher();
         HashingHelpers.WriteHashData(info, hasher.Writer);

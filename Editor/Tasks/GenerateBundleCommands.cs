@@ -7,6 +7,7 @@ using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Utilities;
 using UnityEditor.Build.Pipeline.WriteTypes;
 using UnityEditor.Build.Utilities;
+using UnityEngine;
 
 #if !UNITY_2019_1_OR_NEWER
 using System;
@@ -100,8 +101,10 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 return 1;
             if (!x.includedObjects.IsNullOrEmpty() && !y.includedObjects.IsNullOrEmpty())
             {
-                if (x.includedObjects[0] < y.includedObjects[0]) return -1;
-                if (x.includedObjects[0] > y.includedObjects[0]) return 1;
+                if (x.includedObjects[0] < y.includedObjects[0])
+                    return -1;
+                if (x.includedObjects[0] > y.includedObjects[0])
+                    return 1;
             }
             if (string.IsNullOrEmpty(x.address) && !string.IsNullOrEmpty(y.address))
                 return -1;
@@ -133,6 +136,20 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 abOp.Info.bundleAssets.Sort(AssetLoadInfoCompare);
                 foreach (var loadInfo in abOp.Info.bundleAssets)
                     loadInfo.address = m_BuildContent.Addresses[loadInfo.asset];
+            }
+
+            {
+                List<Hash128> dependencyHashes = new List<Hash128>();
+                foreach (var asset in assets)
+                {
+                    if (m_DependencyData.DependencyHash.TryGetValue(asset, out var hash))
+                        dependencyHashes.Add(hash);
+                }
+
+                if (!dependencyHashes.IsNullOrEmpty())
+                    abOp.DependencyHash = HashingMethods.Calculate(dependencyHashes).ToHash128();
+                else
+                    abOp.DependencyHash = new Hash128();
             }
 
             m_WriteData.WriteOperations.Add(abOp);
@@ -212,6 +229,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 }).ToList();
             }
 
+            if (m_DependencyData.DependencyHash.TryGetValue(asset, out var hash))
+                sbOp.DependencyHash = hash;
+
             m_WriteData.WriteOperations.Add(sbOp);
         }
 
@@ -243,6 +263,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 var objectSet = new HashSet<ObjectIdentifier>(m_WriteData.FileToObjects[internalName]);
                 sdOp.PreloadInfo = new PreloadInfo { preloadObjects = sceneInfo.referencedObjects.Where(x => !objectSet.Contains(x)).ToList() };
             }
+
+            if (m_DependencyData.DependencyHash.TryGetValue(asset, out var hash))
+                sdOp.DependencyHash = hash;
 
             m_WriteData.WriteOperations.Add(sdOp);
         }

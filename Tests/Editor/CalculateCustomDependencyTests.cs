@@ -101,6 +101,7 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             #region UNUSED
             public Dictionary<GUID, BuildUsageTagSet> SceneUsage => throw new System.NotImplementedException("Should never be called by build task!");
+            public Dictionary<GUID, Hash128> DependencyHash => throw new System.NotImplementedException();
             #endregion
         }
 

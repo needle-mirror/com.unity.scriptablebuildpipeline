@@ -12,7 +12,7 @@ using UnityEditor.Build.Pipeline.Utilities;
 using UnityEditor.Build.Pipeline.WriteTypes;
 using UnityEditor.Build.Player;
 using UnityEngine;
-
+using static UnityEditor.Build.Pipeline.Utilities.BuildLog;
 
 namespace UnityEditor.Build.Pipeline.Tests
 {
@@ -57,10 +57,12 @@ namespace UnityEditor.Build.Pipeline.Tests
         {
             internal int TestWriteCount;
             public bool OutputSerializedFile = false;
+            public bool WriteBundle = false;
             public WriteCommand TestCommand;
             public WriteCommand Command { get => TestCommand; set => throw new System.NotImplementedException(); }
             public BuildUsageTagSet UsageSet { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
             public BuildReferenceMap ReferenceMap { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
+            public Hash128 DependencyHash { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
             Hash128 debugHash;
             bool hasDebugHash;
@@ -70,9 +72,14 @@ namespace UnityEditor.Build.Pipeline.Tests
                 debugHash = HashingMethods.Calculate(hash).ToHash128();
             }
 
-            public Hash128 GetHash128()
+            public Hash128 GetHash128(IBuildLogger log)
             {
                 return hasDebugHash ? debugHash : new Hash128();
+            }
+
+            public Hash128 GetHash128()
+            {
+                return GetHash128(null);
             }
 
             internal static void WriteRandomData(Stream s, long size, int seed)
@@ -108,6 +115,21 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             public WriteResult Write(string outputFolder, BuildSettings settings, BuildUsageTagGlobal globalUsage)
             {
+#if UNITY_2019_4_OR_NEWER
+                if (WriteBundle)
+                {
+                    return ContentBuildInterface.WriteSerializedFile(outputFolder, new WriteParameters
+                    {
+                        writeCommand = new WriteCommand() { fileName = "bundle", internalName = "bundle" },
+                        settings = settings,
+                        globalUsage = globalUsage,
+                        usageSet = new BuildUsageTagSet(),
+                        referenceMap = new BuildReferenceMap(),
+                        bundleInfo = new AssetBundleInfo() {  bundleName = "bundle" }
+                    });
+                }
+#endif
+
                 string filename = Path.Combine(outputFolder, "resourceFilename");
                 CreateFileOfSize(filename, 1024);
                 TestWriteCount++;
@@ -135,7 +157,6 @@ namespace UnityEditor.Build.Pipeline.Tests
                     WriteResultReflection.SetSerializedObjects(ref result, new ObjectSerializedInfo[] { obj1, obj2 });
                 }
 
-
                 return result;
             }
         }
@@ -147,6 +168,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         WriteSerializedFiles m_Task;
         BuildCache m_Cache;
         BuildContext m_Context;
+        BuildLog m_Log;
         string m_TestTempDir;
         bool m_PreviousSlimSettings;
         bool m_PreviousStripUnusedMeshComponents;
@@ -176,8 +198,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             m_BuildResults = new TestBuildResults();
             m_Task = new WriteSerializedFiles();
             m_Cache = new BuildCache();
+            m_Log = new BuildLog();
 
-            m_Context = new BuildContext(m_BuildParameters, m_DependencyData, m_WriteData, m_BuildResults, m_Cache);
+            m_Context = new BuildContext(m_BuildParameters, m_DependencyData, m_WriteData, m_BuildResults, m_Cache, m_Log);
             ContextInjector.Inject(m_Context, m_Task);
         }
 
@@ -305,5 +328,26 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             m_BuildParameters.UseCache = true;
         }
+
+#if UNITY_2020_2_OR_NEWER
+        [Test]
+        public void WhenWritingSerializedFilesAndUsingDetailedBuildLog_ProfileCaptureScope_CreatesLogEvents()
+        {
+            TestWriteOperation op = AddTestOperation();
+            op.WriteBundle = true;
+            bool useDetailedBuildLog = ScriptableBuildPipeline.useDetailedBuildLog;
+            ScriptableBuildPipeline.useDetailedBuildLog = true;
+
+            m_Task.Run();
+            LogStep runCachedOp = m_Log.Root.Children.Find(x => x.Name == "RunCachedOperation");
+            LogStep processEntries = runCachedOp.Children.Find(x => x.Name == "Process Entries");
+            LogStep writingOp = processEntries.Children.Find(x => x.Name == "Writing TestWriteOperation");
+            LogStep extractProfileData = writingOp.Children.Find(x => x.Name == "Extract Profile Data");
+            LogStep profilerOverhead = extractProfileData.Children.Find(x => x.Name == "Profiler Overhead");
+            Assert.IsTrue(profilerOverhead.Children.Count > 0);
+
+            ScriptableBuildPipeline.useDetailedBuildLog = useDetailedBuildLog;
+        }
+#endif
     }
 }

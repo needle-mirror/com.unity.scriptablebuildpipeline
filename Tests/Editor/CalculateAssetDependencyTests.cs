@@ -23,7 +23,7 @@ namespace UnityEditor.Build.Pipeline.Tests
     public class CalculateAssetDependencyTests
     {
         const string kTestAssetFolder = "Assets/TestAssets";
-        const string kSourceTestAssetFolder = "Packages/com.unity.scriptablebuildpipeline/Tests/Editor/TestAssets";
+        const string kTestAsset = "Assets/TestAssets/SpriteTexture32x32.png";
 
         SpritePackerMode m_PrevMode;
 
@@ -32,13 +32,54 @@ namespace UnityEditor.Build.Pipeline.Tests
         {
             m_PrevMode = EditorSettings.spritePackerMode;
             Directory.CreateDirectory(kTestAssetFolder);
+            CreateTestSpriteTexture();
         }
 
-        [OneTimeTearDown]
+        [TearDown]
         public void OneTimeTeardown()
         {
             AssetDatabase.DeleteAsset(kTestAssetFolder);
+            File.Delete(kTestAssetFolder + ".meta");
             EditorSettings.spritePackerMode = m_PrevMode;
+            AssetDatabase.Refresh();
+        }
+
+        static void CreateTestSpriteTexture()
+        {
+            var data = ImageConversion.EncodeToPNG(new Texture2D(32, 32));
+            File.WriteAllBytes(kTestAsset, data);
+            AssetDatabase.ImportAsset(kTestAsset, ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
+            var importer = AssetImporter.GetAtPath(kTestAsset) as TextureImporter;
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Multiple;
+            importer.spritesheet = new[]
+            {
+                new SpriteMetaData
+                {
+                    name = "WhiteTexture32x32_0",
+                    rect = new Rect(0, 19, 32, 13),
+                    alignment = 0,
+                    pivot = new Vector2(0.5f, 0.5f),
+                    border = new Vector4(0, 0, 0, 0)
+                },
+                new SpriteMetaData
+                {
+                    name = "WhiteTexture32x32_1",
+                    rect = new Rect(4, 19, 24, 11),
+                    alignment = 0,
+                    pivot = new Vector2(0.5f, 0.5f),
+                    border = new Vector4(0, 0, 0, 0)
+                },
+                new SpriteMetaData
+                {
+                    name = "WhiteTexture32x32_2",
+                    rect = new Rect(9, 5, 12, 7),
+                    alignment = 0,
+                    pivot = new Vector2(0.5f, 0.5f),
+                    border = new Vector4(0, 0, 0, 0)
+                }
+            };
+            importer.SaveAndReimport();
         }
 
         CalculateAssetDependencyData.TaskInput CreateDefaultInput()
@@ -244,25 +285,21 @@ namespace UnityEditor.Build.Pipeline.Tests
         [Test]
         public void WhenSpriteWithAtlas_SpriteImportDataCreated(SpritePackerMode spriteMode, string spritePackingTag, bool hasReferencingSpriteAtlas, bool expectedPacked)
         {
-            string sourceTexture = Path.Combine(kSourceTestAssetFolder, "SpriteTexture32x32.png");
-            string destTexture = Path.Combine(kTestAssetFolder, "SpriteTexture32x32.png");
-            AssetDatabase.CopyAsset(sourceTexture, destTexture);
-            TextureImporter importer = AssetImporter.GetAtPath(destTexture) as TextureImporter;
-
+            TextureImporter importer = AssetImporter.GetAtPath(kTestAsset) as TextureImporter;
             importer.spritePackingTag = spritePackingTag;
             importer.SaveAndReimport();
 
             if (hasReferencingSpriteAtlas)
             {
                 var sa = new SpriteAtlas();
-                var targetObjects = new UnityEngine.Object[] { AssetDatabase.LoadAssetAtPath<Texture>(destTexture) };
+                var targetObjects = new UnityEngine.Object[] { AssetDatabase.LoadAssetAtPath<Texture>(kTestAsset) };
                 sa.Add(targetObjects);
                 string saPath = Path.Combine(kTestAssetFolder, "sa.spriteAtlas");
                 AssetDatabase.CreateAsset(sa, saPath);
                 AssetDatabase.Refresh();
             }
 
-            GUID.TryParse(AssetDatabase.AssetPathToGUID(destTexture), out GUID spriteGUID);
+            GUID.TryParse(AssetDatabase.AssetPathToGUID(kTestAsset), out GUID spriteGUID);
 
             CalculateAssetDependencyData.TaskInput input = CreateDefaultInput();
             EditorSettings.spritePackerMode = spriteMode;

@@ -1,5 +1,11 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Runtime.CompilerServices;
+using UnityEditor.Build.Content;
+using UnityEditor.Build.Pipeline.Utilities;
 
+[assembly: InternalsVisibleTo("Unity.Addressables.Editor.Tests")]
 namespace UnityEditor.Build.Pipeline.Interfaces
 {
     /// <summary>
@@ -51,6 +57,25 @@ namespace UnityEditor.Build.Pipeline.Interfaces
         /// </summary>
         void EndBuildStep();
     }
+    internal enum DeferredEventType
+    {
+        Begin,
+        End,
+        Info
+    }
+
+    internal struct DeferredEvent
+    {
+        public LogLevel Level;
+        public DeferredEventType Type;
+        public double Time;
+        public string Name;
+    }
+
+    internal interface IDeferredBuildLogger
+    {
+        void HandleDeferredEventStream(IEnumerable<DeferredEvent> events);
+    }
 
     /// <summary>
     /// Helper class to define a scope with a using statement
@@ -72,6 +97,33 @@ namespace UnityEditor.Build.Pipeline.Interfaces
             m_Logger?.EndBuildStep();
         }
     }
+
+#if UNITY_2020_2_OR_NEWER
+    internal struct ProfileCaptureScope : IDisposable
+    {
+        IBuildLogger m_Logger;
+        public ProfileCaptureScope(IBuildLogger logger, ProfileCaptureOptions options)
+        {
+            m_Logger = ScriptableBuildPipeline.useDetailedBuildLog ? logger : null;
+            ContentBuildInterface.StartProfileCapture(options);
+        }
+
+        public void Dispose()
+        {
+            ContentBuildProfileEvent[] events = ContentBuildInterface.StopProfileCapture();
+            
+            if (m_Logger == null)
+                return;
+
+            using (m_Logger.ScopedStep(LogLevel.Info, $"Extract Profile Data"))
+            {
+                IDeferredBuildLogger dLog = (IDeferredBuildLogger)m_Logger;
+                IEnumerable<DeferredEvent> dEvents = events.Select(i => new DeferredEvent() { Level = LogLevel.Verbose, Name = i.Name, Time = (double)i.TimeMicroseconds / (double)1000, Type = BuildLoggerExternsions.ConvertToDeferredType(i.Type) });
+                dLog.HandleDeferredEventStream(dEvents);
+            }
+        }
+    }
+#endif
 
     /// <summary>
     /// Contains extension methods for the IBuildLogger interface
@@ -117,5 +169,15 @@ namespace UnityEditor.Build.Pipeline.Interfaces
         {
             return new ScopedBuildStep(level, stepName, log, false, context);
         }
+
+#if UNITY_2020_2_OR_NEWER
+        internal static DeferredEventType ConvertToDeferredType(ProfileEventType type)
+        {
+            if (type == ProfileEventType.Begin) return DeferredEventType.Begin;
+            if (type == ProfileEventType.End) return DeferredEventType.End;
+            if (type == ProfileEventType.Info) return DeferredEventType.Info;
+            throw new Exception("Unknown type");
+        }
+#endif
     }
 }

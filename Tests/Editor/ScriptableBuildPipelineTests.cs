@@ -378,13 +378,15 @@ namespace UnityEditor.Build.Pipeline.Tests
 #endif
                 ReferenceMap = new BuildReferenceMap(),
                 UsageSet = new BuildUsageTagSet(),
-                Scene = k_ScenePath
+                Scene = k_ScenePath,
+                DependencyHash = AssetDatabase.GetAssetDependencyHash(k_CubePath)
             };
             var cacheVersion1 = op.GetHash128();
 
             prefab.transform.position = new Vector3(1, 1, 1);
             EditorUtility.SetDirty(prefab);
             AssetDatabase.SaveAssets();
+            op.DependencyHash = AssetDatabase.GetAssetDependencyHash(k_CubePath);
             var cacheVersion2 = op.GetHash128();
 
             Assert.AreNotEqual(cacheVersion1, cacheVersion2);
@@ -414,13 +416,15 @@ namespace UnityEditor.Build.Pipeline.Tests
                 ReferenceMap = new BuildReferenceMap(),
                 UsageSet = new BuildUsageTagSet(),
                 Info = new SceneBundleInfo(),
-                Scene = k_ScenePath
+                Scene = k_ScenePath,
+                DependencyHash = AssetDatabase.GetAssetDependencyHash(k_CubePath)
             };
             var cacheVersion1 = op.GetHash128();
 
             prefab.transform.position = new Vector3(1, 1, 1);
             EditorUtility.SetDirty(prefab);
             AssetDatabase.SaveAssets();
+            op.DependencyHash = AssetDatabase.GetAssetDependencyHash(k_CubePath);
             var cacheVersion2 = op.GetHash128();
 
             Assert.AreNotEqual(cacheVersion1, cacheVersion2);

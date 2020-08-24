@@ -54,6 +54,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             public static readonly GUIContent cacheServerPort = EditorGUIUtility.TrTextContent("Cache Server Port");
             public static bool startedCalculation = false;
             public static long currentCacheSize = -1;
+            public static readonly GUIContent useDetailedBuildLog = EditorGUIUtility.TrTextContent("Use Detailed Build Log", "Writes detailed event information in the build log.");
         }
 
         [System.Serializable]
@@ -66,6 +67,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             public bool logCacheMiss = false;
             public bool slimWriteResults = true;
             public int maximumCacheSize = 20;
+            public bool useDetailedBuildLog = false;
         }
 
         internal static Settings s_Settings = new Settings();
@@ -133,6 +135,15 @@ namespace UnityEditor.Build.Pipeline.Utilities
             set => CompareAndSet(ref s_Settings.maximumCacheSize, value);
         }
 
+        /// <summary>
+        /// Set this to true to write more detailed event information in the build log. Set to false to only write basic event information.
+        /// </summary>
+        public static bool useDetailedBuildLog
+        {
+            get => s_Settings.useDetailedBuildLog;
+            set => CompareAndSet(ref s_Settings.useDetailedBuildLog, value);
+        }
+
         static void CompareAndSet<T>(ref T property, T value)
         {
             if (property.Equals(value))
@@ -153,6 +164,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             s_Settings.useBuildCacheServer = EditorPrefs.GetBool("ScriptableBuildPipeline.UseBuildCacheServer", s_Settings.useBuildCacheServer);
             s_Settings.cacheServerHost = EditorPrefs.GetString("ScriptableBuildPipeline.CacheServerHost", s_Settings.cacheServerHost);
             s_Settings.cacheServerPort = EditorPrefs.GetInt("ScriptableBuildPipeline.CacheServerPort", s_Settings.cacheServerPort);
+            s_Settings.useDetailedBuildLog = EditorPrefs.GetBool("ScriptableBuildPipeline.UseDetailedBuildLog", s_Settings.useDetailedBuildLog);
 
             // Load new settings from Json
             if (File.Exists(kSettingPath))
@@ -253,6 +265,8 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 s_Settings.cacheServerHost = EditorGUILayout.TextField(Properties.cacheServerHost, s_Settings.cacheServerHost);
                 s_Settings.cacheServerPort = EditorGUILayout.IntField(Properties.cacheServerPort, s_Settings.cacheServerPort);
             }
+
+            s_Settings.useDetailedBuildLog = EditorGUILayout.Toggle(Properties.useDetailedBuildLog, s_Settings.useDetailedBuildLog);
         }
     }
 }

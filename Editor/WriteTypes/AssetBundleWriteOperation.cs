@@ -19,6 +19,8 @@ namespace UnityEditor.Build.Pipeline.WriteTypes
         public BuildUsageTagSet UsageSet { get; set; }
         /// <inheritdoc />
         public BuildReferenceMap ReferenceMap { get; set; }
+        /// <inheritdoc />
+        public Hash128 DependencyHash { get; set; }
 
         /// <summary>
         /// Information needed for generating the Asset Bundle object to be included in the serialized file.
@@ -45,14 +47,36 @@ namespace UnityEditor.Build.Pipeline.WriteTypes
         }
 
         /// <inheritdoc />
-        public Hash128 GetHash128()
+        public Hash128 GetHash128(IBuildLogger log)
         {
             HashSet<CacheEntry> hashObjects = new HashSet<CacheEntry>();
-            if (Command.serializeObjects != null)
-                foreach (var serializeObject in Command.serializeObjects)
-                    hashObjects.Add(BuildCacheUtility.GetCacheEntry(serializeObject.serializationObject));
+            using (log.ScopedStep(LogLevel.Verbose, $"Gather Objects {GetType().Name}", Command.fileName))
+            {
+                if (Command.serializeObjects != null)
+                    foreach (var serializeObject in Command.serializeObjects)
+                        hashObjects.Add(BuildCacheUtility.GetCacheEntry(serializeObject.serializationObject));
+            }
 
-            return HashingMethods.Calculate(Command.GetHash128(), UsageSet.GetHash128(), ReferenceMap.GetHash128(), Info.GetHash128(), hashObjects).ToHash128();
+            List<Hash128> hashes = new List<Hash128>();
+            using (log.ScopedStep(LogLevel.Verbose, $"Hashing Command", Command.fileName))
+                hashes.Add(Command.GetHash128());
+            using (log.ScopedStep(LogLevel.Verbose, $"Hashing UsageSet", Command.fileName))
+                hashes.Add(UsageSet.GetHash128());
+            using (log.ScopedStep(LogLevel.Verbose, $"Hashing ReferenceMap", Command.fileName))
+                hashes.Add(ReferenceMap.GetHash128());
+            using (log.ScopedStep(LogLevel.Verbose, $"Hashing Info", Command.fileName))
+                hashes.Add(Info.GetHash128());
+            using (log.ScopedStep(LogLevel.Verbose, $"Hashing Objects", Command.fileName))
+                hashes.Add(HashingMethods.Calculate(hashObjects).ToHash128());
+            hashes.Add(DependencyHash);
+
+            return HashingMethods.Calculate(hashes).ToHash128();
+        }
+
+        /// <inheritdoc />
+        public Hash128 GetHash128()
+        {
+            return GetHash128(null);
         }
     }
 }

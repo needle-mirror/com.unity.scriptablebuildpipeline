@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEditor.Build.Content;
+using UnityEngine;
 
 namespace UnityEditor.Build.Pipeline.Interfaces
 {
@@ -27,6 +28,11 @@ namespace UnityEditor.Build.Pipeline.Interfaces
         /// Map of Scene to usage data.
         /// </summary>
         Dictionary<GUID, BuildUsageTagSet> SceneUsage { get; }
+
+        /// <summary>
+        /// Map of Asset or Scene to pre-calculated dependency hash for caching.
+        /// </summary>
+        Dictionary<GUID, Hash128> DependencyHash { get; }
 
         /// <summary>
         /// Reusable cache for calculating usage tags

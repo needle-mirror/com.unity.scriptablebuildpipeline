@@ -1,8 +1,10 @@
 using NUnit.Framework;
 using System;
+using System.Collections.Generic;
 using System.Threading;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Utilities;
+using static UnityEditor.Build.Pipeline.Utilities.BuildLog;
 
 namespace UnityEditor.Build.Pipeline.Tests
 {
@@ -117,5 +119,42 @@ namespace UnityEditor.Build.Pipeline.Tests
             StringAssert.Contains("SOMEKEY", text);
             StringAssert.Contains("SOMEVALUE", text);
         }
+
+#if UNITY_2020_2_OR_NEWER
+        [Test]
+        public void WhenBeginAndEndDeferredEventsDontMatchUp_HandleDeferredEventsStream_ThrowsException()
+        {
+            BuildLog log = new BuildLog();
+            DeferredEvent startEvent = new DeferredEvent() { Type = DeferredEventType.Begin };
+            List<DeferredEvent> events = new List<DeferredEvent>() { startEvent };
+
+            Assert.Throws<Exception>(() => log.HandleDeferredEventStreamInternal(events));
+        }
+
+        [Test]
+        public void WhenBeginAndEndDeferredEventsMatchUp_HandleDeferredEventsStream_CreatesLogEvents()
+        {
+            BuildLog log = new BuildLog();
+            DeferredEvent startEvent = new DeferredEvent() { Name = "Start", Type = DeferredEventType.Begin };
+            DeferredEvent endEvent = new DeferredEvent() { Name = "End", Type = DeferredEventType.End };
+            List<DeferredEvent> events = new List<DeferredEvent>() { startEvent, endEvent };
+
+            log.HandleDeferredEventStreamInternal(events);
+            LogStep profilerOverhead = log.Root.Children.Find((x) => x.Name == "Profiler Overhead");
+            Assert.AreEqual(startEvent.Name, profilerOverhead.Children[0].Name);
+        }
+
+        [Test]
+        public void WhenDeferredEventsAreOnlyInfoTypes_HandleDeferredEventsStream_CreatesLogEntry()
+        {
+            BuildLog log = new BuildLog();
+            DeferredEvent infoEvent = new DeferredEvent() { Name = "Info", Type = DeferredEventType.Info };
+            List<DeferredEvent> events = new List<DeferredEvent>() { infoEvent };
+
+            log.HandleDeferredEventStreamInternal(events);
+            LogStep profilerOverhead = log.Root.Children.Find((x) => x.Name == "Profiler Overhead");
+            Assert.AreEqual(infoEvent.Name, profilerOverhead.Entries[0].Message);
+        }
+#endif
     }
 }

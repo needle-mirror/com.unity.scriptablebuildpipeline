@@ -63,12 +63,15 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
         CacheEntry GetCacheEntry(IWriteOperation operation, BuildSettings settings, BuildUsageTagGlobal globalUsage, bool onlySaveFirstSerializedObject)
         {
-            var entry = new CacheEntry();
-            entry.Type = CacheEntry.EntryType.Data;
-            entry.Guid = HashingMethods.Calculate("WriteSerializedFiles").ToGUID();
-            entry.Hash = HashingMethods.Calculate(Version, operation.GetHash128(), settings.GetHash128(), globalUsage, onlySaveFirstSerializedObject, PlayerSettings.stripUnusedMeshComponents, PlayerSettings.bakeCollisionMeshes).ToHash128();
-            entry.Version = Version;
-            return entry;
+            using (m_Log.ScopedStep(LogLevel.Verbose, "GetCacheEntry", operation.Command.fileName))
+            {
+                var entry = new CacheEntry();
+                entry.Type = CacheEntry.EntryType.Data;
+                entry.Guid = HashingMethods.Calculate("WriteSerializedFiles").ToGUID();
+                entry.Hash = HashingMethods.Calculate(Version, operation.GetHash128(m_Log), settings.GetHash128(), globalUsage, onlySaveFirstSerializedObject, PlayerSettings.stripUnusedMeshComponents, PlayerSettings.bakeCollisionMeshes).ToHash128();
+                entry.Version = Version;
+                return entry;
+            }
         }
 
         static void SlimifySerializedObjects(ref WriteResult result)
@@ -170,7 +173,14 @@ namespace UnityEditor.Build.Pipeline.Tasks
             Directory.CreateDirectory(targetDir);
 
             using (m_Log.ScopedStep(LogLevel.Info, $"Writing {op.GetType().Name}", op.Command.fileName))
-                item.Context.Result = op.Write(targetDir, m_BuildSettings, m_GlobalUsage);
+            {
+#if UNITY_2020_2_OR_NEWER
+                using (new ProfileCaptureScope(m_Log, ProfileCaptureOptions.None))
+                    item.Context.Result = op.Write(targetDir, m_BuildSettings, m_GlobalUsage);
+#else
+                    item.Context.Result = op.Write(targetDir, m_BuildSettings, m_GlobalUsage);
+#endif
+            }
 
             item.Context.MetaData = CalculateFileMetadata(ref item.Context.Result);
 
