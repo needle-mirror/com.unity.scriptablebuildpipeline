@@ -120,7 +120,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             StringAssert.Contains("SOMEVALUE", text);
         }
 
-#if UNITY_2020_2_OR_NEWER
+#if UNITY_2020_2_OR_NEWER || ENABLE_DETAILED_PROFILE_CAPTURING
         [Test]
         public void WhenBeginAndEndDeferredEventsDontMatchUp_HandleDeferredEventsStream_ThrowsException()
         {
@@ -140,8 +140,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             List<DeferredEvent> events = new List<DeferredEvent>() { startEvent, endEvent };
 
             log.HandleDeferredEventStreamInternal(events);
-            LogStep profilerOverhead = log.Root.Children.Find((x) => x.Name == "Profiler Overhead");
-            Assert.AreEqual(startEvent.Name, profilerOverhead.Children[0].Name);
+            Assert.AreEqual(startEvent.Name, log.Root.Children[0].Name);
         }
 
         [Test]
@@ -152,8 +151,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             List<DeferredEvent> events = new List<DeferredEvent>() { infoEvent };
 
             log.HandleDeferredEventStreamInternal(events);
-            LogStep profilerOverhead = log.Root.Children.Find((x) => x.Name == "Profiler Overhead");
-            Assert.AreEqual(infoEvent.Name, profilerOverhead.Entries[0].Message);
+            Assert.AreEqual(infoEvent.Name, log.Root.Entries[0].Message);
         }
 #endif
     }

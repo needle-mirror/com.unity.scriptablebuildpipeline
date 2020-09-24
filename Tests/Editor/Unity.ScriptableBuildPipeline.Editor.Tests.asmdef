@@ -2,7 +2,9 @@
     "name": "Unity.ScriptableBuildPipeline.Editor.Tests",
     "references": [
         "Unity.ScriptableBuildPipeline.Editor",
-        "Unity.ScriptableBuildPipeline"
+        "Unity.ScriptableBuildPipeline",
+        "Unity.PerformanceTesting",
+        "Unity.PerformanceTesting.Editor"
     ],
     "optionalUnityReferences": [
         "TestAssemblies"

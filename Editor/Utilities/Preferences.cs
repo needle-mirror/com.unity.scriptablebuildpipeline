@@ -42,6 +42,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             public static readonly GUIContent threadedArchiving = EditorGUIUtility.TrTextContent("Threaded Archiving", "Thread the archiving and compress build stage.");
             public static readonly GUIContent logCacheMiss = EditorGUIUtility.TrTextContent("Log Cache Miss", "Log a warning on build cache misses. Warning will contain which asset and dependency caused the miss.");
             public static readonly GUIContent slimWriteResults = EditorGUIUtility.TrTextContent("Slim Write Results", "Reduces the caching of WriteResults data down to the bare minimum for improved cache performance.");
+            public static readonly GUIContent v2Hasher = EditorGUIUtility.TrTextContent("Use V2 Hasher", "Use the same hasher as Asset Database V2. This hasher improves build cache performance, but invalidates the existing build cache.");
             public static readonly GUIContent maxCacheSize = EditorGUIUtility.TrTextContent("Maximum Cache Size (GB)", "The size of the Build Cache folder will be kept below this maximum value when possible.");
             public static readonly GUIContent buildCache = EditorGUIUtility.TrTextContent("Build Cache");
             public static readonly GUIContent purgeCache = EditorGUIUtility.TrTextContent("Purge Cache");
@@ -68,6 +69,11 @@ namespace UnityEditor.Build.Pipeline.Utilities
             public bool slimWriteResults = true;
             public int maximumCacheSize = 20;
             public bool useDetailedBuildLog = false;
+#if UNITY_2021_1_OR_NEWER
+            public bool useV2Hasher = true;
+#elif UNITY_2020_1_OR_NEWER
+            public bool useV2Hasher = false;
+#endif
         }
 
         internal static Settings s_Settings = new Settings();
@@ -144,6 +150,17 @@ namespace UnityEditor.Build.Pipeline.Utilities
             set => CompareAndSet(ref s_Settings.useDetailedBuildLog, value);
         }
 
+        /// <summary>
+        /// Set this to true to use the same hasher as Asset Database V2. This hasher improves build cache performance, but invalidates the existing build cache.
+        /// </summary>
+#if UNITY_2020_1_OR_NEWER
+        public static bool useV2Hasher
+        {
+            get => s_Settings.useV2Hasher;
+            set => CompareAndSet(ref s_Settings.useV2Hasher, value);
+        }
+#endif
+
         static void CompareAndSet<T>(ref T property, T value)
         {
             if (property.Equals(value))
@@ -157,14 +174,11 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
         internal static void LoadSettings()
         {
-            // Load old settings
+#if !UNITY_2021_1_OR_NEWER
+            // Load SBP settings prior to 1.7.0, don't add any new settings here
             s_Settings.threadedArchiving = EditorPrefs.GetBool("ScriptableBuildPipeline.threadedArchiving", s_Settings.threadedArchiving);
-            s_Settings.logCacheMiss = EditorPrefs.GetBool("ScriptableBuildPipeline.logCacheMiss", s_Settings.logCacheMiss);
             s_Settings.maximumCacheSize = EditorPrefs.GetInt("BuildCache.maximumSize", s_Settings.maximumCacheSize);
-            s_Settings.useBuildCacheServer = EditorPrefs.GetBool("ScriptableBuildPipeline.UseBuildCacheServer", s_Settings.useBuildCacheServer);
-            s_Settings.cacheServerHost = EditorPrefs.GetString("ScriptableBuildPipeline.CacheServerHost", s_Settings.cacheServerHost);
-            s_Settings.cacheServerPort = EditorPrefs.GetInt("ScriptableBuildPipeline.CacheServerPort", s_Settings.cacheServerPort);
-            s_Settings.useDetailedBuildLog = EditorPrefs.GetBool("ScriptableBuildPipeline.UseDetailedBuildLog", s_Settings.useDetailedBuildLog);
+#endif
 
             // Load new settings from Json
             if (File.Exists(kSettingPath))
@@ -202,23 +216,31 @@ namespace UnityEditor.Build.Pipeline.Utilities
             using (new GUIScope())
             {
                 EditorGUI.BeginChangeCheck();
-                DrawProperties();
+                DrawGeneralProperties();
+                GUILayout.Space(15);
+                DrawBuildCacheProperties();
                 if (EditorGUI.EndChangeCheck())
                     SaveSettings();
             }
         }
 
-        static void DrawProperties()
+        static void DrawGeneralProperties()
         {
             GUILayout.Label(Properties.generalSettings, EditorStyles.boldLabel);
 
-            if (ArchiveAndCompressBundles.SupportsMultiThreadedArchiving)
+            if (ReflectionExtensions.SupportsMultiThreadedArchiving)
                 s_Settings.threadedArchiving = EditorGUILayout.Toggle(Properties.threadedArchiving, s_Settings.threadedArchiving);
 
             s_Settings.logCacheMiss = EditorGUILayout.Toggle(Properties.logCacheMiss, s_Settings.logCacheMiss);
             s_Settings.slimWriteResults = EditorGUILayout.Toggle(Properties.slimWriteResults, s_Settings.slimWriteResults);
+            s_Settings.useDetailedBuildLog = EditorGUILayout.Toggle(Properties.useDetailedBuildLog, s_Settings.useDetailedBuildLog);
+#if UNITY_2020_1_OR_NEWER
+            s_Settings.useV2Hasher = EditorGUILayout.Toggle(Properties.v2Hasher, s_Settings.useV2Hasher);
+#endif
+        }
 
-            GUILayout.Space(15);
+        static void DrawBuildCacheProperties()
+        {
             GUILayout.Label(Properties.buildCache, EditorStyles.boldLabel);
             // Show Gigabytes to the user.
             const int kMinSizeInGigabytes = 1;
@@ -265,8 +287,6 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 s_Settings.cacheServerHost = EditorGUILayout.TextField(Properties.cacheServerHost, s_Settings.cacheServerHost);
                 s_Settings.cacheServerPort = EditorGUILayout.IntField(Properties.cacheServerPort, s_Settings.cacheServerPort);
             }
-
-            s_Settings.useDetailedBuildLog = EditorGUILayout.Toggle(Properties.useDetailedBuildLog, s_Settings.useDetailedBuildLog);
         }
     }
 }

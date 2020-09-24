@@ -34,6 +34,11 @@ namespace UnityEditor.Build.Pipeline.Tests
             StringAssert.IsMatch($"type.*?{t.FullName}.*?preserve=\"all\"", input);
         }
 
+        public static void AssertTypeWithAttributePreserved(string input, string fullName)
+        {
+            StringAssert.IsMatch($"type.*?{fullName}.*? preserve=\"nothing\" serialized=\"true\"", input);
+        }
+
         public static void AssertAssemblyPreserved(string input, Assembly a)
         {
             StringAssert.IsMatch($"assembly.*?{a.FullName}.*?preserve=\"all\"", input);
@@ -103,6 +108,24 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreEqual(typeCount, 0);
             foreach (var a in assemblies)
                 AssertAssemblyPreserved(xml, a);
+        }
+
+
+        [Test]
+        public void LinkXML_Preserves_SerializeClasses()
+        {
+            var serializedRefClasses = new[] { "FantasticAssembly:AwesomeNS.Foo", "FantasticAssembly:AwesomeNS.Bar", "SuperFantasticAssembly:SuperAwesomeNS.Bar"};
+
+            var link = new LinkXmlGenerator();
+            link.AddSerializedClass(serializedRefClasses);
+            link.Save(k_LinkFile);
+
+            var xml = ReadLinkXML(k_LinkFile, out int assemblyCount, out int typeCount);
+            Assert.AreEqual(assemblyCount, 2);
+            Assert.AreEqual(typeCount,3);
+            AssertTypeWithAttributePreserved(xml, "AwesomeNS.Foo");
+            AssertTypeWithAttributePreserved(xml, "AwesomeNS.Bar");
+            AssertTypeWithAttributePreserved(xml, "SuperAwesomeNS.Bar");
         }
     }
 }

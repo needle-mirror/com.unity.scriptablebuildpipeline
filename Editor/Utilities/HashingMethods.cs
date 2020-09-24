@@ -103,6 +103,16 @@ namespace UnityEditor.Build.Pipeline.Utilities
         {
             return (m_Hash != null ? m_Hash.GetHashCode() : 0);
         }
+
+        public static bool operator==(RawHash left, RawHash right)
+        {
+            return left.Equals(right);
+        }
+
+        public static bool operator!=(RawHash left, RawHash right)
+        {
+            return !(left == right);
+        }
     }
 
     /// <summary>
@@ -242,8 +252,19 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 GetRawBytes(objStack, stream);
         }
 
-        static HashAlgorithm GetHashAlgorithm(Type type)
+        internal static HashAlgorithm GetHashAlgorithm(Type type = null)
         {
+            if (type == null)
+            {
+#if UNITY_2020_1_OR_NEWER
+                // New projects on 2021.1 will default useSpookyHash to true
+                // Upgraded projects will remain false until they choose to switch
+                type = ScriptableBuildPipeline.useV2Hasher ? typeof(SpookyHash) : typeof(MD5);
+#else
+                type = typeof(MD5);
+#endif
+            }
+
             if (type == typeof(MD4))
                 return MD4.Create();
 #if UNITY_2019_3_OR_NEWER
@@ -267,12 +288,11 @@ namespace UnityEditor.Build.Pipeline.Utilities
         {
             if (stream == null)
                 return RawHash.Zero();
+            if (stream is HashStream hs)
+                return hs.GetHash();
 
             byte[] hash;
-            // There is a bug in spooky hash that prevents some trailing data from being added to the hash. It can also result in reading beyond the speicifed buffer.
-            // Until this is addressed in the engine, we will revert to using MD5
-            // There is a Jira ticket to investigate this further: https://jira.unity3d.com/browse/ADDR-1193?jql=text%20~%20%22spooky%22
-            using (var hashAlgorithm = GetHashAlgorithm(typeof(MD5)))
+            using (var hashAlgorithm = GetHashAlgorithm())
                 hash = hashAlgorithm.ComputeHash(stream);
             return new RawHash(hash);
         }
@@ -287,6 +307,8 @@ namespace UnityEditor.Build.Pipeline.Utilities
         {
             if (stream == null)
                 return RawHash.Zero();
+            if (stream is HashStream hs)
+                return hs.GetHash();
 
             byte[] hash;
             using (var hashAlgorithm = GetHashAlgorithm(typeof(T)))
@@ -302,11 +324,10 @@ namespace UnityEditor.Build.Pipeline.Utilities
         public static RawHash Calculate(object obj)
         {
             RawHash rawHash;
-            using (var stream = new MemoryStream())
+            using (var stream = new HashStream(GetHashAlgorithm()))
             {
                 GetRawBytes(stream, obj);
-                stream.Position = 0;
-                rawHash = CalculateStream(stream);
+                rawHash = stream.GetHash();
             }
             return rawHash;
         }
@@ -322,11 +343,10 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 return RawHash.Zero();
 
             RawHash rawHash;
-            using (var stream = new MemoryStream())
+            using (var stream = new HashStream(GetHashAlgorithm()))
             {
                 GetRawBytes(stream, objects);
-                stream.Position = 0;
-                rawHash = CalculateStream(stream);
+                rawHash = stream.GetHash();
             }
             return rawHash;
         }
@@ -340,11 +360,10 @@ namespace UnityEditor.Build.Pipeline.Utilities
         public static RawHash Calculate<T>(object obj) where T : HashAlgorithm
         {
             RawHash rawHash;
-            using (var stream = new MemoryStream())
+            using (var stream = new HashStream(GetHashAlgorithm(typeof(T))))
             {
                 GetRawBytes(stream, obj);
-                stream.Position = 0;
-                rawHash = CalculateStream<T>(stream);
+                rawHash = stream.GetHash();
             }
             return rawHash;
         }
@@ -361,11 +380,10 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 return RawHash.Zero();
 
             RawHash rawHash;
-            using (var stream = new MemoryStream())
+            using (var stream = new HashStream(GetHashAlgorithm(typeof(T))))
             {
                 GetRawBytes(stream, objects);
-                stream.Position = 0;
-                rawHash = CalculateStream<T>(stream);
+                rawHash = stream.GetHash();
             }
             return rawHash;
         }

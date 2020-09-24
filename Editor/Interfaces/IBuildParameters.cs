@@ -47,6 +47,11 @@ namespace UnityEditor.Build.Pipeline.Interfaces
         string TempOutputFolder { get; set; }
 
         /// <summary>
+        /// Location to be used for compiled scripts generated during the build.
+        /// </summary>
+        string ScriptOutputFolder { get; set; }
+
+        /// <summary>
         /// Enables the use of the build cache if set to true.
         /// </summary>
         bool UseCache { get; set; }

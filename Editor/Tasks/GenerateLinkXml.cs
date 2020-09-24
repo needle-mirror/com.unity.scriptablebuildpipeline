@@ -30,7 +30,16 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
             var linker = LinkXmlGenerator.CreateDefault();
             foreach (var writeResult in m_Results.WriteResults)
+            {
                 linker.AddTypes(writeResult.Value.includedTypes);
+#if UNITY_2021_1_OR_NEWER
+                // Uncomment once PR 113067 lands in trunk.
+                //linker.AddSerializedClass(writeResult.Value.includedSerializeReferenceFQN);
+#else
+                if (writeResult.Value.GetType().GetProperty("includedSerializeReferenceFQN") != null)
+                    linker.AddSerializedClass((string[])writeResult.Value.GetType().GetProperty("includedSerializeReferenceFQN").GetValue(writeResult.Value));
+#endif
+            }
 
             var linkPath = m_Parameters.GetOutputFilePathForIdentifier(k_LinkXml);
             linker.Save(linkPath);

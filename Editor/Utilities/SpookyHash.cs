@@ -1,12 +1,13 @@
 #if UNITY_2019_3_OR_NEWER
 using System.Security.Cryptography;
+using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 
 namespace UnityEditor.Build.Pipeline.Utilities
 {
     public unsafe sealed class SpookyHash : HashAlgorithm
     {
-        byte[] m_Hash;
+        Hash128 m_Hash;
 
         SpookyHash()
         {
@@ -18,26 +19,31 @@ namespace UnityEditor.Build.Pipeline.Utilities
             return new SpookyHash();
         }
 
-        public override void Initialize()
-        {
-            m_Hash = new byte[16];
-        }
+        public override void Initialize() {}
 
-        protected override void HashCore(byte[] array, int ibStart, int cbSize)
+        protected override void HashCore(byte[] inputBuffer, int inputOffset, int inputCount)
         {
-            fixed(byte* data = &array[ibStart])
-            fixed(byte* hash = &m_Hash[0])
-            {
-                var dataSize = (ulong)cbSize;
-                var lower = (ulong*)&hash[0];
-                var upper = (ulong*)&hash[8];
-                HashUnsafeUtilities.ComputeHash128(data, dataSize, lower, upper);
-            }
+            if (inputBuffer == null || inputOffset < 0 || inputCount <= 0 || (inputCount > inputBuffer.Length) || (inputBuffer.Length - inputCount) < inputOffset)
+                return;
+
+#if UNITY_2020_1_OR_NEWER
+            m_Hash.Append(inputBuffer, inputOffset, inputCount);
+#else
+            throw new System.InvalidOperationException("SpookyHash implementation was unstable and not deterministic prior to Unity 2020.1. Use MD5 or MD4 instead.");
+#endif
         }
 
         protected override byte[] HashFinal()
         {
-            return m_Hash;
+#if UNITY_2020_1_OR_NEWER
+            byte[] results = new byte[UnsafeUtility.SizeOf<Hash128>()];
+            byte* hashPtr = (byte*)UnsafeUtility.AddressOf(ref m_Hash);
+            fixed(byte* d = results)
+            UnsafeUtility.MemCpy(d, hashPtr, results.Length);
+            return results;
+#else
+            throw new System.InvalidOperationException("SpookyHash implementation was unstable and not deterministic prior to Unity 2020.1. Use MD5 or MD4 instead.");
+#endif
         }
     }
 }

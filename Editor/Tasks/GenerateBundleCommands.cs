@@ -11,7 +11,6 @@ using UnityEngine;
 
 #if !UNITY_2019_1_OR_NEWER
 using System;
-using UnityEngine;
 #endif
 
 namespace UnityEditor.Build.Pipeline.Tasks
@@ -57,6 +56,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
             if (m_CustomAssets != null)
                 customAssets.UnionWith(m_CustomAssets.Assets);
 #endif
+            Dictionary<GUID, string> assetToMainFile = new Dictionary<GUID, string>();
+            foreach (var pair in m_WriteData.AssetToFiles)
+                assetToMainFile.Add(pair.Key, pair.Value[0]);
 
             foreach (var bundlePair in m_BuildContent.BundleLayout)
             {
@@ -68,9 +70,13 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 }
                 else if (ValidationMethods.ValidSceneBundle(bundlePair.Value))
                 {
-                    CreateSceneBundleCommand(bundlePair.Key, m_WriteData.AssetToFiles[bundlePair.Value[0]][0], bundlePair.Value[0], bundlePair.Value);
+                    var firstScene = bundlePair.Value[0];
+                    CreateSceneBundleCommand(bundlePair.Key, assetToMainFile[firstScene], firstScene, bundlePair.Value, assetToMainFile);
                     for (int i = 1; i < bundlePair.Value.Count; ++i)
-                        CreateSceneDataCommand(m_WriteData.AssetToFiles[bundlePair.Value[i]][0], bundlePair.Value[i]);
+                    {
+                        var additionalScene = bundlePair.Value[i];
+                        CreateSceneDataCommand(assetToMainFile[additionalScene], additionalScene);
+                    }
                 }
             }
             return ReturnCode.Success;
@@ -117,42 +123,39 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
         void CreateAssetBundleCommand(string bundleName, string internalName, List<GUID> assets)
         {
-            var abOp = new AssetBundleWriteOperation();
+            var command = CreateWriteCommand(internalName, m_WriteData.FileToObjects[internalName], m_PackingMethod);
+            var usageSet = new BuildUsageTagSet();
+            var referenceMap = new BuildReferenceMap();
+            var dependencyHashes = new List<Hash128>();
+            var bundleAssets = new List<AssetLoadInfo>();
 
-            var fileObjects = m_WriteData.FileToObjects[internalName];
-            abOp.Command = CreateWriteCommand(internalName, fileObjects, m_PackingMethod);
 
-            abOp.UsageSet = new BuildUsageTagSet();
-            m_WriteData.FileToUsageSet.Add(internalName, abOp.UsageSet);
-
-            abOp.ReferenceMap = new BuildReferenceMap();
-            abOp.ReferenceMap.AddMappings(internalName, abOp.Command.serializeObjects.ToArray());
-            m_WriteData.FileToReferenceMap.Add(internalName, abOp.ReferenceMap);
-
+            referenceMap.AddMappings(command.internalName, command.serializeObjects.ToArray());
+            foreach (var asset in assets)
             {
-                abOp.Info = new AssetBundleInfo();
-                abOp.Info.bundleName = bundleName;
-                abOp.Info.bundleAssets = assets.Select(x => m_DependencyData.AssetInfo[x]).ToList();
-                abOp.Info.bundleAssets.Sort(AssetLoadInfoCompare);
-                foreach (var loadInfo in abOp.Info.bundleAssets)
-                    loadInfo.address = m_BuildContent.Addresses[loadInfo.asset];
+                usageSet.UnionWith(m_DependencyData.AssetUsage[asset]);
+                if (m_DependencyData.DependencyHash.TryGetValue(asset, out var hash))
+                    dependencyHashes.Add(hash);
+                AssetLoadInfo assetInfo = m_DependencyData.AssetInfo[asset];
+                assetInfo.address = m_BuildContent.Addresses[asset];
+                bundleAssets.Add(assetInfo);
             }
+            bundleAssets.Sort(AssetLoadInfoCompare);
 
-            {
-                List<Hash128> dependencyHashes = new List<Hash128>();
-                foreach (var asset in assets)
-                {
-                    if (m_DependencyData.DependencyHash.TryGetValue(asset, out var hash))
-                        dependencyHashes.Add(hash);
-                }
 
-                if (!dependencyHashes.IsNullOrEmpty())
-                    abOp.DependencyHash = HashingMethods.Calculate(dependencyHashes).ToHash128();
-                else
-                    abOp.DependencyHash = new Hash128();
-            }
+            var operation = new AssetBundleWriteOperation();
+            operation.Command = command;
+            operation.UsageSet = usageSet;
+            operation.ReferenceMap = referenceMap;
+            operation.DependencyHash = !dependencyHashes.IsNullOrEmpty() ? HashingMethods.Calculate(dependencyHashes).ToHash128() : new Hash128();
+            operation.Info = new AssetBundleInfo();
+            operation.Info.bundleName = bundleName;
+            operation.Info.bundleAssets = bundleAssets;
 
-            m_WriteData.WriteOperations.Add(abOp);
+
+            m_WriteData.WriteOperations.Add(operation);
+            m_WriteData.FileToUsageSet.Add(command.internalName, usageSet);
+            m_WriteData.FileToReferenceMap.Add(command.internalName, referenceMap);
         }
 
 #if !UNITY_2019_1_OR_NEWER
@@ -189,85 +192,108 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
 #endif
 
-        void CreateSceneBundleCommand(string bundleName, string internalName, GUID asset, List<GUID> assets)
+        void CreateSceneBundleCommand(string bundleName, string internalName, GUID scene, List<GUID> bundledScenes, Dictionary<GUID, string> assetToMainFile)
         {
-            var sbOp = new SceneBundleWriteOperation();
-
             var fileObjects = m_WriteData.FileToObjects[internalName];
 #if !UNITY_2019_1_OR_NEWER
             // ContentBuildInterface.PrepareScene was not returning stable sorted references, causing a indeterminism and loading errors in some cases
             // Add correct sorting here until patch lands to fix the API.
             fileObjects = GetSortedSceneObjectIdentifiers(fileObjects);
 #endif
-            sbOp.Command = CreateWriteCommand(internalName, fileObjects, new LinearPackedIdentifiers(3)); // Start at 3: PreloadData = 1, AssetBundle = 2
 
-            sbOp.UsageSet = new BuildUsageTagSet();
-            m_WriteData.FileToUsageSet.Add(internalName, sbOp.UsageSet);
 
-            sbOp.ReferenceMap = new BuildReferenceMap();
-            m_WriteData.FileToReferenceMap.Add(internalName, sbOp.ReferenceMap);
+            var command = CreateWriteCommand(internalName, fileObjects, new LinearPackedIdentifiers(3)); // Start at 3: PreloadData = 1, AssetBundle = 2
+            var usageSet = new BuildUsageTagSet();
+            var referenceMap = new BuildReferenceMap();
+            var preloadObjects = new List<ObjectIdentifier>();
+            var bundleScenes = new List<SceneLoadInfo>();
+            var dependencyInfo = m_DependencyData.SceneInfo[scene];
+            var fileObjectSet = new HashSet<ObjectIdentifier>(fileObjects);
 
-            var sceneInfo = m_DependencyData.SceneInfo[asset];
-            sbOp.Scene = sceneInfo.scene;
+
+            usageSet.UnionWith(m_DependencyData.SceneUsage[scene]);
+            referenceMap.AddMappings(command.internalName, command.serializeObjects.ToArray());
+            foreach (var referencedObject in dependencyInfo.referencedObjects)
+            {
+                if (fileObjectSet.Contains(referencedObject))
+                    continue;
+                preloadObjects.Add(referencedObject);
+            }
+            foreach (var bundledScene in bundledScenes)
+            {
+                var loadInfo = new SceneLoadInfo();
+                loadInfo.asset = bundledScene;
+                loadInfo.internalName = Path.GetFileNameWithoutExtension(assetToMainFile[bundledScene]);
+                loadInfo.address = m_BuildContent.Addresses[bundledScene];
+                bundleScenes.Add(loadInfo);
+            }
+
+
+            var operation = new SceneBundleWriteOperation();
+            operation.Command = command;
+            operation.UsageSet = usageSet;
+            operation.ReferenceMap = referenceMap;
+            operation.DependencyHash = m_DependencyData.DependencyHash.TryGetValue(scene, out var hash) ? hash : new Hash128();
+            operation.Scene = dependencyInfo.scene;
 #if !UNITY_2019_3_OR_NEWER
-            sbOp.ProcessedScene = sceneInfo.processedScene;
+            operation.ProcessedScene = dependencyInfo.processedScene;
 #endif
+            operation.PreloadInfo = new PreloadInfo();
+            operation.PreloadInfo.preloadObjects = preloadObjects;
+            operation.Info = new SceneBundleInfo();
+            operation.Info.bundleName = bundleName;
+            operation.Info.bundleScenes = bundleScenes;
 
-            {
-                var objectSet = new HashSet<ObjectIdentifier>(m_WriteData.FileToObjects[internalName]);
-                sbOp.PreloadInfo = new PreloadInfo { preloadObjects = sceneInfo.referencedObjects.Where(x => !objectSet.Contains(x)).ToList() };
-            }
 
-            {
-                sbOp.Info = new SceneBundleInfo();
-                sbOp.Info.bundleName = bundleName;
-                sbOp.Info.bundleScenes = assets.Select(x => new SceneLoadInfo
-                {
-                    asset = x,
-                    internalName = Path.GetFileNameWithoutExtension(m_WriteData.AssetToFiles[x][0]),
-                    address = m_BuildContent.Addresses[x]
-                }).ToList();
-            }
-
-            if (m_DependencyData.DependencyHash.TryGetValue(asset, out var hash))
-                sbOp.DependencyHash = hash;
-
-            m_WriteData.WriteOperations.Add(sbOp);
+            m_WriteData.WriteOperations.Add(operation);
+            m_WriteData.FileToUsageSet.Add(command.internalName, usageSet);
+            m_WriteData.FileToReferenceMap.Add(command.internalName, referenceMap);
         }
 
-        void CreateSceneDataCommand(string internalName, GUID asset)
+        void CreateSceneDataCommand(string internalName, GUID scene)
         {
-            var sdOp = new SceneDataWriteOperation();
-
             var fileObjects = m_WriteData.FileToObjects[internalName];
 #if !UNITY_2019_1_OR_NEWER
             // ContentBuildInterface.PrepareScene was not returning stable sorted references, causing a indeterminism and loading errors in some cases
             // Add correct sorting here until patch lands to fix the API.
             fileObjects = GetSortedSceneObjectIdentifiers(fileObjects);
 #endif
-            sdOp.Command = CreateWriteCommand(internalName, fileObjects, new LinearPackedIdentifiers(2)); // Start at 2: PreloadData = 1
 
-            sdOp.UsageSet = new BuildUsageTagSet();
-            m_WriteData.FileToUsageSet.Add(internalName, sdOp.UsageSet);
 
-            sdOp.ReferenceMap = new BuildReferenceMap();
-            m_WriteData.FileToReferenceMap.Add(internalName, sdOp.ReferenceMap);
+            var command = CreateWriteCommand(internalName, fileObjects, new LinearPackedIdentifiers(2)); // Start at 3: PreloadData = 1
+            var usageSet = new BuildUsageTagSet();
+            var referenceMap = new BuildReferenceMap();
+            var preloadObjects = new List<ObjectIdentifier>();
+            var dependencyInfo = m_DependencyData.SceneInfo[scene];
+            var fileObjectSet = new HashSet<ObjectIdentifier>(fileObjects);
 
-            var sceneInfo = m_DependencyData.SceneInfo[asset];
-            sdOp.Scene = sceneInfo.scene;
-#if !UNITY_2019_3_OR_NEWER
-            sdOp.ProcessedScene = sceneInfo.processedScene;
-#endif
 
+            usageSet.UnionWith(m_DependencyData.SceneUsage[scene]);
+            referenceMap.AddMappings(command.internalName, command.serializeObjects.ToArray());
+            foreach (var referencedObject in dependencyInfo.referencedObjects)
             {
-                var objectSet = new HashSet<ObjectIdentifier>(m_WriteData.FileToObjects[internalName]);
-                sdOp.PreloadInfo = new PreloadInfo { preloadObjects = sceneInfo.referencedObjects.Where(x => !objectSet.Contains(x)).ToList() };
+                if (fileObjectSet.Contains(referencedObject))
+                    continue;
+                preloadObjects.Add(referencedObject);
             }
 
-            if (m_DependencyData.DependencyHash.TryGetValue(asset, out var hash))
-                sdOp.DependencyHash = hash;
 
-            m_WriteData.WriteOperations.Add(sdOp);
+            var operation = new SceneDataWriteOperation();
+            operation.Command = command;
+            operation.UsageSet = usageSet;
+            operation.ReferenceMap = referenceMap;
+            operation.DependencyHash = m_DependencyData.DependencyHash.TryGetValue(scene, out var hash) ? hash : new Hash128();
+            operation.Scene = dependencyInfo.scene;
+#if !UNITY_2019_3_OR_NEWER
+            operation.ProcessedScene = dependencyInfo.processedScene;
+#endif
+            operation.PreloadInfo = new PreloadInfo();
+            operation.PreloadInfo.preloadObjects = preloadObjects;
+
+
+            m_WriteData.FileToReferenceMap.Add(command.internalName, referenceMap);
+            m_WriteData.FileToUsageSet.Add(command.internalName, usageSet);
+            m_WriteData.WriteOperations.Add(operation);
         }
     }
 }

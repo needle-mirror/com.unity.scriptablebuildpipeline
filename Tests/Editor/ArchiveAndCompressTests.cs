@@ -341,14 +341,14 @@ namespace UnityEditor.Build.Pipeline.Tests
         [Test]
         public void SupportsMultiThreadedArchiving_WhenEditorIs20193OrLater_IsTrue()
         {
-            Assert.IsTrue(ArchiveAndCompressBundles.SupportsMultiThreadedArchiving);
+            Assert.IsTrue(ReflectionExtensions.SupportsMultiThreadedArchiving);
         }
 
 #else
         [Test]
         public void SupportsMultiThreadedArchiving_WhenEditorIsBefore20193_IsFalse()
         {
-            Assert.IsFalse(ArchiveAndCompressBundles.SupportsMultiThreadedArchiving);
+            Assert.IsFalse(ReflectionExtensions.SupportsMultiThreadedArchiving);
         }
 
 #endif

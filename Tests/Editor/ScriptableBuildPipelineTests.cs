@@ -131,6 +131,7 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             IDependencyData dep = new BuildDependencyData();
             dep.AssetInfo.Add(guid, loadInfo);
+            dep.AssetUsage.Add(guid, new BuildUsageTagSet());
 
             return dep;
         }

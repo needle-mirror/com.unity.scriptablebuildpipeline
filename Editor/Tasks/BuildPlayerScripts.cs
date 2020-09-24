@@ -2,6 +2,7 @@ using UnityEditor.Build.Pipeline.Injector;
 using UnityEditor.Build.Pipeline.Utilities;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Player;
+using System.IO;
 
 namespace UnityEditor.Build.Pipeline.Tasks
 {
@@ -27,9 +28,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             if (m_Parameters.ScriptInfo != null)
                 return ReturnCode.SuccessNotRun;
 
-            // TODO: Replace with call to GetTempOrCachePath
-            // TODO: Create tasks to copy scripts to correct output folder?
-            m_Results.ScriptResults = PlayerBuildInterface.CompilePlayerScripts(m_Parameters.GetScriptCompilationSettings(), m_Parameters.TempOutputFolder);
+            m_Results.ScriptResults = PlayerBuildInterface.CompilePlayerScripts(m_Parameters.GetScriptCompilationSettings(), m_Parameters.ScriptOutputFolder);
             m_Parameters.ScriptInfo = m_Results.ScriptResults.typeDB;
 
             if (m_Results.ScriptResults.assemblies.IsNullOrEmpty() && m_Results.ScriptResults.typeDB == null)

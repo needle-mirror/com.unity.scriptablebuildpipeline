@@ -96,6 +96,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             BuildCacheUtility.ClearCacheHashes();
             if (m_Cache != null)
             {
+                m_Cache.SyncPendingSaves();
                 m_Cache.Dispose();
                 m_Cache = null;
             }

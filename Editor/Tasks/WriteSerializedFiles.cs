@@ -5,31 +5,11 @@ using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Injector;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Utilities;
-using UnityEditor.Build.Pipeline.WriteTypes;
 using UnityEngine;
 using static UnityEditor.Build.Pipeline.Utilities.TaskCachingUtility;
 
 namespace UnityEditor.Build.Pipeline.Tasks
 {
-    internal class WriteResultReflection
-    {
-        public static void SetSerializedObjects(ref WriteResult result, ObjectSerializedInfo[] osis)
-        {
-            var fieldInfo = typeof(WriteResult).GetField("m_SerializedObjects", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            object boxed = result;
-            fieldInfo.SetValue(boxed, osis);
-            result = (WriteResult)boxed;
-        }
-
-        public static void SetResourceFiles(ref WriteResult result, ResourceFile[] files)
-        {
-            var fieldInfo = typeof(WriteResult).GetField("m_ResourceFiles", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            object boxed = result;
-            fieldInfo.SetValue(boxed, files);
-            result = (WriteResult)boxed;
-        }
-    }
-
     /// <summary>
     /// Serializes all cache data.
     /// </summary>
@@ -61,14 +41,25 @@ namespace UnityEditor.Build.Pipeline.Tasks
         IBuildLogger m_Log;
 #pragma warning restore 649
 
+        static Hash128 GetPlayerSettingsHash128()
+        {
+            return HashingMethods.Calculate(
+                PlayerSettings.stripUnusedMeshComponents,
+                PlayerSettings.bakeCollisionMeshes
+#if UNITY_2020_1_OR_NEWER
+                , PlayerSettings.mipStripping ? PlayerSettingsApi.GetNumberOfMipsStripped() : 0
+#endif
+                ).ToHash128();
+        }
+
         CacheEntry GetCacheEntry(IWriteOperation operation, BuildSettings settings, BuildUsageTagGlobal globalUsage, bool onlySaveFirstSerializedObject)
         {
             using (m_Log.ScopedStep(LogLevel.Verbose, "GetCacheEntry", operation.Command.fileName))
             {
                 var entry = new CacheEntry();
                 entry.Type = CacheEntry.EntryType.Data;
-                entry.Guid = HashingMethods.Calculate("WriteSerializedFiles").ToGUID();
-                entry.Hash = HashingMethods.Calculate(Version, operation.GetHash128(m_Log), settings.GetHash128(), globalUsage, onlySaveFirstSerializedObject, PlayerSettings.stripUnusedMeshComponents, PlayerSettings.bakeCollisionMeshes).ToHash128();
+                entry.Guid = HashingMethods.Calculate("WriteSerializedFiles", operation.Command.fileName).ToGUID();
+                entry.Hash = HashingMethods.Calculate(Version, operation.GetHash128(m_Log), settings.GetHash128(), globalUsage, onlySaveFirstSerializedObject, GetPlayerSettingsHash128()).ToHash128();
                 entry.Version = Version;
                 return entry;
             }
@@ -84,7 +75,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 fileOffsets.Add(result.serializedObjects.First(x => x.header.fileName == serializedFile.fileAlias));
             }
 
-            WriteResultReflection.SetSerializedObjects(ref result, fileOffsets.ToArray());
+            result.SetSerializedObjects(fileOffsets.ToArray());
         }
 
         CachedInfo GetCachedInfo(CacheEntry entry, WriteResult result, SerializedFileMetaData metaData)
@@ -174,11 +165,11 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
             using (m_Log.ScopedStep(LogLevel.Info, $"Writing {op.GetType().Name}", op.Command.fileName))
             {
-#if UNITY_2020_2_OR_NEWER
+#if UNITY_2020_2_OR_NEWER || ENABLE_DETAILED_PROFILE_CAPTURING
                 using (new ProfileCaptureScope(m_Log, ProfileCaptureOptions.None))
                     item.Context.Result = op.Write(targetDir, m_BuildSettings, m_GlobalUsage);
 #else
-                    item.Context.Result = op.Write(targetDir, m_BuildSettings, m_GlobalUsage);
+                item.Context.Result = op.Write(targetDir, m_BuildSettings, m_GlobalUsage);
 #endif
             }
 

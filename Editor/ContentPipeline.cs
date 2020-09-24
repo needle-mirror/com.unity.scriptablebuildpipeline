@@ -19,6 +19,11 @@ namespace UnityEditor.Build.Pipeline
         public const string kTempBuildPath = "Temp/ContentBuildData";
 
         /// <summary>
+        /// Default temporary path used for building script data.
+        /// </summary>
+        public const string kScriptBuildPath = "Library/PlayerScriptAssemblies";
+
+        /// <summary>
         /// Default callback implementation.
         /// </summary>
         public static BuildCallbacks BuildCallbacks = new BuildCallbacks();
@@ -104,6 +109,7 @@ namespace UnityEditor.Build.Pipeline
                     using (var buildCache = new BuildCache(parameters.CacheServerHost, parameters.CacheServerPort))
                     {
                         Directory.CreateDirectory(parameters.TempOutputFolder);
+                        Directory.CreateDirectory(parameters.ScriptOutputFolder);
 
                         try
                         {

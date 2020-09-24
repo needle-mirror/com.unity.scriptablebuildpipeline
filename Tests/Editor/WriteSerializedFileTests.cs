@@ -64,17 +64,15 @@ namespace UnityEditor.Build.Pipeline.Tests
             public BuildReferenceMap ReferenceMap { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
             public Hash128 DependencyHash { get => throw new NotImplementedException(); set => throw new NotImplementedException(); }
 
-            Hash128 debugHash;
-            bool hasDebugHash;
-            public void SetDebugHash(int hash)
+            Hash128 debugHash = new Hash128();
+            public void SetDebugHash(uint hash)
             {
-                hasDebugHash = true;
-                debugHash = HashingMethods.Calculate(hash).ToHash128();
+                debugHash = new Hash128(0, 0, 0, hash);
             }
 
             public Hash128 GetHash128(IBuildLogger log)
             {
-                return hasDebugHash ? debugHash : new Hash128();
+                return HashingMethods.Calculate(debugHash, new Hash128(0, 0, 0, (uint)QualitySettingsApi.GetNumberOfLODsStripped())).ToHash128();
             }
 
             public Hash128 GetHash128()
@@ -138,7 +136,7 @@ namespace UnityEditor.Build.Pipeline.Tests
                 file.SetFileName(filename);
 
                 file.SetSerializedFile(OutputSerializedFile);
-                WriteResultReflection.SetResourceFiles(ref result, new ResourceFile[] { file });
+                result.SetResourceFiles(new ResourceFile[] { file });
 
                 if (OutputSerializedFile)
                 {
@@ -154,7 +152,7 @@ namespace UnityEditor.Build.Pipeline.Tests
                     header2.SetOffset(200);
                     obj2.SetHeader(header2);
 
-                    WriteResultReflection.SetSerializedObjects(ref result, new ObjectSerializedInfo[] { obj1, obj2 });
+                    result.SetSerializedObjects(new ObjectSerializedInfo[] { obj1, obj2 });
                 }
 
                 return result;
@@ -173,6 +171,12 @@ namespace UnityEditor.Build.Pipeline.Tests
         bool m_PreviousSlimSettings;
         bool m_PreviousStripUnusedMeshComponents;
         bool m_PreviousBakeCollisionMeshes;
+        int m_PreviousQualityLevel;
+        List<int> m_PreviousMaximumLODLeve = new List<int>();
+#if UNITY_2020_1_OR_NEWER
+        bool m_PreviousMipStripping;
+        List<int> m_PreviousMasterTextureLimits = new List<int>();
+#endif
 
         [SetUp]
         public void Setup()
@@ -183,6 +187,12 @@ namespace UnityEditor.Build.Pipeline.Tests
             PlayerSettings.stripUnusedMeshComponents = false;
             m_PreviousBakeCollisionMeshes = PlayerSettings.bakeCollisionMeshes;
             PlayerSettings.bakeCollisionMeshes = false;
+            QualitySettings_GetPrevious();
+#if UNITY_2020_1_OR_NEWER
+            m_PreviousMipStripping = PlayerSettings.mipStripping;
+            PlayerSettings.mipStripping = false;
+#endif
+
             BuildCache.PurgeCache(false);
 
             m_TestTempDir = Path.Combine("Temp", "test");
@@ -211,7 +221,74 @@ namespace UnityEditor.Build.Pipeline.Tests
             ScriptableBuildPipeline.s_Settings.slimWriteResults = m_PreviousSlimSettings;
             PlayerSettings.stripUnusedMeshComponents = m_PreviousStripUnusedMeshComponents;
             PlayerSettings.bakeCollisionMeshes = m_PreviousBakeCollisionMeshes;
+            QualitySettings_RestorePrevious();
+#if UNITY_2020_1_OR_NEWER
+            PlayerSettings.mipStripping = m_PreviousMipStripping;
+#endif
             m_Cache.Dispose();
+        }
+
+        void QualitySettings_GetPrevious()
+        {
+            m_PreviousQualityLevel = QualitySettings.GetQualityLevel();
+            QualitySettings.SetQualityLevel(0);
+
+#if UNITY_2020_1_OR_NEWER
+            m_PreviousMasterTextureLimits.Clear();
+#endif
+            m_PreviousMaximumLODLeve.Clear();
+
+            var count = QualitySettings.names.Length;
+            for (int i = 0; i < count; i++)
+            {
+#if UNITY_2020_1_OR_NEWER
+                m_PreviousMasterTextureLimits.Add(QualitySettings.masterTextureLimit);
+                QualitySettings.masterTextureLimit = 0;
+#endif
+                m_PreviousMaximumLODLeve.Add(QualitySettings.maximumLODLevel);
+                QualitySettings.maximumLODLevel = 0;
+                QualitySettings.IncreaseLevel();
+            }
+        }
+
+#if UNITY_2020_1_OR_NEWER
+        void SetQualitySettings_MasterTextureLimits(int limit)
+        {
+            QualitySettings.SetQualityLevel(0);
+
+            for (int i = 0; i < m_PreviousMasterTextureLimits.Count; i++)
+            {
+                QualitySettings.masterTextureLimit = limit;
+                QualitySettings.IncreaseLevel();
+            }
+        }
+
+#endif
+        void SetQualitySettings_MaximumLODLevel(int level)
+        {
+            QualitySettings.SetQualityLevel(0);
+
+            for (int i = 0; i < m_PreviousMaximumLODLeve.Count; i++)
+            {
+                QualitySettings.maximumLODLevel = level;
+                QualitySettings.IncreaseLevel();
+            }
+        }
+
+        void QualitySettings_RestorePrevious()
+        {
+            QualitySettings.SetQualityLevel(0);
+
+            var count = QualitySettings.names.Length;
+            for (int i = 0; i < count; i++)
+            {
+#if UNITY_2020_1_OR_NEWER
+                QualitySettings.masterTextureLimit = m_PreviousMasterTextureLimits[i];
+#endif
+                QualitySettings.maximumLODLevel = m_PreviousMaximumLODLeve[i];
+                QualitySettings.IncreaseLevel();
+            }
+            QualitySettings.SetQualityLevel(m_PreviousQualityLevel);
         }
 
         TestWriteOperation AddTestOperation(string name = "testInternalName")
@@ -233,6 +310,10 @@ namespace UnityEditor.Build.Pipeline.Tests
                 yield return new TestCaseData(true, new Action<WriteSerializedFileTests>((_this) => { ScriptableBuildPipeline.s_Settings.slimWriteResults = true; })).SetName("SlimWriteResults");
                 yield return new TestCaseData(true, new Action<WriteSerializedFileTests>((_this) => { PlayerSettings.stripUnusedMeshComponents = true; })).SetName("StripUnusedMeshComponents");
                 yield return new TestCaseData(true, new Action<WriteSerializedFileTests>((_this) => { PlayerSettings.bakeCollisionMeshes = true; })).SetName("BakeCollisionMeshes");
+                yield return new TestCaseData(true, new Action<WriteSerializedFileTests>((_this) => { _this.SetQualitySettings_MaximumLODLevel(1); })).SetName("LODStripping");
+#if UNITY_2020_1_OR_NEWER
+                yield return new TestCaseData(true, new Action<WriteSerializedFileTests>((_this) => { _this.SetQualitySettings_MasterTextureLimits(1); PlayerSettings.mipStripping = true; })).SetName("MipStripping");
+#endif
             }
         }
 
@@ -329,9 +410,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             m_BuildParameters.UseCache = true;
         }
 
-#if UNITY_2020_2_OR_NEWER
+#if UNITY_2020_2_OR_NEWER || ENABLE_DETAILED_PROFILE_CAPTURING
         [Test]
-        public void WhenWritingSerializedFilesAndUsingDetailedBuildLog_ProfileCaptureScope_CreatesLogEvents()
+        public void WhenWritingSerializedFilesAndUsingDetailedBuildLog_ProfileCaptureScope_CreatesLogEventsWithinTaskThreshold()
         {
             TestWriteOperation op = AddTestOperation();
             op.WriteBundle = true;
@@ -342,12 +423,17 @@ namespace UnityEditor.Build.Pipeline.Tests
             LogStep runCachedOp = m_Log.Root.Children.Find(x => x.Name == "RunCachedOperation");
             LogStep processEntries = runCachedOp.Children.Find(x => x.Name == "Process Entries");
             LogStep writingOp = processEntries.Children.Find(x => x.Name == "Writing TestWriteOperation");
-            LogStep extractProfileData = writingOp.Children.Find(x => x.Name == "Extract Profile Data");
-            LogStep profilerOverhead = extractProfileData.Children.Find(x => x.Name == "Profiler Overhead");
-            Assert.IsTrue(profilerOverhead.Children.Count > 0);
+            
+            Assert.IsTrue(writingOp.Children.Count > 0);
 
+            double taskEndTime = runCachedOp.StartTime + runCachedOp.DurationMS;
+            foreach(LogStep e in writingOp.Children)
+            {
+                Assert.LessOrEqual(e.StartTime + e.DurationMS, taskEndTime);
+            }
             ScriptableBuildPipeline.useDetailedBuildLog = useDetailedBuildLog;
         }
+
 #endif
     }
 }

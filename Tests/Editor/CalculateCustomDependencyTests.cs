@@ -14,101 +14,63 @@ namespace UnityEditor.Build.Pipeline.Tests
 {
     public class CalculateCustomDependencyTests
     {
-        class TestParams : IBuildParameters
+        class TestBuildParameters : TestBuildParametersBase
         {
             // Optional Inputs
-            public BuildTarget Target { get => BuildTarget.NoTarget; set => throw new System.NotImplementedException("Should never be called by build task!"); }
-            public TypeDB ScriptInfo { get => null; set => throw new System.NotImplementedException("Should never be called by build task!"); }
-
-            #region UNUSED
-            public BuildTargetGroup Group { get => throw new System.NotImplementedException("Should never be called by build task!"); set => throw new System.NotImplementedException("Should never be called by build task!"); }
-            public ContentBuildFlags ContentBuildFlags { get => throw new System.NotImplementedException("Should never be called by build task!"); set => throw new System.NotImplementedException("Should never be called by build task!"); }
-            public ScriptCompilationOptions ScriptOptions { get => throw new System.NotImplementedException("Should never be called by build task!"); set => throw new System.NotImplementedException("Should never be called by build task!"); }
-            public string TempOutputFolder { get => throw new System.NotImplementedException("Should never be called by build task!"); set => throw new System.NotImplementedException("Should never be called by build task!"); }
-            public bool UseCache { get => throw new System.NotImplementedException("Should never be called by build task!"); set => throw new System.NotImplementedException("Should never be called by build task!"); }
-            public string CacheServerHost { get => throw new System.NotImplementedException("Should never be called by build task!"); set => throw new System.NotImplementedException("Should never be called by build task!"); }
-            public int CacheServerPort { get => throw new System.NotImplementedException("Should never be called by build task!"); set => throw new System.NotImplementedException("Should never be called by build task!"); }
-            public bool WriteLinkXML { get => throw new System.NotImplementedException("Should never be called by build task!"); set => throw new System.NotImplementedException("Should never be called by build task!"); }
-
-            public UnityEngine.BuildCompression GetCompressionForIdentifier(string identifier)
-            {
-                throw new System.NotImplementedException("Should never be called by build task!");
-            }
-
-            public BuildSettings GetContentBuildSettings()
-            {
-                throw new System.NotImplementedException("Should never be called by build task!");
-            }
-
-            public string GetOutputFilePathForIdentifier(string identifier)
-            {
-                throw new System.NotImplementedException("Should never be called by build task!");
-            }
-
-            public ScriptCompilationSettings GetScriptCompilationSettings()
-            {
-                throw new System.NotImplementedException("Should never be called by build task!");
-            }
-
-            #endregion
+            public override BuildTarget Target => BuildTarget.NoTarget;
+            public override TypeDB ScriptInfo => null;
         }
 
-        class TestContent : IBundleBuildContent
+        class TestContent : TestBundleBuildContent
         {
             // Inputs
-            public List<CustomContent> CustomAssets { get; set; }
+            List<CustomContent> m_CustomAssets;
+            public override List<CustomContent> CustomAssets => m_CustomAssets;
 
             // Outputs
-            public Dictionary<string, List<GUID>> BundleLayout { get; private set; }
-            public Dictionary<GUID, string> Addresses { get; private set; }
+            Dictionary<string, List<GUID>> m_BundleLayout;
+            Dictionary<GUID, string> m_Addresses;
+            public override Dictionary<string, List<GUID>> BundleLayout => m_BundleLayout;
+            public override Dictionary<GUID, string> Addresses => m_Addresses;
 
             public TestContent(List<CustomContent> customAssets)
             {
-                CustomAssets = customAssets;
-                BundleLayout = new Dictionary<string, List<GUID>>();
-                Addresses = new Dictionary<GUID, string>();
+                m_CustomAssets = customAssets;
+                m_BundleLayout = new Dictionary<string, List<GUID>>();
+                m_Addresses = new Dictionary<GUID, string>();
             }
-
-            #region UNUSED
-            public Dictionary<string, List<ResourceFile>> AdditionalFiles { get => throw new System.NotImplementedException("Should never be called by build task!"); }
-
-            public List<GUID> Assets { get => throw new System.NotImplementedException("Should never be called by build task!"); }
-
-            public List<GUID> Scenes { get => throw new System.NotImplementedException("Should never be called by build task!"); }
-            #endregion
         }
 
-        class TestDependencyData : IDependencyData
+        class TestDependencyData : TestDependencyDataBase
         {
             // Input / Output
-            public Dictionary<GUID, AssetLoadInfo> AssetInfo { get; set; }
+            Dictionary<GUID, AssetLoadInfo> m_AssetInfo;
+            public override Dictionary<GUID, AssetLoadInfo> AssetInfo => m_AssetInfo;
 
             // Optional Inputs
-            public BuildUsageTagGlobal GlobalUsage { get; private set; }
-            public Dictionary<GUID, SceneDependencyInfo> SceneInfo { get; private set; }
-            public BuildUsageCache DependencyUsageCache => null;
+            BuildUsageTagGlobal m_GlobalUsage;
+            Dictionary<GUID, SceneDependencyInfo> m_SceneInfo;
+            public override BuildUsageTagGlobal GlobalUsage => m_GlobalUsage;
+            public override Dictionary<GUID, SceneDependencyInfo> SceneInfo => m_SceneInfo;
+            public override BuildUsageCache DependencyUsageCache => null;
 
             // Outputs
-            public Dictionary<GUID, BuildUsageTagSet> AssetUsage { get; internal set; }
+            Dictionary<GUID, BuildUsageTagSet> m_AssetUsage;
+            public override Dictionary<GUID, BuildUsageTagSet> AssetUsage => m_AssetUsage;
 
             public TestDependencyData(Dictionary<GUID, AssetLoadInfo> assetInfo)
             {
-                AssetInfo = assetInfo;
-                GlobalUsage = new BuildUsageTagGlobal();
-                SceneInfo = new Dictionary<GUID, SceneDependencyInfo>();
-                AssetUsage = new Dictionary<GUID, BuildUsageTagSet>();
+                m_AssetInfo = assetInfo;
+                m_GlobalUsage = new BuildUsageTagGlobal();
+                m_SceneInfo = new Dictionary<GUID, SceneDependencyInfo>();
+                m_AssetUsage = new Dictionary<GUID, BuildUsageTagSet>();
             }
-
-            #region UNUSED
-            public Dictionary<GUID, BuildUsageTagSet> SceneUsage => throw new System.NotImplementedException("Should never be called by build task!");
-            public Dictionary<GUID, Hash128> DependencyHash => throw new System.NotImplementedException();
-            #endregion
         }
 
         static CalculateCustomDependencyData CreateDefaultBuildTask(List<CustomContent> customAssets, Dictionary<GUID, AssetLoadInfo> assetInfo = null)
         {
             var task = new CalculateCustomDependencyData();
-            var testParams = new TestParams();
+            var testParams = new TestBuildParameters();
             var testContent = new TestContent(customAssets);
             if (assetInfo == null)
                 assetInfo = new Dictionary<GUID, AssetLoadInfo>();

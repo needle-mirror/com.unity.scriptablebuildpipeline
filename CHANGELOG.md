@@ -4,9 +4,21 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [1.12.0] - 2020-08-24
-- Improved thread handling of the Cache Save, Upload, and Prune operations.
+## [1.13.1] - 2020-09-24
+- Fixed an edge case where changing PlayerSettings.mipStripping did not rebuild asset bundles as required.
+- Fixed an edge case where changing QualitySettings.maximumLODLevel did not rebuild scene bundles as required.
+- Reduced unnecessary bundle rebuilds due to too much data in BuildReferenceMap
+- Removed unnecessary memory overhead when hashing large data sets for caching.
+- Added API to build player scripts to a separate location from Temp or Output Folders.
+- Fixed SpookyHash and improved it's performance when used on Unity 2020.1 and greater versions.
+- SpookyHash will be the default hashing method in Scriptable Build Pipeline on Untiy 2021.1 and greater.
+- Contiguous Bundles will be Opt-Out in Addressables & Scriptable Build Pipeline in Untiy 2021.1 and greater.
+
+## [1.12.0] - 2020-09-15
 - Improved caching performance of the WriteSerializedFile build task with projects using many Prefabs in Scenes.
+
+## [1.11.2] - 2020-08-24
+- Improved thread handling of the Cache Save, Upload, and Prune operations.
 
 ## [1.11.1] - 2020-08-11
 - Exposed the ScriptableBuildPipeline static class to allow setting per project properties from script.

@@ -98,7 +98,7 @@ namespace UnityEditor.Build.Pipeline.Interfaces
         }
     }
 
-#if UNITY_2020_2_OR_NEWER
+#if UNITY_2020_2_OR_NEWER || ENABLE_DETAILED_PROFILE_CAPTURING
     internal struct ProfileCaptureScope : IDisposable
     {
         IBuildLogger m_Logger;
@@ -115,12 +115,9 @@ namespace UnityEditor.Build.Pipeline.Interfaces
             if (m_Logger == null)
                 return;
 
-            using (m_Logger.ScopedStep(LogLevel.Info, $"Extract Profile Data"))
-            {
-                IDeferredBuildLogger dLog = (IDeferredBuildLogger)m_Logger;
-                IEnumerable<DeferredEvent> dEvents = events.Select(i => new DeferredEvent() { Level = LogLevel.Verbose, Name = i.Name, Time = (double)i.TimeMicroseconds / (double)1000, Type = BuildLoggerExternsions.ConvertToDeferredType(i.Type) });
-                dLog.HandleDeferredEventStream(dEvents);
-            }
+            IDeferredBuildLogger dLog = (IDeferredBuildLogger)m_Logger;
+            IEnumerable<DeferredEvent> dEvents = events.Select(i => new DeferredEvent() { Level = LogLevel.Verbose, Name = i.Name, Time = (double)i.TimeMicroseconds / (double)1000, Type = BuildLoggerExternsions.ConvertToDeferredType(i.Type) });
+            dLog.HandleDeferredEventStream(dEvents);
         }
     }
 #endif
@@ -170,7 +167,7 @@ namespace UnityEditor.Build.Pipeline.Interfaces
             return new ScopedBuildStep(level, stepName, log, false, context);
         }
 
-#if UNITY_2020_2_OR_NEWER
+#if UNITY_2020_2_OR_NEWER || ENABLE_DETAILED_PROFILE_CAPTURING
         internal static DeferredEventType ConvertToDeferredType(ProfileEventType type)
         {
             if (type == ProfileEventType.Begin) return DeferredEventType.Begin;

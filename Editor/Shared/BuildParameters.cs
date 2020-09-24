@@ -56,6 +56,19 @@ namespace UnityEditor.Build.Pipeline
             }
         }
 
+        string m_ScriptOutputFolder;
+        /// <inheritdoc />
+        public string ScriptOutputFolder
+        {
+            get { return m_ScriptOutputFolder; }
+            set
+            {
+                if (string.IsNullOrEmpty(value))
+                    throw new ArgumentException("Argument cannot be null or empty.", "value");
+                m_ScriptOutputFolder = value;
+            }
+        }
+
         /// <inheritdoc />
         public bool UseCache { get; set; }
         /// <inheritdoc />
@@ -91,6 +104,7 @@ namespace UnityEditor.Build.Pipeline
 #endif
             OutputFolder = outputFolder;
             TempOutputFolder = ContentPipeline.kTempBuildPath;
+            ScriptOutputFolder = ContentPipeline.kScriptBuildPath;
             UseCache = true;
             CacheServerPort = 8126;
             if (ScriptableBuildPipeline.UseBuildCacheServer)
@@ -148,7 +162,12 @@ namespace UnityEditor.Build.Pipeline
 
         /// <inheritdoc />
         public BundleBuildParameters(BuildTarget target, BuildTargetGroup group, string outputFolder)
-            : base(target, group, outputFolder) {}
+            : base(target, group, outputFolder)
+        {
+#if UNITY_2021_1_OR_NEWER
+            ContiguousBundles = true;
+#endif
+        }
 
         /// <inheritdoc />
         public bool AppendHash { get; set; }

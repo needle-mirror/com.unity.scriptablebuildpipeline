@@ -40,22 +40,6 @@ namespace UnityEditor.Build.Pipeline.Tests
 #endif
         }
 
-        public static void SetResourceFiles(this ref WriteResult result, ResourceFile[] resourceFiles)
-        {
-            var fieldInfo = typeof(WriteResult).GetField("m_ResourceFiles", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            object boxed = result;
-            fieldInfo.SetValue(boxed, resourceFiles);
-            result = (WriteResult)boxed;
-        }
-
-        public static void SetSerializedObjects(this ref WriteResult result, ObjectSerializedInfo[] osis)
-        {
-            var fieldInfo = typeof(WriteResult).GetField("m_SerializedObjects", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            object boxed = result;
-            fieldInfo.SetValue(boxed, osis);
-            result = (WriteResult)boxed;
-        }
-
         public static void SetHeader(this ref ObjectSerializedInfo osi, SerializedLocation serializedLocation)
         {
             var fieldInfo = typeof(ObjectSerializedInfo).GetField("m_Header", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);

@@ -1,7 +1,6 @@
-using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Security.Cryptography;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Utilities;
 using UnityEngine;
@@ -131,21 +130,20 @@ static class HashingHelpers
     }
 }
 
-class StreamHasher
+internal class StreamHasher
 {
-    MemoryStream m_Stream;
+    HashStream m_Stream;
     public BinaryWriter Writer { private set; get; }
-
 
     public StreamHasher()
     {
-        m_Stream = new MemoryStream();
+        var hasher = HashingMethods.GetHashAlgorithm();
+        m_Stream = new HashStream(hasher);
         Writer = new BinaryWriter(m_Stream);
     }
 
     public Hash128 GetHash()
     {
-        m_Stream.Position = 0;
-        return HashingMethods.CalculateStream(m_Stream).ToHash128();
+        return m_Stream.GetHash().ToHash128();
     }
 }

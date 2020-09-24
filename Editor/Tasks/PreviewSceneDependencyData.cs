@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Injector;
 using UnityEditor.Build.Pipeline.Interfaces;
@@ -100,13 +99,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
                     sceneInfo = new SceneDependencyInfo();
                     usageTags = new BuildUsageTagSet();
 
-                    var boxedInfo = (object)sceneInfo;
-                    typeof(SceneDependencyInfo).GetField("m_Scene", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(boxedInfo, scenePath);
-#if !UNITY_2019_3_OR_NEWER
-                    typeof(SceneDependencyInfo).GetField("m_ProcessedScene", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(boxedInfo, scenePath);
-#endif
-                    typeof(SceneDependencyInfo).GetField("m_ReferencedObjects", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(boxedInfo, references.ToArray());
-                    sceneInfo = (SceneDependencyInfo)boxedInfo;
+                    sceneInfo.SetScene(scenePath);
+                    sceneInfo.SetProcessedScene(scenePath);
+                    sceneInfo.SetReferencedObjects(references.ToArray());
 
                     if (uncachedInfo != null)
                         uncachedInfo.Add(GetCachedInfo(scene, sceneInfo.referencedObjects, sceneInfo, usageTags));

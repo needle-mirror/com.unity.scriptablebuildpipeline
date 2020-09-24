@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Reflection;
 using System.Threading;
 using System.Threading.Tasks;
 using UnityEditor.Build.Content;
@@ -53,27 +52,6 @@ namespace UnityEditor.Build.Pipeline.Tasks
         IBuildLogger m_Log;
 #pragma warning restore 649
 
-        static internal bool m_SupportsMultiThreadedArching;
-        static ArchiveAndCompressBundles()
-        {
-            SupportsMultiThreadedArchiving = false;
-            foreach (MethodInfo info in typeof(ContentBuildInterface).GetMethods())
-            {
-                if (info.Name == "ArchiveAndCompress")
-                {
-                    foreach (var attr in info.CustomAttributes)
-                    {
-                        string name = attr.AttributeType.Name;
-                        if (name == "ThreadSafeAttribute")
-                        {
-                            SupportsMultiThreadedArchiving = true;
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
         static void CopyFileWithTimestampIfDifferent(string srcPath, string destPath, IBuildLogger log)
         {
             if (srcPath == destPath)
@@ -92,8 +70,6 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 File.Copy(srcPath, destPath, true);
             }
         }
-
-        static internal bool SupportsMultiThreadedArchiving { get; private set; }
 
         static CacheEntry GetCacheEntry(IBuildCache cache, string bundleName, IEnumerable<ResourceFile> resources, BuildCompression compression, List<SerializedFileMetaData> hashes)
         {
@@ -184,7 +160,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             input.InternalFilenameToWriteMetaData = m_Results.WriteResultsMetaData;
             input.Log = m_Log;
 
-            input.Threaded = SupportsMultiThreadedArchiving && ScriptableBuildPipeline.threadedArchiving;
+            input.Threaded = ReflectionExtensions.SupportsMultiThreadedArchiving && ScriptableBuildPipeline.threadedArchiving;
 
             TaskOutput output;
             ReturnCode code = Run(input, out output);

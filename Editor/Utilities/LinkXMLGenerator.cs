@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Xml;
+using System.IO;
+using System.Linq;
+using System.Text;
 
 namespace UnityEditor.Build.Pipeline.Utilities
 {
@@ -13,6 +16,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
         Dictionary<Type, Type> m_TypeConversion = new Dictionary<Type, Type>();
         HashSet<Type> m_Types = new HashSet<Type>();
         HashSet<Assembly> m_Assemblies = new HashSet<Assembly>();
+        protected Dictionary<string, HashSet<string>> serializedClassesPerAssembly = new Dictionary<string, HashSet<string>>();
 
         /// <summary>
         /// Constructs and returns a LinkXmlGenerator object that contains default UnityEditor to UnityEngine type conversions.
@@ -90,6 +94,22 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 AddTypeInternal(t);
         }
 
+        /// <summary>
+        /// Add SerializedReference class type from fully qualified name to the Generator, those will end up in PreservedTypes.xml
+        /// </summary>
+        /// <param name="serializedRefTypes">The SerializeReference instance fully qualified name we want to preserve.</param>
+        public void AddSerializedClass(IEnumerable<string> serializedRefTypes)
+        {
+            if (serializedRefTypes == null)
+                return;
+            foreach (var t in serializedRefTypes)
+            {
+                var indexOfAssembly = t.IndexOf(':');
+                if (indexOfAssembly != -1)
+                    AddSerializedClassInternal(t.Substring(0,indexOfAssembly), t.Substring(indexOfAssembly+1,t.Length - (indexOfAssembly + 1)));
+            }
+        }
+
         private void AddTypeInternal(Type t)
         {
             if (t == null)
@@ -100,6 +120,20 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 m_Types.Add(convertedType);
             else
                 m_Types.Add(t);
+        }
+
+        private void AddSerializedClassInternal(string assemblyName, string classWithNameSpace)
+        {
+            if (string.IsNullOrEmpty(assemblyName))
+                return;
+
+            if (string.IsNullOrEmpty(classWithNameSpace))
+                return;
+            
+            if (!serializedClassesPerAssembly.TryGetValue(assemblyName, out HashSet<string> types))
+                serializedClassesPerAssembly[assemblyName] = types = new HashSet<string>();
+
+            types.Add(classWithNameSpace);
         }
 
         private void AddAssemblyInternal(Assembly a)
@@ -170,6 +204,55 @@ namespace UnityEditor.Build.Pipeline.Utilities
                             pattr.Value = "all";
                             typeEl.Attributes.Append(pattr);
                         }
+                    }
+
+                    //Add serialize reference classes which are contained in the current assembly
+                    var assemblyName = k.Key.GetName().Name;
+                    if (serializedClassesPerAssembly.ContainsKey(assemblyName))
+                    {
+                        //Add content for this 
+                        foreach (var t in serializedClassesPerAssembly[assemblyName])
+                        {
+                            var typeEl = assembly.AppendChild(doc.CreateElement("type"));
+                            var tattr = doc.CreateAttribute("fullname");
+                            tattr.Value = t;
+                            if (typeEl.Attributes != null)
+                            {
+                                typeEl.Attributes.Append(tattr);
+                                var pattr = doc.CreateAttribute("preserve");
+                                pattr.Value = "nothing";
+                                typeEl.Attributes.Append(pattr);
+                                var sattr = doc.CreateAttribute("serialized");
+                                sattr.Value = "true";
+                                typeEl.Attributes.Append(sattr);
+                            }
+                        }
+                        serializedClassesPerAssembly.Remove(assemblyName);
+                    }
+                }
+            }
+
+            //Add serialize reference classes which are contained in other assemblies not yet removed.
+            foreach (var k in serializedClassesPerAssembly)
+            {
+                var assembly = linker.AppendChild(doc.CreateElement("assembly"));
+                var attr = doc.CreateAttribute("fullname");
+                attr.Value = k.Key;
+                //Add content for this 
+                foreach (var t in k.Value)
+                {
+                    var typeEl = assembly.AppendChild(doc.CreateElement("type"));
+                    var tattr = doc.CreateAttribute("fullname");
+                    tattr.Value = t;
+                    if (typeEl.Attributes != null)
+                    {
+                        typeEl.Attributes.Append(tattr);
+                        var pattr = doc.CreateAttribute("preserve");
+                        pattr.Value = "nothing";
+                        typeEl.Attributes.Append(pattr);
+                        var sattr = doc.CreateAttribute("serialized");
+                        sattr.Value = "true";
+                        typeEl.Attributes.Append(sattr);
                     }
                 }
             }

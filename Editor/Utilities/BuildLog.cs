@@ -200,21 +200,18 @@ namespace UnityEditor.Build.Pipeline.Utilities
             // now make all those times relative to the active event
             LogStep startStep = m_Stack.Peek();
 
-            using (this.ScopedStep(LogLevel.Info, "Profiler Overhead"))
+            m_ShouldOverrideWallTimer = true;
+            foreach (DeferredEvent e in events)
             {
-                m_ShouldOverrideWallTimer = true;
-                foreach (DeferredEvent e in events)
-                {
-                    m_WallTimerOverride = e.Time + startStep.StartTime;
-                    if (e.Type == DeferredEventType.Begin)
-                        BeginBuildStep(e.Level, e.Name, false);
-                    else if (e.Type == DeferredEventType.End)
-                        EndBuildStep();
-                    else
-                        AddEntry(e.Level, e.Name);
-                }
-                m_ShouldOverrideWallTimer = false;
+                m_WallTimerOverride = e.Time + startStep.StartTime;
+                if (e.Type == DeferredEventType.Begin)
+                    BeginBuildStep(e.Level, e.Name, false);
+                else if (e.Type == DeferredEventType.End)
+                    EndBuildStep();
+                else
+                    AddEntry(e.Level, e.Name);
             }
+            m_ShouldOverrideWallTimer = false;
 
             LogStep stopStep = m_Stack.Peek();
             if (stopStep != startStep)

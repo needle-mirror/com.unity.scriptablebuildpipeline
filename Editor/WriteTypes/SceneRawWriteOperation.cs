@@ -80,6 +80,7 @@ namespace UnityEditor.Build.Pipeline.WriteTypes
                 hashes.Add(ReferenceMap.GetHash128());
             using (log.ScopedStep(LogLevel.Verbose, $"Hashing Objects", Command.fileName))
                 hashes.Add(HashingMethods.Calculate(hashObjects).ToHash128());
+            hashes.Add(new Hash128(0, 0, 0, (uint)QualitySettingsApi.GetNumberOfLODsStripped()));
             hashes.Add(DependencyHash);
 
             return HashingMethods.Calculate(hashes, Scene, entry).ToHash128();

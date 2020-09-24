@@ -27,6 +27,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         public virtual TypeDB ScriptInfo { get => throw new System.NotImplementedException(TestTracing.Callsite()); set => throw new System.NotImplementedException(TestTracing.Callsite()); }
         public virtual ScriptCompilationOptions ScriptOptions { get => throw new System.NotImplementedException(TestTracing.Callsite()); set => throw new System.NotImplementedException(TestTracing.Callsite()); }
         public virtual string TempOutputFolder { get => throw new System.NotImplementedException(TestTracing.Callsite()); set => throw new System.NotImplementedException(TestTracing.Callsite()); }
+        public virtual string ScriptOutputFolder { get => throw new System.NotImplementedException(TestTracing.Callsite()); set => throw new System.NotImplementedException(TestTracing.Callsite()); }
         public virtual bool UseCache { get => throw new System.NotImplementedException(TestTracing.Callsite()); set => throw new System.NotImplementedException(TestTracing.Callsite()); }
         public virtual string CacheServerHost { get => throw new System.NotImplementedException(TestTracing.Callsite()); set => throw new System.NotImplementedException(TestTracing.Callsite()); }
         public virtual int CacheServerPort { get => throw new System.NotImplementedException(TestTracing.Callsite()); set => throw new System.NotImplementedException(TestTracing.Callsite()); }
