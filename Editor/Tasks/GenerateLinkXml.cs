@@ -33,8 +33,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             {
                 linker.AddTypes(writeResult.Value.includedTypes);
 #if UNITY_2021_1_OR_NEWER
-                // Uncomment once PR 113067 lands in trunk.
-                //linker.AddSerializedClass(writeResult.Value.includedSerializeReferenceFQN);
+                linker.AddSerializedClass(writeResult.Value.includedSerializeReferenceFQN);
 #else
                 if (writeResult.Value.GetType().GetProperty("includedSerializeReferenceFQN") != null)
                     linker.AddSerializedClass((string[])writeResult.Value.GetType().GetProperty("includedSerializeReferenceFQN").GetValue(writeResult.Value));

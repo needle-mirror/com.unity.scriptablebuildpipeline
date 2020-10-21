@@ -66,20 +66,30 @@ namespace UnityEditor.Build.Pipeline
             m_ContextObjects[type] = contextObject;
         }
 
+        private IEnumerable<Type> WalkAssignableTypes(IContextObject contextObject)
+        {
+            var iCType = typeof(IContextObject);
+            foreach (Type t in contextObject.GetType().GetInterfaces())
+            {
+                if (iCType.IsAssignableFrom(t) && t != iCType)
+                    yield return t;
+            }
+
+            for (var current = contextObject.GetType(); current != null; current = current.BaseType)
+                if (iCType.IsAssignableFrom(current) && current != iCType)
+                    yield return current;
+        }
+
         /// <inheritdoc />
         public void SetContextObject(IContextObject contextObject)
         {
             if (contextObject == null)
                 throw new ArgumentNullException("contextObject");
 
-            var iCType = typeof(IContextObject);
-            Type[] iTypes = contextObject.GetType().GetInterfaces();
-            foreach (var iType in iTypes)
-            {
-                if (!iCType.IsAssignableFrom(iType) || iType == iCType)
-                    continue;
-                m_ContextObjects[iType] = contextObject;
-            }
+            List<Type> types = new List<Type>(WalkAssignableTypes(contextObject));
+            if (types.Count == 0)
+                throw new Exception($"Could not determine context object type for object of type {contextObject.GetType().FullName}");
+            types.ForEach(x => m_ContextObjects[x] = contextObject);
         }
 
         /// <inheritdoc />
@@ -100,7 +110,7 @@ namespace UnityEditor.Build.Pipeline
         /// <inheritdoc />
         public T GetContextObject<T>() where T : IContextObject
         {
-            return (T)m_ContextObjects[typeof(T)];
+            return (T)GetContextObject(typeof(T));
         }
 
         /// <inheritdoc />
@@ -110,7 +120,7 @@ namespace UnityEditor.Build.Pipeline
                 throw new ArgumentNullException("type");
 
             if (!m_ContextObjects.ContainsKey(type))
-                Debug.LogError("Missing type in GetContextObject: " + type);
+                throw new Exception($"Object of Type {type} was not available within the BuildContext");
 
             return m_ContextObjects[type];
         }
