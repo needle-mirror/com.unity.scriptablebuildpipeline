@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor.Build.Content;
-using UnityEngine;
+using UnityEditor.Build.Pipeline.Interfaces;
 
 namespace UnityEditor.Build.Pipeline.Utilities
 {
@@ -27,11 +29,39 @@ namespace UnityEditor.Build.Pipeline.Utilities
             list[first] = temp;
         }
 
-        public static Hash128 GetHash128(this BuildSettings settings)
+        public static void GatherSerializedObjectCacheEntries(this WriteCommand command, HashSet<CacheEntry> cacheEntries)
         {
-            if (settings.typeDB == null)
-                return HashingMethods.Calculate(settings.target, settings.group, settings.buildFlags).ToHash128();
-            return HashingMethods.Calculate(settings.target, settings.group, settings.buildFlags, settings.typeDB.GetHash128()).ToHash128();
+            if (command.serializeObjects != null)
+            {
+                var objectIds = command.serializeObjects.Select(x => x.serializationObject);
+                var types = BuildCacheUtility.GetTypeForObjects(objectIds);
+                cacheEntries.UnionWith(types.Select(BuildCacheUtility.GetCacheEntry));
+                cacheEntries.UnionWith(objectIds.Select(BuildCacheUtility.GetCacheEntry));
+            }
+        }
+
+        public static void ExtractCommonCacheData(IBuildCache cache, IEnumerable<ObjectIdentifier> includedObjects, IEnumerable<ObjectIdentifier> referencedObjects, HashSet<Type> uniqueTypes, List<KeyValuePair<ObjectIdentifier, Type[]>> objectTypes, HashSet<CacheEntry> dependencies)
+        {
+            if (includedObjects != null)
+            {
+                foreach (var objectId in includedObjects)
+                {
+                    var types = BuildCacheUtility.GetTypeForObject(objectId);
+                    objectTypes.Add(new KeyValuePair<ObjectIdentifier, Type[]>(objectId, types));
+                    uniqueTypes.UnionWith(types);
+                }
+            }
+            if (referencedObjects != null)
+            {
+                foreach (var objectId in referencedObjects)
+                {
+                    var types = BuildCacheUtility.GetTypeForObject(objectId);
+                    objectTypes.Add(new KeyValuePair<ObjectIdentifier, Type[]>(objectId, types));
+                    uniqueTypes.UnionWith(types);
+                    dependencies.Add(cache.GetCacheEntry(objectId));
+                }
+            }
+            dependencies.UnionWith(uniqueTypes.Select(cache.GetCacheEntry));
         }
     }
 }

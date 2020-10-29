@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Utilities;
@@ -32,6 +33,14 @@ namespace UnityEditor.Build.Pipeline.Interfaces
         /// <param name="version">Version number of the system asking for an entry to distinguish it from previous incompatible entries. (Optional)</param>
         /// <returns>CacheEntry representing an object identifier.</returns>
         CacheEntry GetCacheEntry(ObjectIdentifier objectID, int version = 1);
+
+        /// <summary>
+        /// Gets a CacheEntry for a scripting type by a System.Type.
+        /// </summary>
+        /// <param name="type">System.Type for a scripting type</param>
+        /// <param name="version">Version number of the system asking for an entry to distinguish it from previous incompatible entries. (Optional)</param>
+        /// <returns>CacheEntry representing an object identifier.</returns>
+        CacheEntry GetCacheEntry(Type type, int version = 1);
 
         /// <summary>
         /// Checks if the CachedInfo passed in needs to be rebuilt

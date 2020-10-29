@@ -98,62 +98,64 @@ namespace UnityEditor.Build.Pipeline
 
             ReturnCode exitCode;
             result = new BundleBuildResults();
-            BuildCacheUtility.ClearCacheHashes();
-            using (var interfacesWrapper = new BuildInterfacesWrapper())
+
 #if !CI_TESTRUNNER_PROJECT
-                using (new SceneStateCleanup())
-                using (var progressTracker = new ProgressTracker())
+            using (new SceneStateCleanup())
+            using (var progressTracker = new ProgressTracker())
 #else
-                using (var progressTracker = new ProgressLoggingTracker())
+            using (var progressTracker = new ProgressLoggingTracker())
 #endif
-                    using (var buildCache = new BuildCache(parameters.CacheServerHost, parameters.CacheServerPort))
+            {
+                using (new AutoBuildCacheUtility())
+                using (var interfacesWrapper = new BuildInterfacesWrapper())
+                using (var buildCache = new BuildCache(parameters.CacheServerHost, parameters.CacheServerPort))
+                {
+                    Directory.CreateDirectory(parameters.TempOutputFolder);
+                    Directory.CreateDirectory(parameters.ScriptOutputFolder);
+
+                    try
                     {
-                        Directory.CreateDirectory(parameters.TempOutputFolder);
-                        Directory.CreateDirectory(parameters.ScriptOutputFolder);
-
-                        try
-                        {
-                            buildContext.SetContextObject(parameters);
-                            buildContext.SetContextObject(content);
-                            buildContext.SetContextObject(result);
-                            buildContext.SetContextObject(interfacesWrapper);
-                            buildContext.SetContextObject(progressTracker);
-                            buildContext.SetContextObject(buildCache);
-                            // If IDeterministicIdentifiers was passed in with contextObjects, don't add the default
-                            if (!buildContext.ContainsContextObject(typeof(IDeterministicIdentifiers)))
-                                buildContext.SetContextObject(parameters.ContiguousBundles ? new PrefabPackedIdentifiers() : (IDeterministicIdentifiers) new Unity5PackedIdentifiers());
-                            buildContext.SetContextObject(new BuildDependencyData());
-                            buildContext.SetContextObject(new BundleWriteData());
-                            buildContext.SetContextObject(BuildCallbacks);
-                            buildCache.SetBuildLogger(logger);
-                        }
-                        catch (Exception e)
-                        {
-                            // Avoid throwing exceptions in here as we don't want them bubbling up to calling user code
-                            result = null;
-                            BuildLogger.LogException(e);
-                            return ReturnCode.Exception;
-                        }
-
-                        exitCode = BuildTasksRunner.Validate(taskList, buildContext);
-                        if (exitCode >= ReturnCode.Success)
-#if SBP_PROFILER_ENABLE
-                            exitCode = BuildTasksRunner.RunProfiled(taskList, buildContext);
-#else
-                            exitCode = BuildTasksRunner.Run(taskList, buildContext);
-#endif
-
-                        if (Directory.Exists(parameters.TempOutputFolder))
-                            Directory.Delete(parameters.TempOutputFolder, true);
-
-                        if (buildLog != null)
-                        {
-                            string buildLogPath = parameters.GetOutputFilePathForIdentifier("buildlogtep.json");
-                            Directory.CreateDirectory(Path.GetDirectoryName(buildLogPath));
-                            File.WriteAllText(parameters.GetOutputFilePathForIdentifier("buildlogtep.json"), buildLog.FormatForTraceEventProfiler());
-                        }
+                        buildContext.SetContextObject(parameters);
+                        buildContext.SetContextObject(content);
+                        buildContext.SetContextObject(result);
+                        buildContext.SetContextObject(interfacesWrapper);
+                        buildContext.SetContextObject(progressTracker);
+                        buildContext.SetContextObject(buildCache);
+                        // If IDeterministicIdentifiers was passed in with contextObjects, don't add the default
+                        if (!buildContext.ContainsContextObject(typeof(IDeterministicIdentifiers)))
+                            buildContext.SetContextObject(parameters.ContiguousBundles ? new PrefabPackedIdentifiers() : (IDeterministicIdentifiers) new Unity5PackedIdentifiers());
+                        buildContext.SetContextObject(new BuildDependencyData());
+                        buildContext.SetContextObject(new BundleWriteData());
+                        buildContext.SetContextObject(BuildCallbacks);
+                        buildCache.SetBuildLogger(logger);
+                    }
+                    catch (Exception e)
+                    {
+                        // Avoid throwing exceptions in here as we don't want them bubbling up to calling user code
+                        result = null;
+                        BuildLogger.LogException(e);
+                        return ReturnCode.Exception;
                     }
 
+                    exitCode = BuildTasksRunner.Validate(taskList, buildContext);
+                    if (exitCode >= ReturnCode.Success)
+#if SBP_PROFILER_ENABLE
+                        exitCode = BuildTasksRunner.RunProfiled(taskList, buildContext);
+#else
+                        exitCode = BuildTasksRunner.Run(taskList, buildContext);
+#endif
+
+                    if (Directory.Exists(parameters.TempOutputFolder))
+                        Directory.Delete(parameters.TempOutputFolder, true);
+
+                    if (buildLog != null)
+                    {
+                        string buildLogPath = parameters.GetOutputFilePathForIdentifier("buildlogtep.json");
+                        Directory.CreateDirectory(Path.GetDirectoryName(buildLogPath));
+                        File.WriteAllText(parameters.GetOutputFilePathForIdentifier("buildlogtep.json"), buildLog.FormatForTraceEventProfiler());
+                    }
+                }
+            }
 
             long maximumCacheSize = ScriptableBuildPipeline.maximumCacheSize * BuildCache.k_BytesToGigaBytes;
             BuildCache.PruneCache_Background(maximumCacheSize);

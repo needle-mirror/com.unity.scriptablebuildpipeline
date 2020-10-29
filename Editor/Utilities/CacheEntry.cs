@@ -49,7 +49,11 @@ namespace UnityEditor.Build.Pipeline.Utilities
             /// <summary>
             /// Indicates that the entry holds general data.
             /// </summary>
-            Data
+            Data,
+            /// <summary>
+            /// Indicates that the entry is a type.
+            /// </summary>
+            ScriptType
         }
 
         /// <summary>
@@ -78,6 +82,11 @@ namespace UnityEditor.Build.Pipeline.Utilities
         public string File { get; internal set; }
 
         /// <summary>
+        /// Stores the entry scripting type.
+        /// </summary>
+        public string ScriptType { get; internal set; }
+
+        /// <summary>
         /// Determines if the entry is valid.
         /// </summary>
         /// <returns>Returns true if the entry is valid. Returns false otherwise.</returns>
@@ -101,7 +110,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
         /// <inheritdoc/>
         public static bool operator==(CacheEntry x, CacheEntry y)
         {
-            return x.Hash == y.Hash && x.Guid == y.Guid;
+            return x.Equals(y);
         }
 
         /// <inheritdoc/>
@@ -123,6 +132,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 hashCode = (hashCode * 397) ^ Version;
                 hashCode = (hashCode * 397) ^ (int)Type;
                 hashCode = (hashCode * 397) ^ (File != null ? File.GetHashCode() : 0);
+                hashCode = (hashCode * 397) ^ (ScriptType != null ? ScriptType.GetHashCode() : 0);
                 return hashCode;
             }
         }
@@ -134,8 +144,10 @@ namespace UnityEditor.Build.Pipeline.Utilities
         public override string ToString()
         {
             if (Type == EntryType.File)
-                return string.Format("{{{0}, {1}}}", File, Hash);
-            return string.Format("{{{0}, {1}}}", Guid, Hash);
+                return string.Format("({0}, {1})", File, Hash);
+            if (Type == EntryType.ScriptType)
+                return string.Format("({0}, {1})", ScriptType, Hash);
+            return string.Format("({0}, {1})", Guid, Hash);
         }
 
         /// <summary>
@@ -145,7 +157,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
         /// <returns>Returns true if the entries are equivalent. Returns false otherwise.</returns>
         public bool Equals(CacheEntry other)
         {
-            return Hash.Equals(other.Hash) && Guid.Equals(other.Guid) && Version == other.Version && Type == other.Type && string.Equals(File, other.File);
+            return Hash.Equals(other.Hash) && Guid.Equals(other.Guid) && Version == other.Version && Type == other.Type && string.Equals(File, other.File) && string.Equals(ScriptType, other.ScriptType);
         }
     }
 }

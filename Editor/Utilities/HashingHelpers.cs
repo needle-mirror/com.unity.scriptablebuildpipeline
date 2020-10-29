@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using System.IO;
-using System.Security.Cryptography;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Utilities;
 using UnityEngine;
@@ -127,6 +126,11 @@ static class HashingHelpers
         StreamHasher hasher = new StreamHasher();
         HashingHelpers.WriteHashData(cmd, hasher.Writer);
         return hasher.GetHash();
+    }
+
+    public static Hash128 GetHash128(this BuildSettings settings)
+    {
+        return HashingMethods.Calculate(settings.target, settings.group, settings.buildFlags).ToHash128();
     }
 }
 

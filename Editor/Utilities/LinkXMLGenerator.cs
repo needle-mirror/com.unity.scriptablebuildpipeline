@@ -16,7 +16,8 @@ namespace UnityEditor.Build.Pipeline.Utilities
         Dictionary<Type, Type> m_TypeConversion = new Dictionary<Type, Type>();
         HashSet<Type> m_Types = new HashSet<Type>();
         HashSet<Assembly> m_Assemblies = new HashSet<Assembly>();
-        protected Dictionary<string, HashSet<string>> serializedClassesPerAssembly = new Dictionary<string, HashSet<string>>();
+        [Obsolete] protected Dictionary<string, HashSet<string>> serializedClassesPerAssembly = null;
+        Dictionary<string, HashSet<string>> m_SerializedClassesPerAssembly = new Dictionary<string, HashSet<string>>();
 
         /// <summary>
         /// Constructs and returns a LinkXmlGenerator object that contains default UnityEditor to UnityEngine type conversions.
@@ -106,7 +107,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             {
                 var indexOfAssembly = t.IndexOf(':');
                 if (indexOfAssembly != -1)
-                    AddSerializedClassInternal(t.Substring(0,indexOfAssembly), t.Substring(indexOfAssembly+1,t.Length - (indexOfAssembly + 1)));
+                    AddSerializedClassInternal(t.Substring(0, indexOfAssembly), t.Substring(indexOfAssembly + 1, t.Length - (indexOfAssembly + 1)));
             }
         }
 
@@ -129,9 +130,9 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
             if (string.IsNullOrEmpty(classWithNameSpace))
                 return;
-            
-            if (!serializedClassesPerAssembly.TryGetValue(assemblyName, out HashSet<string> types))
-                serializedClassesPerAssembly[assemblyName] = types = new HashSet<string>();
+
+            if (!m_SerializedClassesPerAssembly.TryGetValue(assemblyName, out HashSet<string> types))
+                m_SerializedClassesPerAssembly[assemblyName] = types = new HashSet<string>();
 
             types.Add(classWithNameSpace);
         }
@@ -208,10 +209,10 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
                     //Add serialize reference classes which are contained in the current assembly
                     var assemblyName = k.Key.GetName().Name;
-                    if (serializedClassesPerAssembly.ContainsKey(assemblyName))
+                    if (m_SerializedClassesPerAssembly.ContainsKey(assemblyName))
                     {
-                        //Add content for this 
-                        foreach (var t in serializedClassesPerAssembly[assemblyName])
+                        //Add content for this
+                        foreach (var t in m_SerializedClassesPerAssembly[assemblyName])
                         {
                             var typeEl = assembly.AppendChild(doc.CreateElement("type"));
                             var tattr = doc.CreateAttribute("fullname");
@@ -227,18 +228,18 @@ namespace UnityEditor.Build.Pipeline.Utilities
                                 typeEl.Attributes.Append(sattr);
                             }
                         }
-                        serializedClassesPerAssembly.Remove(assemblyName);
+                        m_SerializedClassesPerAssembly.Remove(assemblyName);
                     }
                 }
             }
 
             //Add serialize reference classes which are contained in other assemblies not yet removed.
-            foreach (var k in serializedClassesPerAssembly)
+            foreach (var k in m_SerializedClassesPerAssembly)
             {
                 var assembly = linker.AppendChild(doc.CreateElement("assembly"));
                 var attr = doc.CreateAttribute("fullname");
                 attr.Value = k.Key;
-                //Add content for this 
+                //Add content for this
                 foreach (var t in k.Value)
                 {
                     var typeEl = assembly.AppendChild(doc.CreateElement("type"));

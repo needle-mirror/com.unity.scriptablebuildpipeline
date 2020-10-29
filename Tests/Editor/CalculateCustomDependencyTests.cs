@@ -144,9 +144,8 @@ namespace UnityEditor.Build.Pipeline.Tests
                         Assert.AreEqual(MakeObjectId("00000000000000000000000000000000", 1, FileType.NonAssetType, assetPath), objectIdentifiers[0]);
                         Assert.AreEqual(MakeObjectId("00000000000000000000000000000000", 2, FileType.NonAssetType, assetPath), objectIdentifiers[1]);
 
-                        Assert.AreEqual(2, types.Length);
+                        Assert.AreEqual(1, types.Length);
                         Assert.AreEqual(typeof(Texture2D), types[0]);
-                        Assert.AreEqual(typeof(Texture2D), types[1]);
                     }
                 }
             };

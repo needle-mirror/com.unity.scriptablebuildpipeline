@@ -1,17 +1,38 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Utilities;
+using UnityEditor.Build.Player;
 using UnityEditor.Build.Utilities;
 using UnityEngine;
+
+internal class AutoBuildCacheUtility : IDisposable
+{
+    public AutoBuildCacheUtility()
+    {
+        BuildCacheUtility.ClearCacheHashes();
+    }
+
+    public void Dispose()
+    {
+        BuildCacheUtility.ClearCacheHashes();
+    }
+}
 
 internal static class BuildCacheUtility
 {
     static Dictionary<KeyValuePair<GUID, int>, CacheEntry> m_GuidToHash = new Dictionary<KeyValuePair<GUID, int>, CacheEntry>();
     static Dictionary<KeyValuePair<string, int>, CacheEntry> m_PathToHash = new Dictionary<KeyValuePair<string, int>, CacheEntry>();
+    static Dictionary<KeyValuePair<string, int>, CacheEntry> m_TypeToHash = new Dictionary<KeyValuePair<string, int>, CacheEntry>();
+    static Dictionary<ObjectIdentifier, Type[]> m_ObjectToType = new Dictionary<ObjectIdentifier, Type[]>();
+    static TypeDB m_TypeDB;
+
+#if !ENABLE_TYPE_HASHING
+    static Hash128 m_UnityVersion = HashingMethods.Calculate(Application.unityVersion).ToHash128();
+#endif
 
     public static CacheEntry GetCacheEntry(GUID asset, int version = 1)
     {
@@ -61,10 +82,83 @@ internal static class BuildCacheUtility
         return entry;
     }
 
+    public static CacheEntry GetCacheEntry(Type type, int version = 1)
+    {
+        CacheEntry entry;
+        KeyValuePair<string, int> key = new KeyValuePair<string, int>(type.AssemblyQualifiedName, version);
+        if (m_TypeToHash.TryGetValue(key, out entry))
+            return entry;
+
+        entry = new CacheEntry { ScriptType = type.AssemblyQualifiedName, Version = version };
+        entry.Guid = HashingMethods.Calculate("TypeHash", entry.ScriptType).ToGUID();
+#if ENABLE_TYPE_HASHING
+        entry.Hash = ContentBuildInterface.CalculatePlayerSerializationHashForType(type, m_TypeDB);
+#else
+        entry.Hash = m_TypeDB != null ? m_TypeDB.GetHash128() : m_UnityVersion;
+#endif
+        entry.Type = CacheEntry.EntryType.ScriptType;
+
+        m_PathToHash[key] = entry;
+        return entry;
+    }
+
+    public static Type[] GetTypeForObject(ObjectIdentifier objectId)
+    {
+        if (!m_ObjectToType.TryGetValue(objectId, out Type[] types))
+        {
+#if ENABLE_TYPE_HASHING
+            types = ContentBuildInterface.GetTypesForObject(objectId);
+#else
+            types = ContentBuildInterface.GetTypeForObjects(new[] { objectId });
+#endif
+            m_ObjectToType[objectId] = types;
+        }
+        Array.Sort(types, (x, y) => x.AssemblyQualifiedName.CompareTo(y.AssemblyQualifiedName));
+        return types;
+    }
+
+    public static Type[] GetTypeForObjects(IEnumerable<ObjectIdentifier> objectIds)
+    {
+        Type[] types;
+        HashSet<Type> results = new HashSet<Type>();
+        foreach (var objectId in objectIds)
+        {
+            if (!m_ObjectToType.TryGetValue(objectId, out types))
+            {
+#if ENABLE_TYPE_HASHING
+                types = ContentBuildInterface.GetTypesForObject(objectId);
+#else
+                types = ContentBuildInterface.GetTypeForObjects(new[] { objectId });
+#endif
+                m_ObjectToType[objectId] = types;
+            }
+            results.UnionWith(types);
+        }
+        types = results.ToArray();
+        Array.Sort(types, (x, y) => x.AssemblyQualifiedName.CompareTo(y.AssemblyQualifiedName));
+        return types;
+    }
+
+    public static void SetTypeForObjects(IEnumerable<KeyValuePair<ObjectIdentifier, Type[]>> pairs)
+    {
+        foreach (var pair in pairs)
+            m_ObjectToType[pair.Key] = pair.Value;
+    }
+
     internal static void ClearCacheHashes()
     {
         m_GuidToHash.Clear();
         m_PathToHash.Clear();
+        m_TypeToHash.Clear();
+        m_ObjectToType.Clear();
+        m_TypeDB = null;
+    }
+
+    public static void SetTypeDB(TypeDB typeDB)
+    {
+        if (m_TypeToHash.Count > 0)
+            throw new InvalidOperationException("Changing Player TypeDB mid build is not supported at this time.");
+        m_TypeDB = typeDB;
     }
 
     public static CacheEntry GetCacheEntry(ObjectIdentifier objectID, int version = 1)

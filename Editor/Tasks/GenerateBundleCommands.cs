@@ -183,7 +183,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
         static List<ObjectIdentifier> GetSortedSceneObjectIdentifiers(List<ObjectIdentifier> objects)
         {
-            var types = new List<Type>(ContentBuildInterface.GetTypeForObjects(objects.ToArray()));
+            var types = new List<Type>(BuildCacheUtility.GetTypeForObjects(objects));
             var sortedObjects = new List<SortObject>();
             for (int i = 0; i < objects.Count; i++)
                 sortedObjects.Add(new SortObject { sortIndex = GetSortIndex(types[i]), objectId = objects[i] });

@@ -104,11 +104,23 @@ namespace UnityEditor.Build.Pipeline.Utilities
             return (m_Hash != null ? m_Hash.GetHashCode() : 0);
         }
 
+        /// <summary>
+        /// Determines if the left hash instance is equivalent to the right hash.
+        /// </summary>
+        /// <param name="left">The hash to compare against.</param>
+        /// <param name="right">The hash to compare to.</param>
+        /// <returns>Returns true if the hashes are equivalent. Returns false otherwise.</returns>
         public static bool operator==(RawHash left, RawHash right)
         {
             return left.Equals(right);
         }
 
+        /// <summary>
+        /// Determines if the left hash instance is not equivalent to the right hash.
+        /// </summary>
+        /// <param name="left">The hash to compare against.</param>
+        /// <param name="right">The hash to compare to.</param>
+        /// <returns>Returns true if the hashes are not equivalent. Returns false otherwise.</returns>
         public static bool operator!=(RawHash left, RawHash right)
         {
             return !(left == right);

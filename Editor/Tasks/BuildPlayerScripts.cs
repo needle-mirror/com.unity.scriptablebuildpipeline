@@ -26,10 +26,14 @@ namespace UnityEditor.Build.Pipeline.Tasks
         public ReturnCode Run()
         {
             if (m_Parameters.ScriptInfo != null)
+            {
+                BuildCacheUtility.SetTypeDB(m_Parameters.ScriptInfo);
                 return ReturnCode.SuccessNotRun;
+            }
 
             m_Results.ScriptResults = PlayerBuildInterface.CompilePlayerScripts(m_Parameters.GetScriptCompilationSettings(), m_Parameters.ScriptOutputFolder);
             m_Parameters.ScriptInfo = m_Results.ScriptResults.typeDB;
+            BuildCacheUtility.SetTypeDB(m_Parameters.ScriptInfo);
 
             if (m_Results.ScriptResults.assemblies.IsNullOrEmpty() && m_Results.ScriptResults.typeDB == null)
                 return ReturnCode.Error;

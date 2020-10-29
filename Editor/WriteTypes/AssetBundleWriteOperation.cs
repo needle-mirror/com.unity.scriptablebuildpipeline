@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Utilities;
@@ -51,11 +52,7 @@ namespace UnityEditor.Build.Pipeline.WriteTypes
         {
             HashSet<CacheEntry> hashObjects = new HashSet<CacheEntry>();
             using (log.ScopedStep(LogLevel.Verbose, $"Gather Objects {GetType().Name}", Command.fileName))
-            {
-                if (Command.serializeObjects != null)
-                    foreach (var serializeObject in Command.serializeObjects)
-                        hashObjects.Add(BuildCacheUtility.GetCacheEntry(serializeObject.serializationObject));
-            }
+                Command.GatherSerializedObjectCacheEntries(hashObjects);
 
             List<Hash128> hashes = new List<Hash128>();
             using (log.ScopedStep(LogLevel.Verbose, $"Hashing Command", Command.fileName))

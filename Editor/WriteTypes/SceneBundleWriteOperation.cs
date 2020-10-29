@@ -79,11 +79,7 @@ namespace UnityEditor.Build.Pipeline.WriteTypes
 #endif
             HashSet<CacheEntry> hashObjects = new HashSet<CacheEntry>();
             using (log.ScopedStep(LogLevel.Verbose, $"Gather Objects", Command.fileName))
-            {
-                if (Command.serializeObjects != null)
-                    foreach (var serializeObject in Command.serializeObjects)
-                        hashObjects.Add(BuildCacheUtility.GetCacheEntry(serializeObject.serializationObject));
-            }
+                Command.GatherSerializedObjectCacheEntries(hashObjects);
 
             List<Hash128> hashes = new List<Hash128>();
             using (log.ScopedStep(LogLevel.Verbose, $"Hashing Command", Command.fileName))

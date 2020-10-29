@@ -18,7 +18,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
     public class CalculateSceneDependencyData : IBuildTask
     {
         /// <inheritdoc />
-        public int Version { get { return 3; } }
+        public int Version { get { return 4; } }
 
 #pragma warning disable 649
         [InjectContext(ContextUsage.In)]
@@ -42,13 +42,17 @@ namespace UnityEditor.Build.Pipeline.Tasks
             var info = new CachedInfo();
             info.Asset = m_Cache.GetCacheEntry(scene, Version);
 
-            var dependencies = new HashSet<CacheEntry>();
-            foreach (var reference in references)
-                dependencies.Add(m_Cache.GetCacheEntry(reference));
-            dependencies.UnionWith(prefabEntries);
+#if ENABLE_TYPE_HASHING || UNITY_2020_1_OR_NEWER
+            var uniqueTypes = new HashSet<System.Type>(sceneInfo.includedTypes);
+#else
+            var uniqueTypes = new HashSet<System.Type>();
+#endif
+            var objectTypes = new List<KeyValuePair<ObjectIdentifier, System.Type[]>>();
+            var dependencies = new HashSet<CacheEntry>(prefabEntries);
+            ExtensionMethods.ExtractCommonCacheData(m_Cache, null, references, uniqueTypes, objectTypes, dependencies);
             info.Dependencies = dependencies.ToArray();
 
-            info.Data = new object[] { sceneInfo, usageTags, prefabDependency };
+            info.Data = new object[] { sceneInfo, usageTags, prefabDependency, objectTypes };
 
             return info;
         }
@@ -87,6 +91,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
                     sceneInfo = (SceneDependencyInfo)cachedInfo[i].Data[0];
                     usageTags = cachedInfo[i].Data[1] as BuildUsageTagSet;
                     prefabDependency = (Hash128)cachedInfo[i].Data[2];
+                    var objectTypes = cachedInfo[i].Data[3] as List<KeyValuePair<ObjectIdentifier, System.Type[]>>;
+                    if (objectTypes != null)
+                        BuildCacheUtility.SetTypeForObjects(objectTypes);
                 }
                 else
                 {

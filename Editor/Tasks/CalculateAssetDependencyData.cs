@@ -23,7 +23,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
     /// </summary>
     public class CalculateAssetDependencyData : IBuildTask
     {
-        internal const int kVersion = 3;
+        internal const int kVersion = 4;
         /// <inheritdoc />
         public int Version { get { return kVersion; } }
 
@@ -75,6 +75,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             public BuildUsageTagSet usageTags;
             public SpriteImporterData spriteData;
             public ExtendedAssetData extendedData;
+            public List<KeyValuePair<ObjectIdentifier, System.Type[]>> objectTypes;
         }
 
         internal struct TaskOutput
@@ -88,13 +89,13 @@ namespace UnityEditor.Build.Pipeline.Tasks
             var info = new CachedInfo();
             info.Asset = cache.GetCacheEntry(asset, kVersion);
 
+            var uniqueTypes = new HashSet<System.Type>();
+            var objectTypes = new List<KeyValuePair<ObjectIdentifier, System.Type[]>>();
             var dependencies = new HashSet<CacheEntry>();
-            foreach (var reference in assetInfo.referencedObjects)
-                dependencies.Add(cache.GetCacheEntry(reference));
+            ExtensionMethods.ExtractCommonCacheData(cache, assetInfo.includedObjects, assetInfo.referencedObjects, uniqueTypes, objectTypes, dependencies);
             info.Dependencies = dependencies.ToArray();
 
-            info.Data = new object[] { assetInfo, usageTags, importerData, assetData };
-
+            info.Data = new object[] { assetInfo, usageTags, importerData, assetData, objectTypes };
             return info;
         }
 
@@ -134,6 +135,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
                             m_ExtendedAssetData = new BuildExtendedAssetData();
                         m_ExtendedAssetData.ExtendedData.Add(o.asset, o.extendedData);
                     }
+
+                    if (o.objectTypes != null)
+                        BuildCacheUtility.SetTypeForObjects(o.objectTypes);
                 }
             }
 
@@ -214,6 +218,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                         assetResult.usageTags = cachedInfo[i].Data[1] as BuildUsageTagSet;
                         assetResult.spriteData = cachedInfo[i].Data[2] as SpriteImporterData;
                         assetResult.extendedData = cachedInfo[i].Data[3] as ExtendedAssetData;
+                        assetResult.objectTypes = cachedInfo[i].Data[4] as List<KeyValuePair<ObjectIdentifier, System.Type[]>>;
                         output.AssetResults[i] = assetResult;
                         output.CachedAssetCount++;
                         continue;

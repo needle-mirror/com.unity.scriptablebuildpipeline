@@ -113,12 +113,20 @@ namespace UnityEditor.Build.Pipeline.Utilities
             return GetCacheEntry(objectID.guid, version);
         }
 
+        /// <inheritdoc />
+        public CacheEntry GetCacheEntry(Type type, int version = 1)
+        {
+            return BuildCacheUtility.GetCacheEntry(type, version);
+        }
+
         internal CacheEntry GetUpdatedCacheEntry(CacheEntry entry)
         {
             if (entry.Type == CacheEntry.EntryType.File)
                 return GetCacheEntry(entry.File, entry.Version);
             if (entry.Type == CacheEntry.EntryType.Asset)
                 return GetCacheEntry(entry.Guid, entry.Version);
+            if (entry.Type == CacheEntry.EntryType.ScriptType)
+                return GetCacheEntry(Type.GetType(entry.ScriptType), entry.Version);
             return entry;
         }
 
@@ -141,7 +149,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             var updatedEntry = GetUpdatedCacheEntry(info.Asset);
             if (info.Asset != updatedEntry)
             {
-                if (!LogCacheMiss($"[Cache Miss]: Source asset changed.\nOld: {info.Asset}\nNew: {updatedEntry}"))
+                if (!LogCacheMiss($"[Cache Miss]: Source asset changed. Old: {info.Asset} New: {updatedEntry}"))
                     return true;
                 result = true;
             }
@@ -150,7 +158,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             {
                 if (!dependency.IsValid())
                 {
-                    if (!LogCacheMiss($"[Cache Miss]: Dependency is no longer valid.\nAsset: {info.Asset}\nDependency: {dependency}"))
+                    if (!LogCacheMiss($"[Cache Miss]: Dependency is no longer valid. Asset: {info.Asset} Dependency: {dependency}"))
                         return true;
                     result = true;
                 }
@@ -158,7 +166,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 updatedEntry = GetUpdatedCacheEntry(dependency);
                 if (dependency != GetUpdatedCacheEntry(updatedEntry))
                 {
-                    if (!LogCacheMiss($"[Cache Miss]: Dependency changed.\nAsset: {info.Asset}\nOld: {dependency}\nNew: {updatedEntry}"))
+                    if (!LogCacheMiss($"[Cache Miss]: Dependency changed. Asset: {info.Asset} Old: {dependency} New: {updatedEntry}"))
                         return true;
                     result = true;
                 }
@@ -310,7 +318,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
                                 cachedCount++;
                             }
                             else
-                                LogCacheMiss($"[Cache Miss]: Missing cache entry.\nEntry: {entries[index]}");
+                                LogCacheMiss($"[Cache Miss]: Missing cache entry. Entry: {entries[index]}");
                         }
                         catch (Exception e)
                         {

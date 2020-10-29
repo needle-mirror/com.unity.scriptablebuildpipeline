@@ -50,7 +50,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 buildInObjects.UnionWith(dependencyInfo.referencedObjects.Where(x => x.guid == k_BuiltInGuid));
 
             ObjectIdentifier[] usedSet = buildInObjects.ToArray();
-            Type[] usedTypes = ContentBuildInterface.GetTypeForObjects(usedSet);
+            Type[] usedTypes = BuildCacheUtility.GetTypeForObjects(usedSet);
 
             if (m_Layout == null)
                 m_Layout = new BundleExplictObjectLayout();

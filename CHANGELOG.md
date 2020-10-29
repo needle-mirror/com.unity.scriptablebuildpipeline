@@ -4,8 +4,8 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [1.14.1] - 2020-11-05
-- Fixed issue with invalid cast exception getting thrown in GenerateLinkXML on certain Unity versions.
+## [1.15.1] - 2020-10-29
+- Added support for per type caching and incremental rebuild triggers
 
 ## [1.14.0] - 2020-10-21
 - Added API to build player scripts to a separate location from Temp or Output Folders.

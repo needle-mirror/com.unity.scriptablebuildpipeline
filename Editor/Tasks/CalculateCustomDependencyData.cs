@@ -63,7 +63,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
         public void GetObjectIdentifiersAndTypesForSerializedFile(string path, out ObjectIdentifier[] objectIdentifiers, out Type[] types)
         {
             objectIdentifiers = ContentBuildInterface.GetPlayerObjectIdentifiersInSerializedFile(path, m_Parameters.Target);
-            types = ContentBuildInterface.GetTypeForObjects(objectIdentifiers);
+            types = BuildCacheUtility.GetTypeForObjects(objectIdentifiers);
         }
 
         /// <summary>
