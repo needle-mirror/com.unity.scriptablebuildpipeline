@@ -36,7 +36,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 linker.AddSerializedClass(writeResult.Value.includedSerializeReferenceFQN);
 #else
                 if (writeResult.Value.GetType().GetProperty("includedSerializeReferenceFQN") != null)
-                    linker.AddSerializedClass((string[])writeResult.Value.GetType().GetProperty("includedSerializeReferenceFQN").GetValue(writeResult.Value));
+                    linker.AddSerializedClass(writeResult.Value.GetType().GetProperty("includedSerializeReferenceFQN").GetValue(writeResult.Value) as System.Collections.Generic.IEnumerable<string>);
 #endif
             }
 
