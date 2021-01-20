@@ -189,6 +189,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         CGPROGRAM
 #pragma surface surf Standard fullforwardshadows
 #pragma target 3.0
+#pragma shader_feature _ TEST_DEFINE
 
         sampler2D _MainTex;
 
