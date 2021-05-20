@@ -7,6 +7,19 @@ using UnityEditor.Build.Player;
 
 namespace UnityEditor.Build.Pipeline.Utilities
 {
+    [Serializable]
+    struct ObjectTypes
+    {
+        public ObjectIdentifier ObjectID;
+        public Type[] Types;
+
+        public ObjectTypes(ObjectIdentifier objectID, Type[] types)
+        {
+            ObjectID = objectID;
+            Types = types;
+        }
+    }
+
     static class ExtensionMethods
     {
         public static bool IsNullOrEmpty<T>(this ICollection<T> collection)
@@ -41,14 +54,14 @@ namespace UnityEditor.Build.Pipeline.Utilities
             }
         }
 
-        public static void ExtractCommonCacheData(IBuildCache cache, IEnumerable<ObjectIdentifier> includedObjects, IEnumerable<ObjectIdentifier> referencedObjects, HashSet<Type> uniqueTypes, List<KeyValuePair<ObjectIdentifier, Type[]>> objectTypes, HashSet<CacheEntry> dependencies)
+        public static void ExtractCommonCacheData(IBuildCache cache, IEnumerable<ObjectIdentifier> includedObjects, IEnumerable<ObjectIdentifier> referencedObjects, HashSet<Type> uniqueTypes, List<ObjectTypes> objectTypes, HashSet<CacheEntry> dependencies)
         {
             if (includedObjects != null)
             {
                 foreach (var objectId in includedObjects)
                 {
                     var types = BuildCacheUtility.GetSortedUniqueTypesForObject(objectId);
-                    objectTypes.Add(new KeyValuePair<ObjectIdentifier, Type[]>(objectId, types));
+                    objectTypes.Add(new ObjectTypes(objectId, types));
                     uniqueTypes.UnionWith(types);
                 }
             }
@@ -57,7 +70,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 foreach (var objectId in referencedObjects)
                 {
                     var types = BuildCacheUtility.GetSortedUniqueTypesForObject(objectId);
-                    objectTypes.Add(new KeyValuePair<ObjectIdentifier, Type[]>(objectId, types));
+                    objectTypes.Add(new ObjectTypes(objectId, types));
                     uniqueTypes.UnionWith(types);
                     dependencies.Add(cache.GetCacheEntry(objectId));
                 }

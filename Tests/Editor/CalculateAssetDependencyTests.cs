@@ -13,6 +13,7 @@ using UnityEditor.Build.Pipeline.Injector;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Tasks;
 using UnityEditor.Build.Pipeline.Utilities;
+using UnityEditor.Build.Player;
 using UnityEditor.U2D;
 using UnityEngine;
 using UnityEngine.TestTools;
@@ -26,6 +27,94 @@ namespace UnityEditor.Build.Pipeline.Tests
         const string kTestAsset = "Assets/TestAssets/SpriteTexture32x32.png";
 
         SpritePackerMode m_PrevMode;
+
+        class TestParams : TestBundleBuildParameters
+        {
+            bool m_DisableVisibleSubAssetRepresentations = false;
+            public TestParams(bool disableVisibleSubAssetRepresentations)
+            {
+                m_DisableVisibleSubAssetRepresentations = disableVisibleSubAssetRepresentations;
+            }
+
+            public override bool DisableVisibleSubAssetRepresentations { get => m_DisableVisibleSubAssetRepresentations; }
+
+            // Inputs
+            public override bool UseCache { get; set; }
+            public override BuildTarget Target { get => EditorUserBuildSettings.activeBuildTarget; }
+            public override BuildTargetGroup Group { get => BuildTargetGroup.Unknown; }
+            public override TypeDB ScriptInfo { get => null; }
+            public override ContentBuildFlags ContentBuildFlags { get => ContentBuildFlags.None; }
+            public override bool NonRecursiveDependencies { get => false; }
+
+#if !UNITY_2019_3_OR_NEWER
+            public override string TempOutputFolder => ContentPipeline.kTempBuildPath;
+#endif
+
+            public override BuildSettings GetContentBuildSettings()
+            {
+                return new BuildSettings
+                {
+                    group = Group,
+                    target = Target,
+                    typeDB = ScriptInfo,
+                    buildFlags = ContentBuildFlags
+                };
+            }
+        }
+
+        class TestContent : TestBundleBuildContent
+        {
+            public List<GUID> TestAssets = new List<GUID>();
+
+            // Inputs
+            public override List<GUID> Assets => TestAssets;
+        }
+
+        class TestDependencyData : TestDependencyDataBase
+        {
+            public Dictionary<GUID, AssetLoadInfo> TestAssetInfo = new Dictionary<GUID, AssetLoadInfo>();
+            public Dictionary<GUID, BuildUsageTagSet> TestAssetUsage = new Dictionary<GUID, BuildUsageTagSet>();
+            public Dictionary<GUID, SceneDependencyInfo> TestSceneInfo = new Dictionary<GUID, SceneDependencyInfo>();
+            public Dictionary<GUID, BuildUsageTagSet> TestSceneUsage = new Dictionary<GUID, BuildUsageTagSet>();
+            public Dictionary<GUID, Hash128> TestDependencyHash = new Dictionary<GUID, Hash128>();
+
+            // Inputs
+            public override BuildUsageCache DependencyUsageCache => null;
+            public override BuildUsageTagGlobal GlobalUsage => new BuildUsageTagGlobal();
+
+            // Outputs
+            public override Dictionary<GUID, AssetLoadInfo> AssetInfo => TestAssetInfo;
+            public override Dictionary<GUID, BuildUsageTagSet> AssetUsage => TestAssetUsage;
+            public override Dictionary<GUID, SceneDependencyInfo> SceneInfo => TestSceneInfo;
+            public override Dictionary<GUID, BuildUsageTagSet> SceneUsage => TestSceneUsage;
+            public override Dictionary<GUID, Hash128> DependencyHash => TestDependencyHash;
+        }
+
+        class TestExtendedAssetData : TestBundleExtendedAssetData
+        {
+            public Dictionary<GUID, ExtendedAssetData> TestExtendedData = new Dictionary<GUID, ExtendedAssetData>();
+            public override Dictionary<GUID, ExtendedAssetData> ExtendedData => TestExtendedData;
+        }
+
+        static CalculateAssetDependencyData CreateDefaultBuildTask(List<GUID> assets, bool disableVisibleSubassetRepresentations = false)
+        {
+            var task = new CalculateAssetDependencyData();
+            var testParams = new TestParams(disableVisibleSubassetRepresentations);
+            var testContent = new TestContent { TestAssets = assets };
+            var testDepData = new TestDependencyData();
+            var testExtendedData = new TestExtendedAssetData();
+
+            IBuildContext context = new BuildContext(testParams, testContent, testDepData, testExtendedData);
+            ContextInjector.Inject(context, task);
+            return task;
+        }
+
+        static void ExtractTestData(IBuildTask task, out TestExtendedAssetData extendedAssetData)
+        {
+            IBuildContext context = new BuildContext();
+            ContextInjector.Extract(context, task);
+            extendedAssetData = (TestExtendedAssetData)context.GetContextObject<IBuildExtendedAssetData>();
+        }
 
         [SetUp]
         public void Setup()
@@ -399,6 +488,61 @@ namespace UnityEditor.Build.Pipeline.Tests
             ReturnCode code = CalculateAssetDependencyData.RunInternal(input, out CalculateAssetDependencyData.TaskOutput output);
             Assert.AreEqual(null, output.AssetResults[1].assetInfo);
             Assert.AreEqual(ReturnCode.Canceled, code);
+        }
+
+        [Test]
+        public void TaskIsRun_WhenAssetHasNoMultipleRepresentations_ExtendedDataIsEmpty()
+        {
+            string assetPath = Path.Combine(kTestAssetFolder, "myPrefab.prefab");
+            GUID guid = CreateGameObject(assetPath);
+
+            bool disableVisibleSubAssetRepresentations = false;
+            CalculateAssetDependencyData buildTask = CreateDefaultBuildTask(new List<GUID>() { guid }, disableVisibleSubAssetRepresentations);
+            buildTask.Run();
+            ExtractTestData(buildTask, out TestExtendedAssetData extendedAssetData);
+
+            Assert.AreEqual(0, extendedAssetData.ExtendedData.Count);
+        }
+
+        [Test]
+        public void TaskIsRun_WhenAssetHasMultipleRepresentations_ExtendedDataContainsEntryForAsset()
+        {
+            string assetPath = Path.Combine(kTestAssetFolder, "myPrefab.asset");
+            Material mat = new Material(Shader.Find("Transparent/Diffuse"));
+            AssetDatabase.CreateAsset(mat, assetPath);
+            AssetDatabase.AddObjectToAsset(new Material(Shader.Find("Transparent/Diffuse")), assetPath);
+            AssetDatabase.SaveAssets();
+
+            string guidString = AssetDatabase.AssetPathToGUID(assetPath);
+            GUID.TryParse(guidString, out GUID guid);
+
+            bool disableVisibleSubAssetRepresentations = false;
+            CalculateAssetDependencyData buildTask = CreateDefaultBuildTask(new List<GUID>() { guid }, disableVisibleSubAssetRepresentations);
+            buildTask.Run();
+            ExtractTestData(buildTask, out TestExtendedAssetData extendedAssetData);
+
+            Assert.AreEqual(1, extendedAssetData.ExtendedData.Count);
+            Assert.IsTrue(extendedAssetData.ExtendedData.ContainsKey(guid));
+        }
+
+        [Test]
+        public void TaskIsRun_WhenAssetHasMultipleRepresentations_AndDisableVisibleSubAssetRepresentations_ExtendedDataIsEmpty()
+        {
+            string assetPath = Path.Combine(kTestAssetFolder, "myPrefab.asset");
+            Material mat = new Material(Shader.Find("Transparent/Diffuse"));
+            AssetDatabase.CreateAsset(mat, assetPath);
+            AssetDatabase.AddObjectToAsset(new Material(Shader.Find("Transparent/Diffuse")), assetPath);
+            AssetDatabase.SaveAssets();
+
+            string guidString = AssetDatabase.AssetPathToGUID(assetPath);
+            GUID.TryParse(guidString, out GUID guid);
+
+            bool disableVisibleSubAssetRepresentations = true;
+            CalculateAssetDependencyData buildTask = CreateDefaultBuildTask(new List<GUID>() { guid }, disableVisibleSubAssetRepresentations);
+            buildTask.Run();
+            ExtractTestData(buildTask, out TestExtendedAssetData extendedAssetData);
+
+            Assert.AreEqual(0, extendedAssetData.ExtendedData.Count);
         }
     }
 }

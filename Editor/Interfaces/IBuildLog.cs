@@ -70,6 +70,7 @@ namespace UnityEditor.Build.Pipeline.Interfaces
         public DeferredEventType Type;
         public double Time;
         public string Name;
+        public string Context;
     }
 
     internal interface IDeferredBuildLogger
@@ -116,7 +117,15 @@ namespace UnityEditor.Build.Pipeline.Interfaces
                 return;
 
             IDeferredBuildLogger dLog = (IDeferredBuildLogger)m_Logger;
-            IEnumerable<DeferredEvent> dEvents = events.Select(i => new DeferredEvent() { Level = LogLevel.Verbose, Name = i.Name, Time = (double)i.TimeMicroseconds / (double)1000, Type = BuildLoggerExternsions.ConvertToDeferredType(i.Type) });
+            IEnumerable<DeferredEvent> dEvents = events.Select(i =>
+            {
+                var e = new DeferredEvent();
+                e.Level = LogLevel.Verbose;
+                BuildLoggerExternsions.ConvertNativeEventName(i.Name, out e.Name, out e.Context);
+                e.Time = (double)i.TimeMicroseconds / (double)1000;
+                e.Type = BuildLoggerExternsions.ConvertToDeferredType(i.Type);
+                return e;
+            });
             dLog.HandleDeferredEventStream(dEvents);
         }
     }
@@ -174,6 +183,28 @@ namespace UnityEditor.Build.Pipeline.Interfaces
             if (type == ProfileEventType.End) return DeferredEventType.End;
             if (type == ProfileEventType.Info) return DeferredEventType.Info;
             throw new Exception("Unknown type");
+        }
+
+        const string k_WriteFile = "Write file:";
+        const string k_WriteObject = "Write object - ";
+
+        internal static void ConvertNativeEventName(string nativeName, out string eventName, out string eventContext)
+        {
+            eventName = nativeName;
+            eventContext = "";
+            if (nativeName.StartsWith(k_WriteFile, StringComparison.Ordinal))
+            {
+                eventName = "Write File";
+                eventContext = nativeName.Substring(k_WriteFile.Length);
+            }
+            else if (nativeName.StartsWith(k_WriteObject, StringComparison.Ordinal))
+            {
+                eventName = "Write Object";
+                eventContext = nativeName.Substring(k_WriteObject.Length);
+            }
+
+            if (eventContext.Any(c => c == '"'))
+                eventContext = eventContext.Replace("\"", "\\\"");
         }
 #endif
     }

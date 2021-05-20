@@ -29,7 +29,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
 #pragma warning disable 649
         [InjectContext(ContextUsage.In)]
-        IBuildParameters m_Parameters;
+        IBundleBuildParameters m_Parameters;
 
         [InjectContext(ContextUsage.In)]
         IBuildContent m_Content;
@@ -76,7 +76,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             public BuildUsageTagSet usageTags;
             public SpriteImporterData spriteData;
             public ExtendedAssetData extendedData;
-            public List<KeyValuePair<ObjectIdentifier, System.Type[]>> objectTypes;
+            public List<ObjectTypes> objectTypes;
         }
 
         internal struct TaskOutput
@@ -98,7 +98,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             info.Asset = GetAssetCacheEntry(cache, asset, NonRecursiveDependencies);
 
             var uniqueTypes = new HashSet<System.Type>();
-            var objectTypes = new List<KeyValuePair<ObjectIdentifier, System.Type[]>>();
+            var objectTypes = new List<ObjectTypes>();
             var dependencies = new HashSet<CacheEntry>();
             ExtensionMethods.ExtractCommonCacheData(cache, assetInfo.includedObjects, assetInfo.referencedObjects, uniqueTypes, objectTypes, dependencies);
             info.Dependencies = dependencies.ToArray();
@@ -142,7 +142,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                         m_SpriteData.ImporterData.Add(o.asset, o.spriteData);
                     }
 
-                    if (o.extendedData != null)
+                    if (!m_Parameters.DisableVisibleSubAssetRepresentations && o.extendedData != null)
                     {
                         if (m_ExtendedAssetData == null)
                             m_ExtendedAssetData = new BuildExtendedAssetData();
@@ -234,7 +234,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                         assetResult.usageTags = cachedInfo[i].Data[1] as BuildUsageTagSet;
                         assetResult.spriteData = cachedInfo[i].Data[2] as SpriteImporterData;
                         assetResult.extendedData = cachedInfo[i].Data[3] as ExtendedAssetData;
-                        assetResult.objectTypes = cachedInfo[i].Data[4] as List<KeyValuePair<ObjectIdentifier, System.Type[]>>;
+                        assetResult.objectTypes = cachedInfo[i].Data[4] as List<ObjectTypes>;
                         output.AssetResults[i] = assetResult;
                         output.CachedAssetCount++;
                         continue;

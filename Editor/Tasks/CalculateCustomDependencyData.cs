@@ -86,7 +86,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             info.Asset = entry;
 
             var uniqueTypes = new HashSet<Type>();
-            var objectTypes = new List<KeyValuePair<ObjectIdentifier, Type[]>>();
+            var objectTypes = new List<ObjectTypes>();
             var dependencies = new HashSet<CacheEntry>();
             ExtensionMethods.ExtractCommonCacheData(m_Cache, assetInfo.includedObjects, assetInfo.referencedObjects, uniqueTypes, objectTypes, dependencies);
             info.Dependencies = dependencies.ToArray();
@@ -110,7 +110,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             {
                 assetInfo = (AssetLoadInfo)cachedInfo.Data[0];
                 buildUsage = (BuildUsageTagSet)cachedInfo.Data[1];
-                var objectTypes = (List<KeyValuePair<ObjectIdentifier, Type[]>>)cachedInfo.Data[2];
+                var objectTypes = (List<ObjectTypes>)cachedInfo.Data[2];
                 BuildCacheUtility.SetTypeForObjects(objectTypes);
             }
             else

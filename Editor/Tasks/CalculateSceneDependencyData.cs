@@ -58,7 +58,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 #else
             var uniqueTypes = new HashSet<System.Type>();
 #endif
-            var objectTypes = new List<KeyValuePair<ObjectIdentifier, System.Type[]>>();
+            var objectTypes = new List<ObjectTypes>();
             var dependencies = new HashSet<CacheEntry>(prefabEntries);
             ExtensionMethods.ExtractCommonCacheData(m_Cache, null, references, uniqueTypes, objectTypes, dependencies);
             info.Dependencies = dependencies.ToArray();
@@ -102,7 +102,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                     sceneInfo = (SceneDependencyInfo)cachedInfo[i].Data[0];
                     usageTags = cachedInfo[i].Data[1] as BuildUsageTagSet;
                     prefabDependency = (Hash128)cachedInfo[i].Data[2];
-                    var objectTypes = cachedInfo[i].Data[3] as List<KeyValuePair<ObjectIdentifier, System.Type[]>>;
+                    var objectTypes = cachedInfo[i].Data[3] as List<ObjectTypes>;
                     if (objectTypes != null)
                         BuildCacheUtility.SetTypeForObjects(objectTypes);
                 }

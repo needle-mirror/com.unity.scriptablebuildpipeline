@@ -182,5 +182,8 @@ namespace UnityEditor.Build.Pipeline
 
         /// <inheritdoc />
         public bool ContiguousBundles { get; set; }
+
+        /// <inheritdoc />
+        public bool DisableVisibleSubAssetRepresentations { get; set; }
     }
 }

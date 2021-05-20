@@ -31,6 +31,13 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 return ReturnCode.SuccessNotRun;
             }
 
+            // We need to ensure the directory is empty so prior results or other artifacts in this directory do not influence the build result
+            if (Directory.Exists(m_Parameters.ScriptOutputFolder))
+            {
+                Directory.Delete(m_Parameters.ScriptOutputFolder, true);
+                Directory.CreateDirectory(m_Parameters.ScriptOutputFolder);
+            }
+
             m_Results.ScriptResults = PlayerBuildInterface.CompilePlayerScripts(m_Parameters.GetScriptCompilationSettings(), m_Parameters.ScriptOutputFolder);
             m_Parameters.ScriptInfo = m_Results.ScriptResults.typeDB;
             BuildCacheUtility.SetTypeDB(m_Parameters.ScriptInfo);

@@ -52,8 +52,8 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             BuildCacheUtility.ClearCacheHashes();
             BuildCacheUtility.SetTypeForObjects(new[] {
-                new KeyValuePair<ObjectIdentifier, Type[]>(nonMonoScriptId, new[] {typeof(GameObject) }),
-                new KeyValuePair<ObjectIdentifier, Type[]>(monoScriptId, new[] {typeof(MonoScript) })
+                new ObjectTypes(nonMonoScriptId, new[] {typeof(GameObject) }),
+                new ObjectTypes(monoScriptId, new[] {typeof(MonoScript) })
             });
 
             IBuildContext context = new BuildContext(dependencyData, layout);

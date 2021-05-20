@@ -164,6 +164,26 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreEqual(0, references.Count);
         }
 
+        [Test]
+        public void WhenReferencesContainPreviousSceneAssetDependencies_FilterReferencesForAsset_PrunesPreviousAssetDependencies([Values] bool containsPreviousSceneAsset)
+        {
+            var assetInBundle = new GUID("00000000000000000000000000000001");
+            var referenceNotInBundle = new GUID("00000000000000000000000000000000");
+            List<ObjectIdentifier> objects = CreateObjectIdentifierList("path", referenceNotInBundle);
+            IDependencyData dep = GetDependencyData(objects, assetInBundle);
+
+            var references = new List<ObjectIdentifier>(objects);
+            var previousSceneReferences = new HashSet<GUID>();
+            if (containsPreviousSceneAsset)
+                previousSceneReferences.Add(assetInBundle);
+            GenerateBundlePacking.FilterReferencesForAsset(dep, assetInBundle, references, new HashSet<ObjectIdentifier>(), previousSceneReferences);
+
+            if (containsPreviousSceneAsset)
+                Assert.AreEqual(0, references.Count);
+            else
+                Assert.AreEqual(1, references.Count);
+        }
+
 #if !UNITY_2019_1_OR_NEWER
         [Test]
         public void WhenPrefabContainsDuplicateTypes_GetSortedSceneObjectIdentifiers_DoesNotThorwError()

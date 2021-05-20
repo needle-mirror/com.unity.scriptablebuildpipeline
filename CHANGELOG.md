@@ -4,13 +4,23 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [1.18.0] - 2020-04-08
+## [1.19.0] - 2021-05-20
+- Replaced our use of BinaryFormatter with new "USerialize"
+	- USerializer performance in synthetic tests is about 40x faster than BinaryFormatter
+	- Real world project tests have seen about 1.8x improvement of cold cache build times, and about 6x improvement of warm cache build times.
+- Fixed a case where internal type hash was not being cached correctly causing constant cold cache hits.
+- Fixed a case where previous build results could influence a new build incorrectly by including the wrong dlls.
+- Fixed a case where multiple scenes in the same asset bundle could generate invalid or incorrect dependencies and not load all necessary data.
+- Minor fix for native tep profiling results to separate the event name from the event context and to properly string escape the context.
+- Added the DisableVisibleSubAssetRepresentations build parameter. 
+
+## [1.18.0] - 2021-04-08
 - Added an option to build MonoScripts into their own bundle reducing duplication and potential loading errors on certain project setups.
 - Added a type remap in Link.xml generation for UnityEditor.MonoScript to the correct runtime type.
 - Added an option to build bundles using Non-Recursive Dependency calculation methods. 
   - This approach helps reduce asset bundle rebuilds and runtime memory consumption.
 
-## [1.17.0] - 2020-03-03
+## [1.17.0] - 2021-03-03
 - Added [VersionedCallback] attribute for flagging build impacting changes to IProcessScene, IProcessSceneWithReport, IPreprocessShaders, and IPreprocessComputeShaders callbacks.
 - Fixed an IndexOutOfRange exception thrown by the GenerateSubAssetPathMaps build task.
 - Added faster code paths for common hashing operations.
@@ -18,7 +28,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixed an edge case where SerializeReference types used across assemblies were being code stripped incorrectly.
 - Fixed a false positive cache hit when changing Player Setting's Graphics APIs .
 
-## [1.16.1] - 2020-01-27
+## [1.16.1] - 2021-01-27
 - Handling of communication error with cache server. Build will now continue, using the local cache only.
 - Regression fix for index out of range error on Unity 2018.4
 

@@ -120,5 +120,11 @@ namespace UnityEditor.Build.Pipeline.Interfaces
         /// Packs assets in bundles contiguously based on the ordering of the source asset which results in improved asset loading times.
         /// </summary>
         bool ContiguousBundles { get; set; }
+
+        /// <summary>
+        /// Assume sub Assets have no visible asset representations (are not visible in the Project view) which results in improved build times.
+        /// Sub Assets in the built bundles cannot be accessed by AssetBundle.LoadAsset&lt;T&gt or AssetBundle.LoadAllAssets&lt;T&gt.
+        /// </summary>
+        bool DisableVisibleSubAssetRepresentations { get; set; }
     }
 }

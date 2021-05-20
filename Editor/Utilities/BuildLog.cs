@@ -210,7 +210,11 @@ namespace UnityEditor.Build.Pipeline.Utilities
             {
                 m_WallTimerOverride = e.Time + startStep.StartTime;
                 if (e.Type == DeferredEventType.Begin)
+                {
                     BeginBuildStep(e.Level, e.Name, false);
+                    if (!string.IsNullOrEmpty(e.Context))
+                        AddEntry(e.Level, e.Context);
+                }
                 else if (e.Type == DeferredEventType.End)
                     EndBuildStep();
                 else

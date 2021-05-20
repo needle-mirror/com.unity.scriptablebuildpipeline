@@ -26,7 +26,7 @@ internal static class BuildCacheUtility
 {
     static Dictionary<KeyValuePair<GUID, int>, CacheEntry> m_GuidToHash = new Dictionary<KeyValuePair<GUID, int>, CacheEntry>();
     static Dictionary<KeyValuePair<string, int>, CacheEntry> m_PathToHash = new Dictionary<KeyValuePair<string, int>, CacheEntry>();
-    static Dictionary<KeyValuePair<string, int>, CacheEntry> m_TypeToHash = new Dictionary<KeyValuePair<string, int>, CacheEntry>();
+    static Dictionary<KeyValuePair<Type, int>, CacheEntry> m_TypeToHash = new Dictionary<KeyValuePair<Type, int>, CacheEntry>();
     static Dictionary<ObjectIdentifier, Type[]> m_ObjectToType = new Dictionary<ObjectIdentifier, Type[]>();
     static TypeDB m_TypeDB;
 
@@ -87,7 +87,7 @@ internal static class BuildCacheUtility
     public static CacheEntry GetCacheEntry(Type type, int version = 1)
     {
         CacheEntry entry;
-        KeyValuePair<string, int> key = new KeyValuePair<string, int>(type.AssemblyQualifiedName, version);
+        KeyValuePair<Type, int> key = new KeyValuePair<Type, int>(type, version);
         if (m_TypeToHash.TryGetValue(key, out entry))
             return entry;
 
@@ -100,7 +100,7 @@ internal static class BuildCacheUtility
 #endif
         entry.Type = CacheEntry.EntryType.ScriptType;
 
-        m_PathToHash[key] = entry;
+        m_TypeToHash[key] = entry;
         return entry;
     }
 
@@ -156,10 +156,10 @@ internal static class BuildCacheUtility
         return types;
     }
 
-    public static void SetTypeForObjects(IEnumerable<KeyValuePair<ObjectIdentifier, Type[]>> pairs)
+    public static void SetTypeForObjects(IEnumerable<ObjectTypes> pairs)
     {
         foreach (var pair in pairs)
-            m_ObjectToType[pair.Key] = pair.Value;
+            m_ObjectToType[pair.ObjectID] = pair.Types;
     }
 
     internal static void ClearCacheHashes()

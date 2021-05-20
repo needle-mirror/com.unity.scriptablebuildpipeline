@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEditor.Build.Content;
+using UnityEditor.Build.Pipeline;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Tasks;
 using UnityEditor.Build.Player;
@@ -53,6 +54,15 @@ namespace UnityEditor.Build.Pipeline.Tests
         {
             throw new System.NotImplementedException(TestTracing.Callsite());
         }
+    }
+
+    internal class TestBundleBuildParameters : TestBuildParametersBase, IBundleBuildParameters
+    {
+        public virtual bool AppendHash { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
+
+        public virtual bool ContiguousBundles { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
+
+        public virtual bool DisableVisibleSubAssetRepresentations { get => throw new System.NotImplementedException(); set => throw new System.NotImplementedException(); }
     }
 
     internal class TestBundleBuildContent : IBundleBuildContent
@@ -110,5 +120,10 @@ namespace UnityEditor.Build.Pipeline.Tests
     internal class TestBundleExplictObjectLayout : IBundleExplictObjectLayout
     {
         public virtual Dictionary<ObjectIdentifier, string> ExplicitObjectLocation { get => throw new System.NotImplementedException(TestTracing.Callsite()); set => throw new System.NotImplementedException(TestTracing.Callsite()); }
+    }
+
+    internal class TestBundleExtendedAssetData : IBuildExtendedAssetData
+    {
+        public virtual Dictionary<GUID, ExtendedAssetData> ExtendedData => throw new System.NotImplementedException();
     }
 }
