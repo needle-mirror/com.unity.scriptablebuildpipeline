@@ -85,6 +85,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             var internalName = string.Format(CommonStrings.AssetBundleNameFormat, m_PackingMethod.GenerateInternalFileName(bundleName));
 
             var allObjects = new HashSet<ObjectIdentifier>();
+            Dictionary<GUID, HashSet<ObjectIdentifier>> assetObjectIdentifierHashSets = new Dictionary<GUID, HashSet<ObjectIdentifier>>();
             foreach (var asset in includedAssets)
             {
                 AssetLoadInfo assetInfo = m_DependencyData.AssetInfo[asset];
@@ -92,7 +93,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
                 var references = new List<ObjectIdentifier>();
                 references.AddRange(assetInfo.referencedObjects);
-                assetToReferences[asset] = FilterReferencesForAsset(m_DependencyData, asset, references);
+                assetToReferences[asset] = FilterReferencesForAsset(m_DependencyData, asset, references, null, null, assetObjectIdentifierHashSets);
 
                 allObjects.UnionWith(references);
                 m_WriteData.AssetToFiles[asset] = new List<string> { internalName };
@@ -111,6 +112,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             HashSet<ObjectIdentifier> previousSceneObjects = new HashSet<ObjectIdentifier>();
             HashSet<GUID> previousSceneAssets = new HashSet<GUID>();
             List<string> sceneInternalNames = new List<string>();
+            Dictionary<GUID, HashSet<ObjectIdentifier>> assetObjectIdentifierHashSets = new Dictionary<GUID, HashSet<ObjectIdentifier>>();
             foreach (var scene in includedScenes)
             {
                 var scenePath = AssetDatabase.GUIDToAssetPath(scene.ToString());
@@ -123,7 +125,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
                 var references = new List<ObjectIdentifier>();
                 references.AddRange(sceneInfo.referencedObjects);
-                assetToReferences[scene] = FilterReferencesForAsset(m_DependencyData, scene, references, previousSceneObjects, previousSceneAssets);
+                assetToReferences[scene] = FilterReferencesForAsset(m_DependencyData, scene, references, previousSceneObjects, previousSceneAssets, assetObjectIdentifierHashSets);
                 previousSceneObjects.UnionWith(references);
                 previousSceneAssets.UnionWith(assetToReferences[scene]);
 
@@ -138,7 +140,18 @@ namespace UnityEditor.Build.Pipeline.Tasks
             }
         }
 
-        internal static List<GUID> FilterReferencesForAsset(IDependencyData dependencyData, GUID asset, List<ObjectIdentifier> references, HashSet<ObjectIdentifier> previousSceneObjects = null, HashSet<GUID> previousSceneReferences = null)
+        static HashSet<ObjectIdentifier> GetRefObjectIdLookup(AssetLoadInfo referencedAsset, Dictionary<GUID, HashSet<ObjectIdentifier>> assetObjectIdentifierHashSets)
+        {
+            HashSet<ObjectIdentifier> refObjectIdLookup;
+            if ((assetObjectIdentifierHashSets == null) || (!assetObjectIdentifierHashSets.TryGetValue(referencedAsset.asset, out refObjectIdLookup)))
+            {
+                refObjectIdLookup = new HashSet<ObjectIdentifier>(referencedAsset.referencedObjects);
+                assetObjectIdentifierHashSets?.Add(referencedAsset.asset, refObjectIdLookup);
+            }
+            return refObjectIdLookup;
+        }
+
+        internal static List<GUID> FilterReferencesForAsset(IDependencyData dependencyData, GUID asset, List<ObjectIdentifier> references, HashSet<ObjectIdentifier> previousSceneObjects = null, HashSet<GUID> previousSceneReferences = null, Dictionary<GUID, HashSet<ObjectIdentifier>> assetObjectIdentifierHashSets = null)
         {
             var referencedAssets = new HashSet<AssetLoadInfo>();
             var referencedAssetsGuids = new List<GUID>(referencedAssets.Count);
@@ -163,10 +176,26 @@ namespace UnityEditor.Build.Pipeline.Tasks
             // Remove References also included by circular Referenced Assets if Asset's GUID is higher than Referenced Asset's GUID
             foreach (AssetLoadInfo referencedAsset in referencedAssets)
             {
-                var refObjectIdLookup = new HashSet<ObjectIdentifier>(referencedAsset.referencedObjects);
-                bool circularRef = refObjectIdLookup.Select(x => x.guid).Contains(asset);
-                if (!circularRef || (circularRef && asset > referencedAsset.asset || asset == referencedAsset.asset))
-                    references.RemoveAll(refObjectIdLookup.Contains);
+                if ((asset > referencedAsset.asset) || (asset == referencedAsset.asset))
+                {
+                    references.RemoveAll(GetRefObjectIdLookup(referencedAsset, assetObjectIdentifierHashSets).Contains);
+                }
+                else
+                {
+                    bool exists = false;
+                    foreach (ObjectIdentifier referencedObject in referencedAsset.referencedObjects)
+                    {
+                        if (referencedObject.guid == asset)
+                        {
+                            exists = true;
+                            break;
+                        }
+                    }
+                    if (!exists)
+                    {
+                        references.RemoveAll(GetRefObjectIdLookup(referencedAsset, assetObjectIdentifierHashSets).Contains);
+                    }
+                }
             }
 
             // Special path for scenes, they can reference the same assets previously references
@@ -177,7 +206,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                     if (!dependencyData.AssetInfo.TryGetValue(reference, out AssetLoadInfo referencedAsset))
                         continue;
 
-                    var refObjectIdLookup = new HashSet<ObjectIdentifier>(referencedAsset.referencedObjects);
+                    var refObjectIdLookup = GetRefObjectIdLookup(referencedAsset, assetObjectIdentifierHashSets);
                     // NOTE: It's impossible for an asset to depend on a scene, thus no need for circular reference checks
                     // So just remove and add a dependency on the asset if there is a need to depend upon it.
                     if (references.RemoveAll(refObjectIdLookup.Contains) > 0)

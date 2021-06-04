@@ -26,7 +26,7 @@
         },
         {
             "name": "Unity",
-            "expression": "2020.2.0a9",
+            "expression": "2019.4.19f1",
             "define": "NONRECURSIVE_DEPENDENCY_DATA"
         }
     ]
