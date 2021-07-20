@@ -42,4 +42,10 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize
         // Deserializer function to create an instance of the type from a previously serialized stream
         object UDeSerializer(DeSerializer deserializer);
     }
+
+    internal static class USerialize
+    {
+        // Reserved value for string indices representing an invalid string index, maximum value that can be written by Serializer.WriteStringIndex() or read by DeSerializer.ReadStringIndex()
+        internal const int InvalidStringIndex = int.MaxValue;
+    }
 }

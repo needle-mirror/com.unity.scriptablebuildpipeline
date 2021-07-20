@@ -242,7 +242,9 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             RunTask<GenerateBundlePacking>(buildContent, dep, writeData, deterministicId);
 
-            ReturnCode exitCode = RunTask<GenerateBundleCommands>(buildContent, dep, writeData, deterministicId);
+            IBundleBuildParameters buildParams = GetBuildParameters();
+
+            ReturnCode exitCode = RunTask<GenerateBundleCommands>(buildParams, buildContent, dep, writeData, deterministicId);
             Assert.AreEqual(ReturnCode.Success, exitCode);
         }
 

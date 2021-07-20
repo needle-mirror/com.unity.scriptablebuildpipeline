@@ -20,10 +20,11 @@ namespace UnityEditor.Build.Pipeline.Tests
 {
     public class WriteSerializedFileTests
     {
-        class TestBuildParameters : TestBuildParametersBase
+        class TestBuildParameters : TestBundleBuildParameters
         {
             public override bool UseCache { get; set; }
             public override string TempOutputFolder { get; set; }
+            public override bool NonRecursiveDependencies { get; set; }
 
             internal BuildSettings TestBuildSettings;
             public override BuildSettings GetContentBuildSettings()
@@ -408,6 +409,62 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreEqual(fullFileHash, md.RawFileHash);
             Assert.AreEqual(expectedContentHash, md.ContentHash);
             Assert.AreNotEqual(md.RawFileHash, md.ContentHash);
+        }
+
+        [Test]
+        public void WhenWriteResultsContainsMultipleSerializedFiles_ContentHashBeginsAtFirstObjectOfEachFile()
+        {
+            var resourceFiles = new ResourceFile[2];
+            resourceFiles[0].SetFileAlias("sf1");
+            resourceFiles[0].SetFileName($"{m_TestTempDir}/sf1");
+            resourceFiles[0].SetSerializedFile(true);
+            resourceFiles[1].SetFileAlias("sf2");
+            resourceFiles[1].SetFileName($"{m_TestTempDir}/sf2");
+            resourceFiles[1].SetSerializedFile(true);
+
+            var header1 = new SerializedLocation();
+            header1.SetFileName(resourceFiles[0].fileAlias);
+            header1.SetOffset(200);
+            
+            var header2 = new SerializedLocation();
+            header2.SetFileName(resourceFiles[1].fileAlias);
+            header2.SetOffset(100);
+
+            var serializedObjects = new ObjectSerializedInfo[2];
+            serializedObjects[0].SetHeader(header1);
+            serializedObjects[1].SetHeader(header2);
+            
+            WriteResult results = new WriteResult();
+            results.SetResourceFiles(resourceFiles);
+            results.SetSerializedObjects(serializedObjects);
+
+            // Create 2 files with bytes that are only different between the 2 m_Offsets
+            byte[] bytes = new byte[400];
+            for (int i = 0; i < 200; i++)
+                bytes[i] = 1;
+            for (int i = 200; i < 400; i++)
+                bytes[i] = 2;
+            File.WriteAllBytes(results.resourceFiles[0].fileName, bytes);
+
+            for (int i = 0; i < 100; i++)
+                bytes[i] = 1;
+            for (int i = 100; i < 200; i++)
+                bytes[i] = 3;
+            for (int i = 200; i < 400; i++)
+                bytes[i] = 2;
+            File.WriteAllBytes(results.resourceFiles[1].fileName, bytes);
+
+            var data1 = WriteSerializedFiles.CalculateFileMetadata(ref results);
+
+            // Now update the file bytes between the 2 m_Offsets
+            for (int i = 100; i < 200; i++)
+                bytes[i] = 4;
+            File.WriteAllBytes(results.resourceFiles[1].fileName, bytes);
+
+            var data2 = WriteSerializedFiles.CalculateFileMetadata(ref results);
+
+            Assert.AreNotEqual(data1.RawFileHash, data2.RawFileHash);
+            Assert.AreNotEqual(data1.ContentHash, data2.ContentHash);
         }
 
         [Test]

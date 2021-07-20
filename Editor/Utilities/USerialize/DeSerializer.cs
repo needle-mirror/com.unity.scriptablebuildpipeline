@@ -161,6 +161,12 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize
             return instance;
         }
 
+        // Call to start readingdirectly from a stream, used primarily for testing USerialize functions in isolation
+        internal void StartReadingFromStream(Stream stream)
+        {
+            m_Reader = new BinaryReader(stream);
+        }
+
         // Return the object version from a serialized stream without doing anything else, this is the object version passed in the original Serializer.Serialize() call that created the stream.
         // Resets the stream read position back to where it was on entry before returning
         internal int GetObjectVersion(Stream stream)
@@ -229,6 +235,12 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize
                     else if (fieldData.m_FieldInfo.FieldType == typeof(byte[]))
                     {
                         fieldData.m_Setter = CreateSetter<byte[]>(typeData.m_Type, fieldData.m_FieldInfo);
+                        fieldData.m_Getter = CreateObjectGetter(typeData.m_Type, fieldData.m_FieldInfo);
+                    }
+                    // Per customer request
+                    else if (fieldData.m_FieldInfo.FieldType == typeof(ulong[]))
+                    {
+                        fieldData.m_Setter = CreateSetter<ulong[]>(typeData.m_Type, fieldData.m_FieldInfo);
                         fieldData.m_Getter = CreateObjectGetter(typeData.m_Type, fieldData.m_FieldInfo);
                     }
                     else if (fieldData.m_FieldInfo.FieldType == typeof(string[]))
@@ -347,39 +359,39 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize
                     switch (fieldDataType)
                     {
                     case DataType.Byte:
-                            ((Func<object, byte, byte>)field.m_Setter)(objectRead, m_Reader.ReadByte());
+                        ((Func<object, byte, byte>)field.m_Setter)(objectRead, m_Reader.ReadByte());
                         break;
 
                     case DataType.Bool:
-                            ((Func<object, bool, bool>)field.m_Setter)(objectRead, m_Reader.ReadBoolean());
+                        ((Func<object, bool, bool>)field.m_Setter)(objectRead, m_Reader.ReadBoolean());
                         break;
 
                     case DataType.Int:
-                            ((Func<object, int, int>)field.m_Setter)(objectRead, m_Reader.ReadInt32());
+                        ((Func<object, int, int>)field.m_Setter)(objectRead, m_Reader.ReadInt32());
                         break;
 
                     case DataType.UInt:
-                            ((Func<object, uint, uint>)field.m_Setter)(objectRead, m_Reader.ReadUInt32());
+                        ((Func<object, uint, uint>)field.m_Setter)(objectRead, m_Reader.ReadUInt32());
                         break;
 
                     case DataType.Long:
-                            ((Func<object, long, long>)field.m_Setter)(objectRead, m_Reader.ReadInt64());
+                        ((Func<object, long, long>)field.m_Setter)(objectRead, m_Reader.ReadInt64());
                         break;
 
                     case DataType.ULong:
-                            ((Func<object, ulong, ulong>)field.m_Setter)(objectRead, m_Reader.ReadUInt64());
+                        ((Func<object, ulong, ulong>)field.m_Setter)(objectRead, m_Reader.ReadUInt64());
                         break;
 
                     case DataType.Enum:
-                            ((Func<object, int, int>)field.m_Setter)(objectRead, m_Reader.ReadInt32());
+                        ((Func<object, int, int>)field.m_Setter)(objectRead, m_Reader.ReadInt32());
                         break;
 
                     case DataType.String:
-                            ((Func<object, string, string>)field.m_Setter)(objectRead, ReadString());
+                        ((Func<object, string, string>)field.m_Setter)(objectRead, ReadString());
                         break;
 
                     case DataType.Type:
-                            ((Func<object, Type, Type>)field.m_Setter)(objectRead, GetTypeFromCache(ReadStringIndex()));
+                        ((Func<object, Type, Type>)field.m_Setter)(objectRead, GetTypeFromCache(ReadStringIndex()));
                         break;
 
                     case DataType.Class:
@@ -389,7 +401,7 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize
                     case DataType.Struct:
                     {
                         object structObject = ReadObject(depth + 1);
-                            ((Func<object, object, object>)field.m_Setter)(objectRead, structObject);
+                        ((Func<object, object, object>)field.m_Setter)(objectRead, structObject);
                         break;
                     }
 
@@ -417,15 +429,27 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize
                             case DataType.Byte:
                             {
                                 byte[] byteArray = (byte[])Array.CreateInstance(typeof(byte), length);
-                                    ((Func<object, byte[], byte[]>)field.m_Setter)(objectRead, byteArray);
+                                ((Func<object, byte[], byte[]>)field.m_Setter)(objectRead, byteArray);
                                 m_Reader.Read(byteArray, 0, length);
+                                break;
+                            }
+
+                            // Per customer request
+                            case DataType.ULong:
+                            {
+                                ulong[] ulongArray = (ulong[])Array.CreateInstance(typeof(ulong), length);
+                                ((Func<object, ulong[], ulong[]>)field.m_Setter)(objectRead, ulongArray);
+                                for (int elementNum = 0; elementNum < length; elementNum++)
+                                {
+                                    ulongArray[elementNum] = m_Reader.ReadUInt64();
+                                }
                                 break;
                             }
 
                             case DataType.String:
                             {
                                 string[] stringArray = (string[])Array.CreateInstance(typeof(string), length);
-                                    ((Func<object, string[], string[]>)field.m_Setter)(objectRead, stringArray);
+                                ((Func<object, string[], string[]>)field.m_Setter)(objectRead, stringArray);
                                 for (int elementNum = 0; elementNum < length; elementNum++)
                                 {
                                     stringArray[elementNum] = ReadString();
@@ -436,11 +460,11 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize
                             case DataType.Type:
                             {
                                 Type[] typeArray = new Type[length];
-                                    ((Func<object, Type[], Type[]>)field.m_Setter)(objectRead, typeArray);
+                                ((Func<object, Type[], Type[]>)field.m_Setter)(objectRead, typeArray);
                                 for (int elementNum = 0; elementNum < length; elementNum++)
                                 {
                                     int elementTypeNameIndex = ReadStringIndex();
-                                    if (elementTypeNameIndex >= 0)
+                                    if (elementTypeNameIndex != USerialize.InvalidStringIndex)
                                     {
                                         typeArray[elementNum] = GetTypeFromCache(elementTypeNameIndex);
                                         if (typeArray[elementNum] == null)
@@ -623,7 +647,7 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize
 
         // Read a string table index.  There are almost never more than 32,767 strings so we use 15 bits by default for compactness.
         // If a string has an index more than 32,767 (i.e. 0x8000+) we store 0x8000 as a flag to signify this combined with the bottom 15 bits of the index.  Bits 15 to 30 are stored in the following 16 bits of data.
-        int ReadStringIndex()
+        internal int ReadStringIndex()
         {
             int stringIndex = m_Reader.ReadUInt16();
             if ((stringIndex & 0x8000) != 0)

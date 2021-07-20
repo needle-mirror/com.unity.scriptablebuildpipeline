@@ -16,7 +16,7 @@
     "versionDefines": [
         {
             "name": "Unity",
-            "expression": "2021.1.0a6",
+            "expression": "2020.2.2f1",
             "define": "ENABLE_TYPE_HASHING"
         },
         {

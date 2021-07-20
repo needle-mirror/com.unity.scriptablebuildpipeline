@@ -33,7 +33,7 @@ namespace UnityEditor.Build.Pipeline.Interfaces
 
     /// <summary>
     /// Interface for monitoring the build process. Several tasks will log details of their progress through this interface.
-    /// See the [Build Logging](../manual/BuildLogger.html) documentation for more details.
+    /// See the [Build Logging](https://docs.unity3d.com/Packages/com.unity.scriptablebuildpipeline@latest/index.html?subfolder=/manual/BuildLogger.html) documentation for more details.
     /// </summary>
     public interface IBuildLogger : IContextObject
     {

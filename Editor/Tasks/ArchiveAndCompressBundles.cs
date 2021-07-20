@@ -174,7 +174,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             return code;
         }
 
-        static Dictionary<string, string[]> CalculateBundleDependencies(List<List<string>> assetFileList, Dictionary<string, string> filenameToBundleName)
+        internal static Dictionary<string, string[]> CalculateBundleDependencies(List<List<string>> assetFileList, Dictionary<string, string> filenameToBundleName)
         {
             var bundleDependencies = new Dictionary<string, string[]>();
             Dictionary<string, HashSet<string>> bundleDependenciesHash = new Dictionary<string, HashSet<string>>();
@@ -188,7 +188,28 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 bundleDependenciesHash.GetOrAdd(bundle, out dependencies);
                 dependencies.UnionWith(files.Select(x => filenameToBundleName[x]));
                 dependencies.Remove(bundle);
+
+                // Ensure we create mappings for all encountered files
+                foreach (var file in files)
+                    bundleDependenciesHash.GetOrAdd(filenameToBundleName[file], out dependencies);
             }
+
+            // Recursively combine dependencies
+            foreach (var dependencyPair in bundleDependenciesHash)
+            {
+                List<string> dependencies = dependencyPair.Value.ToList();
+                for (int i = 0; i < dependencies.Count; i++)
+                {
+                    if (!bundleDependenciesHash.TryGetValue(dependencies[i], out var recursiveDependencies))
+                        continue;
+                    foreach (var recursiveDependency in recursiveDependencies)
+                    {
+                        if (dependencyPair.Value.Add(recursiveDependency))
+                            dependencies.Add(recursiveDependency);
+                    }
+                }
+            }
+
             foreach (var dep in bundleDependenciesHash)
             {
                 string[] ret = dep.Value.ToArray();

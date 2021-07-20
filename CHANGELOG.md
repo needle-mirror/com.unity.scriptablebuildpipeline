@@ -4,6 +4,18 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.19.2] - 2021-07-20
+- Fixed an edge case where moving a scene would fail the build.
+- Added additional details to the Trace Event Profiler output where the data was missing or unclear.
+- Fixed an issue where NONRECURSIVE_DEPENDENCY_DATA would return NonRecursive bundle dependencies instead of the expected Recursive bundle dependencies.
+- Updated version define for ENABLE_TYPE_HASHING to match backported Unity 2020.2.2f1 version.
+- Fixed USerialize bug with handling of Type[] containing null values.
+- Fixed an issue where the hash for Scene bundles would be calculated with a few missing bytes, returning an incorrect hash.
+- Fixed an edge case with NONRECURSIVE_DEPENDENCY_DATA in which Scene Bundles would be unable to load MonoScripts and log Missing Behaviour warnings at runtime.
+- New Project Behavior Change: PrefabPacked bundles now use a header size of 2 bytes instead of 4 bytes to reduce file identifier collision frequency in large projects.
+  - Previous behavior can be restored via the Scriptable Build Pipeline Preferences window.
+- New Preference: FileID Generator Seed allows you to set a seed for file identifier generation to avoid project specific collisions.
+
 ## [1.19.1] - 2021-06-04
 - Improved performance of the GenerateBundlePacking build task.
 - Updated version define for NONRECURSIVE_DEPENDENCY_DATA to match backported Unity 2019.4.19f1 version.

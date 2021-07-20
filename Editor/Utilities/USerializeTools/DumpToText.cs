@@ -175,7 +175,7 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize
                         else if (elementType == typeof(byte))
                             DumpPrimitiveArray<byte>(name, array);
                         else if (elementType == typeof(Type))
-                            DumpPrimitiveArray<Type>(name, array);
+                            DumpSimpleObjectArray<Type>(name, array);
                         else
                         {
                             // General array
@@ -253,6 +253,20 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize
             for (int elementIndex = 0; elementIndex < array.Length; elementIndex++)
             {
                 Add($"{name}[{elementIndex}]", ((PrimitiveType)array.GetValue(elementIndex)).ToString());
+            }
+            Undent();
+        }
+
+        void DumpSimpleObjectArray<PrimitiveType>(string name, Array array)
+        {
+            Indent();
+            for (int elementIndex = 0; elementIndex < array.Length; elementIndex++)
+            {
+                PrimitiveType element = (PrimitiveType)array.GetValue(elementIndex);
+                if (element != null)
+                    Add($"{name}[{elementIndex}]", element.ToString());
+                else
+                    Add($"{name}[{elementIndex}]", "null");
             }
             Undent();
         }

@@ -13,8 +13,9 @@ namespace UnityEditor.Build.Pipeline
 #endif
 
     /// <summary>
-    /// Static class implementing API wrappers to match BuildPipeline APIs but use the Scriptable Build Pipeline.
-    /// <seealso cref="BuildPipeline.BuildAssetBundles"/>
+    /// Static class exposing convenient methods that match the BuildPipeline <seealso cref="BuildPipeline.BuildAssetBundles"/> method, suitable
+    /// for porting existing projects to the Scriptable Build Pipeline quickly.
+    /// New projects could consider calling <see cref="ContentPipeline.BuildAssetBundles"/> directly.
     /// </summary>
     public static class CompatibilityBuildPipeline
     {
@@ -23,14 +24,14 @@ namespace UnityEditor.Build.Pipeline
         /// <seealso cref="BuildPipeline.BuildAssetBundles(string, BuildAssetBundleOptions, BuildTarget)"/>
         /// </summary>
         /// <remarks>
-        /// Not all BuildAssetBundleOptions are supported in the Scriptable Build Pipeline initial release.
-        /// Supported options are: ChunkBasedCompression, UncompressedAssetBundle, DisableWriteTypeTree, and DisableWriteTypeTree.
-        /// In addition, existing BuildPipeline callbacks are not yet supported. Est: 2018.3 release for support.
+        /// Not all BuildAssetBundleOptions are supported in the Scriptable Build Pipeline.
+        /// Supported options are: ForceRebuildAssetBundle, AppendHashToAssetBundleName, ChunkBasedCompression, UncompressedAssetBundle, and DisableWriteTypeTree.
+        /// In addition, existing BuildPipeline callbacks are not yet supported.
         /// </remarks>
         /// <param name="outputPath">Output path for the AssetBundles.</param>
         /// <param name="assetBundleOptions">AssetBundle building options.</param>
         /// <param name="targetPlatform">Chosen target build platform.</param>
-        /// <returns>null - Generating and returning an AssetBundleManifest is not yet supported by the Scriptable Build Pipeline. Est: 2018.3 support.</returns>
+        /// <returns>CompatibilityAssetBundleManifest object exposing information about the generated asset bundles.</returns>
         public static CompatibilityAssetBundleManifest BuildAssetBundles(string outputPath, BuildAssetBundleOptions assetBundleOptions, BuildTarget targetPlatform)
         {
             var buildInput = ContentBuildInterface.GenerateAssetBundleBuilds();
@@ -42,15 +43,15 @@ namespace UnityEditor.Build.Pipeline
         /// <seealso cref="BuildPipeline.BuildAssetBundles(string, AssetBundleBuild[], BuildAssetBundleOptions, BuildTarget)"/>
         /// </summary>
         /// <remarks>
-        /// Not all BuildAssetBundleOptions are supported in the Scriptable Build Pipeline initial release.
-        /// Supported options are: ChunkBasedCompression, UncompressedAssetBundle, DisableWriteTypeTree, and DisableWriteTypeTree.
-        /// In addition, existing BuildPipeline callbacks are not yet supported. Est: 2018.3 release for support.
+        /// Not all BuildAssetBundleOptions are supported in the Scriptable Build Pipeline.
+        /// Supported options are: ForceRebuildAssetBundle, AppendHashToAssetBundleName, ChunkBasedCompression, UncompressedAssetBundle, and DisableWriteTypeTree.
+        /// In addition, existing BuildPipeline callbacks are not yet supported.
         /// </remarks>
         /// <param name="outputPath">Output path for the AssetBundles.</param>
         /// <param name="builds">AssetBundle building map.</param>
         /// <param name="assetBundleOptions">AssetBundle building options.</param>
         /// <param name="targetPlatform">Chosen target build platform.</param>
-        /// <returns>null - Generating and returning an AssetBundleManifest is not yet supported by the Scriptable Build Pipeline. Est: 2018.3 release for support.</returns>
+        /// <returns>CompatibilityAssetBundleManifest object exposing information about the generated asset bundles.</returns>
         public static CompatibilityAssetBundleManifest BuildAssetBundles(string outputPath, AssetBundleBuild[] builds, BuildAssetBundleOptions assetBundleOptions, BuildTarget targetPlatform)
         {
             return BuildAssetBundles_Internal(outputPath, new BundleBuildContent(builds), assetBundleOptions, targetPlatform);

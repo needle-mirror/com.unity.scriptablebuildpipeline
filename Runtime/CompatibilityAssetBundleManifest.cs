@@ -98,9 +98,9 @@ namespace UnityEngine.Build.Pipeline
         }
 
         /// <summary>
-        /// Converts the information about the manifest file to a formatted string.
+        /// Returns a formatted string with the contents of the manifest file.
         /// </summary>
-        /// <returns>Returns information about the manifest file.</returns>
+        /// <returns>Returns a string suitable for saving into a manifest file.</returns>
         public override string ToString()
         {
             StringBuilder builder = new StringBuilder();

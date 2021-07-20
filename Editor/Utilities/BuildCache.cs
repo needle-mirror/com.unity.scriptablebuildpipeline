@@ -91,7 +91,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             new USerializeCustom_BuildUsageTagSet()
         };
         const string k_CachePath = "Library/BuildCache";
-        const int k_Version = 3;
+        const int k_Version = 4;
         internal const long k_BytesToGigaBytes = 1073741824L;
 
         [NonSerialized]
@@ -388,11 +388,15 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
             using (m_Logger.ScopedStep(LogLevel.Info, "Check for changed dependencies"))
             {
+                int unchangedCount = 0;
                 for (int i = 0; i < cachedInfos.Count; i++)
                 {
                     if (HasAssetOrDependencyChanged(cachedInfos[i]))
                         cachedInfos[i] = null;
+                    else
+                        unchangedCount++;
                 }
+                m_Logger.AddEntrySafe(LogLevel.Info, $"Unchanged dependencies count: {unchangedCount}");
             }
 
             // If we have a cache server connection, download & check any missing info

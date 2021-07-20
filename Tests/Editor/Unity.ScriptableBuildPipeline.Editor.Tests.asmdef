@@ -13,7 +13,7 @@
         "Editor"
     ],
     "excludePlatforms": [],
-    "allowUnsafeCode": false,
+    "allowUnsafeCode": true,
 	"defineConstraints": [
         "UNITY_INCLUDE_TESTS"
     ]

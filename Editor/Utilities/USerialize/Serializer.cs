@@ -189,6 +189,18 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize
             m_Writer.Flush();
         }
 
+        // Call to start writing directly to a stream, used primarily for testing USerialize functions in isolation
+        internal void StartWritingToStream(Stream stream)
+        {
+            m_Writer = new BinaryWriter(stream);
+        }
+
+        // Call when we've finished writing to a stream, used primarily for testing USerialize functions in isolation
+        internal void FinishWritingToStream()
+        {
+            m_Writer.Flush();
+        }
+
         // Return the cached type data for a given type.  Will return it from the m_TypeDataCache cache if present otherwise will generate a new TypeData instance from the type and add it to the cache
         TypeData GetTypeData(Type type)
         {
@@ -364,6 +376,16 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize
                                 m_Writer.Write((byte)DataType.Byte);
                                 m_Writer.Write((byte[])array, 0, array.Length);
                             }
+                            // Per customer request
+                            else if (elementType == typeof(ulong))
+                            {
+                                ulong[] ulongArray = (ulong[])array;
+                                m_Writer.Write((byte)DataType.ULong);
+                                for (int elementIndex = 0; elementIndex < array.Length; elementIndex++)
+                                { 
+                                    m_Writer.Write(ulongArray[elementIndex]);
+                                }
+                            }
                             else
                                 throw new InvalidDataException($"USerialize currently doesn't support primitive arrays of type {elementType.Name} - field {field.m_Name} of type {field.m_FieldInfo.FieldType.Name}");
                         }
@@ -387,7 +409,7 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize
                                 if (typeArray[elementIndex] != null)
                                     WriteStringIndex(GetTypeQualifiedNameIndex(typeArray[elementIndex]));
                                 else
-                                    m_Writer.Write(-1);
+                                    WriteStringIndex(USerialize.InvalidStringIndex);
 
                             }
                         }
@@ -633,7 +655,7 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize
 
         // Write a string table index.  There are almost never more than 32,767 strings so we use 15 bits by default for compactness.
         // If a string has an index more than 32,767 (i.e. 0x8000+) we store 0x8000 as a flag to signify this combined with the bottom 15 bits of the index.  Bits 15 to 30 are stored in the following 16 bits of data.
-        void WriteStringIndex(int stringIndex)
+        internal void WriteStringIndex(int stringIndex)
         {
             if (stringIndex < 0x8000)
                 m_Writer.Write((ushort)stringIndex);

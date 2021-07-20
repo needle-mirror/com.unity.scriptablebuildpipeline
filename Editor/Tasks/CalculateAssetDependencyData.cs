@@ -216,18 +216,22 @@ namespace UnityEditor.Build.Pipeline.Tasks
             output.AssetResults = new AssetOutput[input.Assets.Count];
 
             IList<CachedInfo> cachedInfo = null;
-            if (input.BuildCache != null)
+            using (input.Logger.ScopedStep(LogLevel.Info, "Gathering Cache Entries to Load"))
             {
-                IList<CacheEntry> entries = input.Assets.Select(x => GetAssetCacheEntry(input.BuildCache, x, input.NonRecursiveDependencies)).ToList();
-                input.BuildCache.LoadCachedData(entries, out cachedInfo);
+                if (input.BuildCache != null)
+                {
+                    IList<CacheEntry> entries = input.Assets.Select(x => GetAssetCacheEntry(input.BuildCache, x, input.NonRecursiveDependencies)).ToList();
+                    input.BuildCache.LoadCachedData(entries, out cachedInfo);
+                }
             }
 
-            using (input.Logger.ScopedStep(LogLevel.Info, "Calculate Dependencies"))
+            for (int i = 0; i < input.Assets.Count; i++)
             {
-                for (int i = 0; i < input.Assets.Count; i++)
+                using (input.Logger.ScopedStep(LogLevel.Info, "Calculate Asset Dependencies"))
                 {
                     AssetOutput assetResult = new AssetOutput();
                     assetResult.asset = input.Assets[i];
+
                     if (cachedInfo != null && cachedInfo[i] != null)
                     {
                         assetResult.assetInfo = cachedInfo[i].Data[0] as AssetLoadInfo;
@@ -237,6 +241,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                         assetResult.objectTypes = cachedInfo[i].Data[4] as List<ObjectTypes>;
                         output.AssetResults[i] = assetResult;
                         output.CachedAssetCount++;
+                        input.Logger.AddEntrySafe(LogLevel.Info, $"{assetResult.asset} (cached)");
                         continue;
                     }
 
@@ -245,6 +250,8 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
                     if (!input.ProgressTracker.UpdateInfoUnchecked(assetPath))
                         return ReturnCode.Canceled;
+
+                    input.Logger.AddEntrySafe(LogLevel.Info, $"{assetResult.asset}");
 
                     assetResult.assetInfo = new AssetLoadInfo();
                     assetResult.usageTags = new BuildUsageTagSet();
@@ -296,18 +303,21 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 }
             }
 
-            if (input.BuildCache != null)
+            using (input.Logger.ScopedStep(LogLevel.Info, "Gathering Cache Entries to Save"))
             {
-                List<CachedInfo> toCache = new List<CachedInfo>();
-                for (int i = 0; i < input.Assets.Count; i++)
+                if (input.BuildCache != null)
                 {
-                    AssetOutput r = output.AssetResults[i];
-                    if (cachedInfo[i] == null)
+                    List<CachedInfo> toCache = new List<CachedInfo>();
+                    for (int i = 0; i < input.Assets.Count; i++)
                     {
-                        toCache.Add(GetCachedInfo(input.BuildCache, input.Assets[i], r.assetInfo, r.usageTags, r.spriteData, r.extendedData, input.NonRecursiveDependencies));
+                        AssetOutput r = output.AssetResults[i];
+                        if (cachedInfo[i] == null)
+                        {
+                            toCache.Add(GetCachedInfo(input.BuildCache, input.Assets[i], r.assetInfo, r.usageTags, r.spriteData, r.extendedData, input.NonRecursiveDependencies));
+                        }
                     }
+                    input.BuildCache.SaveCachedData(toCache);
                 }
-                input.BuildCache.SaveCachedData(toCache);
             }
 
             return ReturnCode.Success;

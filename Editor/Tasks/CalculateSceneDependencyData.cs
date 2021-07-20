@@ -35,6 +35,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
         [InjectContext(ContextUsage.In, true)]
         IBuildCache m_Cache;
+
+        [InjectContext(ContextUsage.In, true)]
+        IBuildLogger m_Log;
 #pragma warning restore 649
 
         CacheEntry GetSceneCacheEntry(GUID asset)
@@ -87,66 +90,73 @@ namespace UnityEditor.Build.Pipeline.Tasks
             BuildSettings settings = m_Parameters.GetContentBuildSettings();
             for (int i = 0; i < m_Content.Scenes.Count; i++)
             {
-                GUID scene = m_Content.Scenes[i];
-                string scenePath = AssetDatabase.GUIDToAssetPath(scene.ToString());
-
-                SceneDependencyInfo sceneInfo;
-                BuildUsageTagSet usageTags;
-                Hash128 prefabDependency = new Hash128();
-
-                if (cachedInfo != null && cachedInfo[i] != null)
+                using (m_Log.ScopedStep(LogLevel.Info, "Calculate Scene Dependencies"))
                 {
-                    if (!m_Tracker.UpdateInfoUnchecked(string.Format("{0} (Cached)", scenePath)))
-                        return ReturnCode.Canceled;
+                    GUID scene = m_Content.Scenes[i];
+                    string scenePath = AssetDatabase.GUIDToAssetPath(scene.ToString());
 
-                    sceneInfo = (SceneDependencyInfo)cachedInfo[i].Data[0];
-                    usageTags = cachedInfo[i].Data[1] as BuildUsageTagSet;
-                    prefabDependency = (Hash128)cachedInfo[i].Data[2];
-                    var objectTypes = cachedInfo[i].Data[3] as List<ObjectTypes>;
-                    if (objectTypes != null)
-                        BuildCacheUtility.SetTypeForObjects(objectTypes);
-                }
-                else
-                {
-                    if (!m_Tracker.UpdateInfoUnchecked(scenePath))
-                        return ReturnCode.Canceled;
+                    SceneDependencyInfo sceneInfo;
+                    BuildUsageTagSet usageTags;
+                    Hash128 prefabDependency = new Hash128();
 
-                    usageTags = new BuildUsageTagSet();
-
-#if UNITY_2019_3_OR_NEWER
-#if NONRECURSIVE_DEPENDENCY_DATA
-                    if (m_Parameters.NonRecursiveDependencies)
+                    if (cachedInfo != null && cachedInfo[i] != null)
                     {
-                        sceneInfo = ContentBuildInterface.CalculatePlayerDependenciesForScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache, DependencyType.ValidReferences);
-                        ObjectIdentifier[] filteredReferences = sceneInfo.referencedObjects.ToArray();
-                        filteredReferences = ExtensionMethods.FilterReferencedObjectIDs(scene, filteredReferences, m_Parameters.Target, m_Parameters.ScriptInfo, new HashSet<GUID>(m_Content.Assets));
-                        sceneInfo.SetReferencedObjects(filteredReferences);
+                        if (!m_Tracker.UpdateInfoUnchecked(string.Format("{0} (Cached)", scenePath)))
+                            return ReturnCode.Canceled;
+                        m_Log.AddEntrySafe(LogLevel.Info, $"{scene} (cached)");
+
+                        sceneInfo = (SceneDependencyInfo)cachedInfo[i].Data[0];
+                        // case 1288677: Update scenePath in case scene moved, but didn't change
+                        sceneInfo.SetScene(scenePath);
+                        usageTags = cachedInfo[i].Data[1] as BuildUsageTagSet;
+                        prefabDependency = (Hash128)cachedInfo[i].Data[2];
+                        var objectTypes = cachedInfo[i].Data[3] as List<ObjectTypes>;
+                        if (objectTypes != null)
+                            BuildCacheUtility.SetTypeForObjects(objectTypes);
                     }
                     else
                     {
+                        if (!m_Tracker.UpdateInfoUnchecked(scenePath))
+                            return ReturnCode.Canceled;
+                        m_Log.AddEntrySafe(LogLevel.Info, $"{scene}");
+
+                        usageTags = new BuildUsageTagSet();
+
+#if UNITY_2019_3_OR_NEWER
+#if NONRECURSIVE_DEPENDENCY_DATA
+                        if (m_Parameters.NonRecursiveDependencies)
+                        {
+                            sceneInfo = ContentBuildInterface.CalculatePlayerDependenciesForScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache, DependencyType.ValidReferences);
+                            ObjectIdentifier[] filteredReferences = sceneInfo.referencedObjects.ToArray();
+                            filteredReferences = ExtensionMethods.FilterReferencedObjectIDs(scene, filteredReferences, m_Parameters.Target, m_Parameters.ScriptInfo, new HashSet<GUID>(m_Content.Assets));
+                            sceneInfo.SetReferencedObjects(filteredReferences);
+                        }
+                        else
+                        {
+                            sceneInfo = ContentBuildInterface.CalculatePlayerDependenciesForScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache);
+                        }
+#else
                         sceneInfo = ContentBuildInterface.CalculatePlayerDependenciesForScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache);
-                    }
-#else
-                    sceneInfo = ContentBuildInterface.CalculatePlayerDependenciesForScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache);
 #endif
 #else
-                    string outputFolder = m_Parameters.TempOutputFolder;
-                    if (m_Parameters.UseCache && m_Cache != null)
-                        outputFolder = m_Cache.GetCachedArtifactsDirectory(m_Cache.GetCacheEntry(scene, Version));
-                    Directory.CreateDirectory(outputFolder);
+                        string outputFolder = m_Parameters.TempOutputFolder;
+                        if (m_Parameters.UseCache && m_Cache != null)
+                            outputFolder = m_Cache.GetCachedArtifactsDirectory(m_Cache.GetCacheEntry(scene, Version));
+                        Directory.CreateDirectory(outputFolder);
 
-                    sceneInfo = ContentBuildInterface.PrepareScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache, outputFolder);
+                        sceneInfo = ContentBuildInterface.PrepareScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache, outputFolder);
 #endif
-                    if (uncachedInfo != null)
-                    {
-                        // We only need to gather prefab dependencies and calculate the hash if we are using caching, otherwise we can skip it
-                        var prefabEntries = AssetDatabase.GetDependencies(AssetDatabase.GUIDToAssetPath(scene.ToString())).Where(path => path.EndsWith(".prefab")).Select(m_Cache.GetCacheEntry);
-                        prefabDependency = HashingMethods.Calculate(prefabEntries).ToHash128();
-                        uncachedInfo.Add(GetCachedInfo(scene, sceneInfo.referencedObjects, sceneInfo, usageTags, prefabEntries, prefabDependency));
+                        if (uncachedInfo != null)
+                        {
+                            // We only need to gather prefab dependencies and calculate the hash if we are using caching, otherwise we can skip it
+                            var prefabEntries = AssetDatabase.GetDependencies(AssetDatabase.GUIDToAssetPath(scene.ToString())).Where(path => path.EndsWith(".prefab")).Select(m_Cache.GetCacheEntry);
+                            prefabDependency = HashingMethods.Calculate(prefabEntries).ToHash128();
+                            uncachedInfo.Add(GetCachedInfo(scene, sceneInfo.referencedObjects, sceneInfo, usageTags, prefabEntries, prefabDependency));
+                        }
                     }
+
+                    SetOutputInformation(scene, sceneInfo, usageTags, prefabDependency);
                 }
-
-                SetOutputInformation(scene, sceneInfo, usageTags, prefabDependency);
             }
 
             if (m_Parameters.UseCache && m_Cache != null)

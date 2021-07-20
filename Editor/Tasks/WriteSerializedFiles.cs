@@ -16,7 +16,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
     public class WriteSerializedFiles : IBuildTask, IRunCachedCallbacks<WriteSerializedFiles.Item>
     {
         /// <inheritdoc />
-        public int Version { get { return 3; } }
+        public int Version { get { return 4; } }
 
 #pragma warning disable 649
         [InjectContext(ContextUsage.In)]
@@ -125,10 +125,10 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 this);
         }
 
-        private SerializedFileMetaData CalculateFileMetadata(ref WriteResult result)
+        internal static SerializedFileMetaData CalculateFileMetadata(ref WriteResult result)
         {
-            List<object> contentHashObjects = new List<object>();
-            List<object> fullHashObjects = new List<object>();
+            List<RawHash> contentHashObjects = new List<RawHash>();
+            List<RawHash> fullHashObjects = new List<RawHash>();
             foreach (ResourceFile file in result.resourceFiles)
             {
                 RawHash fileHash = HashingMethods.CalculateFile(file.fileName);
@@ -136,9 +136,10 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 fullHashObjects.Add(fileHash);
                 if (file.serializedFile && result.serializedObjects.Count > 0)
                 {
+                    ObjectSerializedInfo firstObj = result.serializedObjects.First(x => x.header.fileName == file.fileAlias);
                     using (var stream = new FileStream(file.fileName, FileMode.Open, FileAccess.Read))
                     {
-                        stream.Position = (long)result.serializedObjects[0].header.offset;
+                        stream.Position = (long)firstObj.header.offset;
                         contentHash = HashingMethods.CalculateStream(stream);
                     }
                 }

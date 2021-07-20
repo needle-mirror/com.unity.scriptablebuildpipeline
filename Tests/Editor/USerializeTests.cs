@@ -60,24 +60,57 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize.Tests
         public void TestUInt64Serializes(ulong testValue) => TestSerializeData(new PrimitiveValue<ulong>() { m_Value = testValue });
 
         // Test trying to serialize an unsupported primitive type throws
-        [TestCase]
+        [Test]
         public void TestSerializingUnsupportedPrimitiveTypeThrows()
         {
             Assert.Throws(typeof(InvalidDataException), () => TestSerializeData(new PrimitiveValue<float>() { m_Value = 123.4f }));
         }
 
         // Test trying to serialize an unsupported primitive array type throws
-        [TestCase]
+        [Test]
         public void TestSerializingUnsupportedArrayPrimitiveTypeThrows()
         {
             Assert.Throws(typeof(InvalidDataException), () => TestSerializeData(new PrimitiveValue<ClassWithUnsupportedPrimitiveArrayType>() { m_Value = new ClassWithUnsupportedPrimitiveArrayType() }));
         }
 
         // Test trying to serialize an array of rank greater than one throws
-        [TestCase]
+        [Test]
         public void TestSerializingUnsupportedArrayRankThrows()
         {
-            Assert.Throws(typeof(InvalidDataException), () => TestSerializeData(new PrimitiveValue<int[,]>() { m_Value = new int[1,1] }));
+            Assert.Throws(typeof(InvalidDataException), () => TestSerializeData(new PrimitiveValue<int[,]>() { m_Value = new int[1, 1] }));
+        }
+
+        // Test writing string indices gives us back the values we expect and uses the expected number of bytes
+        [TestCase(0, 2)]
+        [TestCase(0x7FFF, 2)]
+        [TestCase(0x8000, 4)]
+        [TestCase(0x8001, 4)]
+        [TestCase(0x12345678, 4)]
+        [TestCase(USerialize.InvalidStringIndex, 4)]
+        public void TestWriteReadStringIndices(int stringIndex, int expectedSizeBytes)
+        {
+            using (MemoryStream stream = new MemoryStream())
+            {
+                // Write string index checking we wrote the expected number of bytes
+                Serializer serializer = new Serializer();
+                serializer.StartWritingToStream(stream);
+                long streamPosBeforeWriting = stream.Position;
+                serializer.WriteStringIndex(stringIndex);
+                serializer.FinishWritingToStream();
+                int numBytesWritten = (int)(stream.Position - streamPosBeforeWriting);
+                Assert.AreEqual(expectedSizeBytes, numBytesWritten);
+
+                // Read back the string index checking we got back what we expected and read the expected number of bytes
+                stream.Position = 0;
+                DeSerializer deserializer = new DeSerializer();
+                deserializer.StartReadingFromStream(stream);
+                long streamPosBeforeReading = stream.Position;
+                int readStringIndex = deserializer.ReadStringIndex();
+                int numBytesRead = (int)(stream.Position - streamPosBeforeReading);
+                Assert.AreEqual(expectedSizeBytes, numBytesRead);
+
+                Assert.AreEqual(stringIndex, readStringIndex);
+            }
         }
 
         // Test 'Hash128' is serialized/deserialized correctly
@@ -142,7 +175,7 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize.Tests
 
         // Test serializing a string array with more than 32,767 unique entries to ensure the standard 15bit string table index 
         // is insufficient and the fallback 31bit stringtable index encoding has to be used for some of the strings
-        [TestCase]
+        [Test]
         public void TestStringIndicesLargerThan15bit()
         {
             string[] testStrings = new string[40000];
@@ -157,12 +190,20 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize.Tests
         [TestCase(new byte[] { 1, 2, 3, 4, 5 })]
         public void TestByteArraysSerialize(byte[] testValue) => TestSerializeData(new PrimitiveArray<byte>() { m_ArrayElements = testValue });
 
+        // Test ulong arrays of various forms are serialized/deserialized correctly
+        [TestCase(null)]
+        [TestCase(new ulong[0])]
+        [TestCase(new ulong[] { 1, 2, 3, 4, 5 })]
+        [TestCase(new ulong[] { ulong.MinValue, 0, 1, ulong.MaxValue })]
+        public void TestULongArraysSerialize(ulong[] testValue) => TestSerializeData(new PrimitiveArray<ulong>() { m_ArrayElements = testValue });
+
         // Test Type arrays of various forms are serialized/deserialized correctly
         public static IEnumerable<Type[]> TestTypeArraysSerialize_TestCases()
         {
             yield return null;
             yield return new Type[0];
             yield return new Type[] { typeof(int), typeof(uint), typeof(float), typeof(CachedInfo), typeof(MonoBehaviour) };
+            yield return new Type[] { typeof(int), null, typeof(float), null, typeof(MonoBehaviour) };
         }
         [TestCaseSource("TestTypeArraysSerialize_TestCases")]
         public void TestTypeArraysSerialize(Type[] testValue) => TestSerializeData(new PrimitiveArray<Type>() { m_ArrayElements = testValue });
@@ -180,11 +221,11 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize.Tests
         }
 
         // Test classes are serialized/deserialized correctly
-        [TestCase]
+        [Test]
         public void TestLinearClassSerializes() => TestSerializeData(new PrimitiveValue<LinearClass>() { m_Value = new LinearClass(1) });
 
         // Test the DeSerializer.ObjectVersion property returns the correct value after deserialization 
-        [TestCase]
+        [Test]
         public void TestClientObjectVersionPropertyReturnedCorrectly()
         {
             using (MemoryStream stream = new MemoryStream())
@@ -209,7 +250,7 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize.Tests
         }
 
         // Test that CachedInfo instances serialize/deserialize correctly
-        [TestCase]
+        [Test]
         public void TestCachedInfoSerialises()
         {
             CachedInfo cachedInfo = CreateSyntheticCachedInfo(12478324);

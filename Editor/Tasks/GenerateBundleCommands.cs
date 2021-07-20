@@ -9,10 +9,6 @@ using UnityEditor.Build.Pipeline.WriteTypes;
 using UnityEditor.Build.Utilities;
 using UnityEngine;
 
-#if !UNITY_2019_1_OR_NEWER
-using System;
-#endif
-
 namespace UnityEditor.Build.Pipeline.Tasks
 {
     /// <summary>
@@ -24,6 +20,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
         public int Version { get { return 1; } }
 
 #pragma warning disable 649
+        [InjectContext(ContextUsage.In)]
+        IBuildParameters m_Parameters;
+
         [InjectContext(ContextUsage.In)]
         IBundleBuildContent m_BuildContent;
 
@@ -82,17 +81,33 @@ namespace UnityEditor.Build.Pipeline.Tasks
             return ReturnCode.Success;
         }
 
-        static WriteCommand CreateWriteCommand(string internalName, List<ObjectIdentifier> objects, IDeterministicIdentifiers packingMethod)
+        internal static WriteCommand CreateWriteCommand(string internalName, List<ObjectIdentifier> objects, IDeterministicIdentifiers packingMethod)
         {
             var command = new WriteCommand();
             command.internalName = internalName;
             command.fileName = Path.GetFileName(internalName);
 
-            command.serializeObjects = objects.Select(x => new SerializationInfo
+            command.serializeObjects = new List<SerializationInfo>();
+            var consumedIds = new Dictionary<long, ObjectIdentifier>();
+            foreach (var obj in objects)
             {
-                serializationObject = x,
-                serializationIndex = packingMethod.SerializationIndexFromObjectIdentifier(x)
-            }).ToList();
+                var serializationInfo = new SerializationInfo
+                {
+                    serializationObject = obj,
+                    serializationIndex = packingMethod.SerializationIndexFromObjectIdentifier(obj)
+                };
+
+                if (consumedIds.TryGetValue(serializationInfo.serializationIndex, out var priorObject))
+                {
+                    string msg = string.Format(@"File '{0}' contains a file identifier collision between {1} ({2}) and {3} ({4}) at id {5}. Objects will be missing from the bundle!
+You can work around this issue by changing the 'FileID Generator Seed' found in the Scriptable Build Pipeline Preferences window.", 
+                        internalName, obj, BuildCacheUtility.GetMainTypeForObject(obj), priorObject, BuildCacheUtility.GetMainTypeForObject(priorObject), serializationInfo.serializationIndex);
+                    throw new BuildFailedException(msg);
+                }
+                consumedIds.Add(serializationInfo.serializationIndex, obj);
+                command.serializeObjects.Add(serializationInfo);
+            }
+                
             return command;
         }
 
@@ -158,21 +173,21 @@ namespace UnityEditor.Build.Pipeline.Tasks
             m_WriteData.FileToReferenceMap.Add(command.internalName, referenceMap);
         }
 
-#if !UNITY_2019_1_OR_NEWER
-        static int GetSortIndex(Type type)
+#if !UNITY_2019_1_OR_NEWER || NONRECURSIVE_DEPENDENCY_DATA
+        static int GetSortIndex(System.Type type)
         {
-            // ContentBuildInterface.GetTypeForObjects returns null for some MonoBehaviours, this will fix it until the API is fixed.
+            // Closely matches CalculateSortIndex in C++, not 100% as the same info is not available to C#, doesn't need to be 100%
             if (type == null)
-                return Int32.MaxValue - 3;
+                return int.MaxValue - 5;
             if (type == typeof(MonoScript))
-                return Int32.MinValue;
+                return int.MinValue;
             if (typeof(ScriptableObject).IsAssignableFrom(type))
-                return Int32.MaxValue - 4;
+                return int.MaxValue - 4;
             if (typeof(MonoBehaviour).IsAssignableFrom(type))
-                return Int32.MaxValue - 3;
+                return int.MaxValue - 3;
             if (typeof(TerrainData).IsAssignableFrom(type))
-                return Int32.MaxValue - 2;
-            return BitConverter.ToInt32(HashingMethods.Calculate(type.Name).ToBytes(), 0);
+                return int.MaxValue - 2;
+            return System.BitConverter.ToInt32(HashingMethods.Calculate(type.Name).ToBytes(), 0);
         }
 
         struct SortObject
@@ -183,7 +198,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
         internal static List<ObjectIdentifier> GetSortedSceneObjectIdentifiers(List<ObjectIdentifier> objects)
         {
-            var types = new List<Type>(BuildCacheUtility.GetMainTypeForObjects(objects));
+            var types = new List<System.Type>(BuildCacheUtility.GetMainTypeForObjects(objects));
             var sortedObjects = new List<SortObject>();
             for (int i = 0; i < objects.Count; i++)
                 sortedObjects.Add(new SortObject { sortIndex = GetSortIndex(types[i]), objectId = objects[i] });
@@ -195,12 +210,17 @@ namespace UnityEditor.Build.Pipeline.Tasks
         void CreateSceneBundleCommand(string bundleName, string internalName, GUID scene, List<GUID> bundledScenes, Dictionary<GUID, string> assetToMainFile)
         {
             var fileObjects = m_WriteData.FileToObjects[internalName];
-#if !UNITY_2019_1_OR_NEWER
+#if !UNITY_2019_1_OR_NEWER || NONRECURSIVE_DEPENDENCY_DATA
             // ContentBuildInterface.PrepareScene was not returning stable sorted references, causing a indeterminism and loading errors in some cases
             // Add correct sorting here until patch lands to fix the API.
-            fileObjects = GetSortedSceneObjectIdentifiers(fileObjects);
+            // Additionally, if we are using Non-Recursive build mode, we still need to sort by type.
+#if NONRECURSIVE_DEPENDENCY_DATA
+            if (m_Parameters.NonRecursiveDependencies)
 #endif
-
+            {
+                fileObjects = GetSortedSceneObjectIdentifiers(fileObjects);
+            }
+#endif
 
             var command = CreateWriteCommand(internalName, fileObjects, new LinearPackedIdentifiers(3)); // Start at 3: PreloadData = 1, AssetBundle = 2
             var usageSet = new BuildUsageTagSet();

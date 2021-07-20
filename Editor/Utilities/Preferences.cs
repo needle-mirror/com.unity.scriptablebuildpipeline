@@ -43,6 +43,9 @@ namespace UnityEditor.Build.Pipeline.Utilities
             public static readonly GUIContent logCacheMiss = EditorGUIUtility.TrTextContent("Log Cache Miss", "Log a warning on build cache misses. Warning will contain which asset and dependency caused the miss.");
             public static readonly GUIContent slimWriteResults = EditorGUIUtility.TrTextContent("Slim Write Results", "Reduces the caching of WriteResults data down to the bare minimum for improved cache performance.");
             public static readonly GUIContent v2Hasher = EditorGUIUtility.TrTextContent("Use V2 Hasher", "Use the same hasher as Asset Database V2. This hasher improves build cache performance, but invalidates the existing build cache.");
+            public static readonly GUIContent hashSeed = EditorGUIUtility.TrTextContent("FileID Generator Seed", "Allows you to specify an additional seed to avoid file identifier collisions during build. This changes the layout of all objects in all bundles and we suggest not changing this value after release.");
+            public static readonly GUIContent randSeed = EditorGUIUtility.TrTextContent("Random");
+            public static readonly GUIContent headerSize = EditorGUIUtility.TrTextContent("Prefab Packed Header Size", "Allows you to specify the size of the header for PrefabPacked asset bundles to avoid file identifier collisions during build. This changes the layout of all objects in all bundles and we suggest not changing this value after release.");
             public static readonly GUIContent maxCacheSize = EditorGUIUtility.TrTextContent("Maximum Cache Size (GB)", "The size of the Build Cache folder will be kept below this maximum value when possible.");
             public static readonly GUIContent buildCache = EditorGUIUtility.TrTextContent("Build Cache");
             public static readonly GUIContent purgeCache = EditorGUIUtility.TrTextContent("Purge Cache");
@@ -74,6 +77,8 @@ namespace UnityEditor.Build.Pipeline.Utilities
 #elif UNITY_2020_1_OR_NEWER
             public bool useV2Hasher = false;
 #endif
+            public int fileIDHashSeed = 0;
+            public int prefabPackedHeaderSize = 2;
         }
 
         internal static Settings s_Settings = new Settings();
@@ -161,6 +166,20 @@ namespace UnityEditor.Build.Pipeline.Utilities
         }
 #endif
 
+        // Internal as we don't want to allow setting these via API. We want to ensure they are saved to json, and checked in to the project version control.
+        internal static int fileIDHashSeed
+        {
+            get => s_Settings.fileIDHashSeed;
+            set => CompareAndSet(ref s_Settings.fileIDHashSeed, value);
+        }
+        
+        // Internal as we don't want to allow setting these via API. We want to ensure they are saved to json, and checked in to the project version control.
+        internal static int prefabPackedHeaderSize
+        {
+            get => Mathf.Clamp(s_Settings.prefabPackedHeaderSize, 1, 4);
+            set => CompareAndSet(ref s_Settings.prefabPackedHeaderSize, Mathf.Clamp(value, 1, 4));
+        }
+
         static void CompareAndSet<T>(ref T property, T value)
         {
             if (property.Equals(value))
@@ -174,15 +193,12 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
         internal static void LoadSettings()
         {
-#if !UNITY_2021_1_OR_NEWER
-            // Load SBP settings prior to 1.7.0, don't add any new settings here
-            s_Settings.threadedArchiving = EditorPrefs.GetBool("ScriptableBuildPipeline.threadedArchiving", s_Settings.threadedArchiving);
-            s_Settings.maximumCacheSize = EditorPrefs.GetInt("BuildCache.maximumSize", s_Settings.maximumCacheSize);
-#endif
-
             // Load new settings from Json
             if (File.Exists(kSettingPath))
             {
+                // Existing projects should keep previous defaults that are now settings
+                s_Settings.prefabPackedHeaderSize = 4;
+
                 var json = File.ReadAllText(kSettingPath);
                 EditorJsonUtility.FromJsonOverwrite(json, s_Settings);
             }
@@ -237,6 +253,12 @@ namespace UnityEditor.Build.Pipeline.Utilities
 #if UNITY_2020_1_OR_NEWER
             s_Settings.useV2Hasher = EditorGUILayout.Toggle(Properties.v2Hasher, s_Settings.useV2Hasher);
 #endif
+            GUILayout.BeginHorizontal();
+            s_Settings.fileIDHashSeed = EditorGUILayout.IntField(Properties.hashSeed, s_Settings.fileIDHashSeed);
+            if (GUILayout.Button(Properties.randSeed, GUILayout.Width(120)))
+                s_Settings.fileIDHashSeed = (int)(Random.value * uint.MaxValue);
+            GUILayout.EndHorizontal();
+            s_Settings.prefabPackedHeaderSize = EditorGUILayout.IntSlider(Properties.headerSize, s_Settings.prefabPackedHeaderSize, 1, 4);
         }
 
         static void DrawBuildCacheProperties()

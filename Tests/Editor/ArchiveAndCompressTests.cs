@@ -352,5 +352,55 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
 
 #endif
+
+        [Test]
+        public void CalculateBundleDependencies_ReturnsRecursiveDependencies_ForNonRecursiveInputs()
+        {
+            // Dictionary<string, string[]> CalculateBundleDependencies(List<List<string>> assetFileList, Dictionary<string, string> filenameToBundleName)
+            // Inputs:  assetFileList = per asset list of unique file dependencies, first entry is the main dependency
+            //          filenameToBundleName = mapping of file name to asset bundle name
+            // Output:  mapping of bundle name to array of bundle name dependencies
+
+            List<List<string>> assetFileList = new List<List<string>>();
+            assetFileList.Add(new List<string> { "file1", "file2" });
+            assetFileList.Add(new List<string> { "file2", "file3" });
+
+            Dictionary<string, string> filenameToBundleName = new Dictionary<string, string>();
+            filenameToBundleName.Add("file1", "bundle1");
+            filenameToBundleName.Add("file2", "bundle2");
+            filenameToBundleName.Add("file3", "bundle3");
+
+            Dictionary<string, string[]> results = ArchiveAndCompressBundles.CalculateBundleDependencies(assetFileList, filenameToBundleName);
+            
+            CollectionAssert.AreEquivalent(new string[] { "bundle1", "bundle2", "bundle3" }, results.Keys);
+            CollectionAssert.AreEquivalent(new string[] { "bundle2", "bundle3" }, results["bundle1"]);
+            CollectionAssert.AreEquivalent(new string[] { "bundle3" }, results["bundle2"]);
+            CollectionAssert.AreEquivalent(new string[] { }, results["bundle3"]);
+        }
+
+        [Test]
+        public void CalculateBundleDependencies_ReturnsRecursiveDependencies_ForRecursiveInputs()
+        {
+            // Dictionary<string, string[]> CalculateBundleDependencies(List<List<string>> assetFileList, Dictionary<string, string> filenameToBundleName)
+            // Inputs:  assetFileList = per asset list of unique file dependencies, first entry is the main dependency
+            //          filenameToBundleName = mapping of file name to asset bundle name
+            // Output:  mapping of bundle name to array of bundle name dependencies
+
+            List<List<string>> assetFileList = new List<List<string>>();
+            assetFileList.Add(new List<string> { "file1", "file2", "file3" });
+            assetFileList.Add(new List<string> { "file2", "file3" });
+
+            Dictionary<string, string> filenameToBundleName = new Dictionary<string, string>();
+            filenameToBundleName.Add("file1", "bundle1");
+            filenameToBundleName.Add("file2", "bundle2");
+            filenameToBundleName.Add("file3", "bundle3");
+
+            Dictionary<string, string[]> results = ArchiveAndCompressBundles.CalculateBundleDependencies(assetFileList, filenameToBundleName);
+
+            CollectionAssert.AreEquivalent(new string[] { "bundle1", "bundle2", "bundle3" }, results.Keys);
+            CollectionAssert.AreEquivalent(new string[] { "bundle2", "bundle3" }, results["bundle1"]);
+            CollectionAssert.AreEquivalent(new string[] { "bundle3" }, results["bundle2"]);
+            CollectionAssert.AreEquivalent(new string[] { }, results["bundle3"]);
+        }
     }
 }
