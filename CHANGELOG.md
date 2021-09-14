@@ -4,6 +4,10 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.19.3] - 2021-09-14
+- Fixed an edge case where Link.xml ordering was not deterministic causing incremental player rebuilds to occur unnecessarily.
+- Fixed an issue where Cache Server integration was not update to use USerializer.
+
 ## [1.19.2] - 2021-07-20
 - Fixed an edge case where moving a scene would fail the build.
 - Added additional details to the Trace Event Profiler output where the data was missing or unclear.

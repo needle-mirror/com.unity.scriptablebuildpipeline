@@ -92,6 +92,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
         };
         const string k_CachePath = "Library/BuildCache";
         const int k_Version = 4;
+        internal const int k_CacheServerVersion = 2;
         internal const long k_BytesToGigaBytes = 1073741824L;
 
         [NonSerialized]
@@ -129,7 +130,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             try
             {
                 m_Uploader = new CacheServerUploader(host, port);
-                m_Downloader = new CacheServerDownloader(this, host, port);
+                m_Downloader = new CacheServerDownloader(this, new DeSerializer(CustomSerializers, ObjectFactories), host, port);
             }
             catch (Exception e)
             {

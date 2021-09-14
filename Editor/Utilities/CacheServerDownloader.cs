@@ -5,6 +5,7 @@ using System.Runtime.Serialization.Formatters.Binary;
 using System.Threading;
 using UnityEditor.Build.CacheServer;
 using UnityEditor.Build.Pipeline.Interfaces;
+using UnityEditor.Build.Pipeline.Utilities.USerialize;
 using UnityEngine;
 using UnityEngine.Assertions;
 
@@ -17,16 +18,19 @@ namespace UnityEditor.Build.Pipeline.Utilities
         IBuildCache m_Cache;
         Client m_Client;
         Hash128 m_GlobalHash;
+        DeSerializer m_Deserializer;
 
         bool m_Disposed;
 
         Semaphore m_Semaphore;
 
-        public CacheServerDownloader(IBuildCache cache, string host, int port = 8126)
+        public CacheServerDownloader(IBuildCache cache, DeSerializer deserializer, string host, int port = 8126)
         {
+            m_Deserializer = deserializer;
             m_Cache = cache;
             m_Client = new Client(host, port);
             m_Client.Connect();
+            m_GlobalHash = new Hash128(0, 0, 0, BuildCache.k_CacheServerVersion);
         }
 
         public void Dispose()
@@ -116,7 +120,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 {
                     CachedInfo info;
                     using (var fileStream = new FileStream(tempInfoFile, FileMode.Open, FileAccess.Read))
-                        info = formatter.Deserialize(fileStream) as CachedInfo;
+                        info = m_Deserializer.DeSerialize<CachedInfo>(fileStream);
 
                     if (m_Cache.HasAssetOrDependencyChanged(info))
                         continue;
@@ -146,9 +150,9 @@ namespace UnityEditor.Build.Pipeline.Utilities
                         Directory.Move(tempArtifactDir, targetArtifactDir);
                     }
                 }
-                catch (Exception e)
+                catch
                 {
-                    BuildLogger.LogException(e);
+                    // Just regenerate the artifact, logging this exception is not useful
                 }
             }
 

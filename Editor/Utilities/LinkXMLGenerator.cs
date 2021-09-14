@@ -182,7 +182,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             }
             XmlDocument doc = new XmlDocument();
             var linker = doc.AppendChild(doc.CreateElement("linker"));
-            foreach (var k in assemblyMap)
+            foreach (var k in assemblyMap.OrderBy(a => a.Key.FullName))
             {
                 var assembly = linker.AppendChild(doc.CreateElement("assembly"));
                 var attr = doc.CreateAttribute("fullname");
@@ -198,7 +198,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
                         assembly.Attributes.Append(preserveAssembly);
                     }
 
-                    foreach (var t in k.Value)
+                    foreach (var t in k.Value.OrderBy(t => t.FullName))
                     {
                         var typeEl = assembly.AppendChild(doc.CreateElement("type"));
                         var tattr = doc.CreateAttribute("fullname");
@@ -239,7 +239,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             }
 
             //Add serialize reference classes which are contained in other assemblies not yet removed.
-            foreach (var k in m_SerializedClassesPerAssembly)
+            foreach (var k in m_SerializedClassesPerAssembly.OrderBy(a => a.Key))
             {
                 var assembly = linker.AppendChild(doc.CreateElement("assembly"));
                 var attr = doc.CreateAttribute("fullname");
@@ -248,7 +248,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 {
                     assembly.Attributes.Append(attr);
                     //Add content for this
-                    foreach (var t in k.Value)
+                    foreach (var t in k.Value.OrderBy(t => t))
                     {
                         var typeEl = assembly.AppendChild(doc.CreateElement("type"));
                         var tattr = doc.CreateAttribute("fullname");

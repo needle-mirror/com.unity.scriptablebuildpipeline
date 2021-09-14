@@ -134,5 +134,68 @@ namespace UnityEditor.Build.Pipeline.Tests
             AssertTypeWithAttributePreserved(xml, "AwesomeNS.Bar");
             AssertTypeWithAttributePreserved(xml, "SuperAwesomeNS.Bar");
         }
+        
+        [Test]
+        public void LinkXML_Is_Sorted()
+        {
+            // For incremental builds to perform well, we need link xml files
+            // to be deterministic - if contents don't change, they should be bit-wise
+            // identical. So we sort contents, since HashSets/Dictionary have no deterministic order.
+            // This test verfies that assemblies and classes are sorted alphabetically.
+            // Note that types added via AddSerializedClass will always come after types and assemblies
+            // added via AddType/AddAssembly, regardless of alphabetical order.
+            var serializedRefClasses = new[]
+            {
+                "AssemblyC:NamespaceA.ClassA", 
+                "AssemblyB:NamespaceC.ClassB",
+                "AssemblyA:NamespaceB.ClassC",
+                "AssemblyC:NamespaceC.ClassC",
+                "AssemblyB:NamespaceB.ClassA",
+                "AssemblyA:NamespaceA.ClassB",
+                "AssemblyA:NamespaceA.ClassC",
+                "AssemblyC:NamespaceB.ClassA",
+                "AssemblyB:NamespaceC.ClassA",
+            };
+            var types = new[] { typeof(UnityEngine.Texture), typeof(UnityEngine.MonoBehaviour) , typeof(UnityEngine.Build.Pipeline.CompatibilityAssetBundleManifest) };
+
+            var link = new LinkXmlGenerator();
+            link.AddSerializedClass(serializedRefClasses);
+            link.AddTypes(types);
+            link.Save(k_LinkFile);
+
+            var xml = ReadLinkXML(k_LinkFile, out int assemblyCount, out int typeCount)
+                .Replace(" ", "")
+                .Replace("\n", "")
+                .Replace("\r", "");
+            Console.WriteLine(xml);
+            var sorted = @"
+<linker>
+<assembly fullname=""Unity.ScriptableBuildPipeline,Version=0.0.0.0,Culture=neutral,PublicKeyToken=null"">
+<type fullname=""UnityEngine.Build.Pipeline.CompatibilityAssetBundleManifest"" preserve=""all"" />
+</assembly>
+<assembly fullname=""UnityEngine.CoreModule,Version=0.0.0.0,Culture=neutral,PublicKeyToken=null"">
+<type fullname=""UnityEngine.MonoBehaviour"" preserve=""all"" />
+<type fullname=""UnityEngine.Texture"" preserve=""all"" />
+</assembly>
+<assembly fullname=""AssemblyA"">
+<type fullname=""NamespaceA.ClassB"" preserve=""nothing"" serialized=""true"" />
+<type fullname=""NamespaceA.ClassC"" preserve=""nothing"" serialized=""true"" />
+<type fullname=""NamespaceB.ClassC"" preserve=""nothing"" serialized=""true"" />
+</assembly>
+<assembly fullname=""AssemblyB"">
+<type fullname=""NamespaceB.ClassA"" preserve=""nothing"" serialized=""true"" />
+<type fullname=""NamespaceC.ClassA"" preserve=""nothing"" serialized=""true"" />
+<type fullname=""NamespaceC.ClassB"" preserve=""nothing"" serialized=""true"" />
+</assembly>
+<assembly fullname=""AssemblyC"">
+<type fullname=""NamespaceA.ClassA"" preserve=""nothing"" serialized=""true"" />
+<type fullname=""NamespaceB.ClassA"" preserve=""nothing"" serialized=""true"" />
+<type fullname=""NamespaceC.ClassC"" preserve=""nothing"" serialized=""true"" />
+</assembly>
+</linker>
+".Replace(" ", "").Replace("\n", "").Replace("\r", "");
+            Assert.AreEqual(sorted, xml);
+
+        }        
     }
 }

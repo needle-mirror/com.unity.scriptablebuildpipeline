@@ -21,6 +21,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
         {
             m_Client = new Client(host, port);
             m_Client.Connect();
+            m_GlobalHash = new Hash128(0, 0, 0, BuildCache.k_CacheServerVersion);
         }
 
         public void SetGlobalHash(Hash128 hash)
