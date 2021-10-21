@@ -11,6 +11,7 @@ using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Tasks;
 using UnityEditor.Build.Pipeline.Utilities;
 using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace UnityEditor.Build.Pipeline.Tests
 {
@@ -43,6 +44,57 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreEqual(0, output.BundleDetails["mybundle"].Dependencies.Length);
         }
 
+        [TestCase("01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_d", ".")]
+        [TestCase("C:/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars", ".")]
+        [TestCase(".", "01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_d")]
+        [TestCase(".", "C:/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars")]
+        [UnityPlatform(exclude = new[] { RuntimePlatform.LinuxEditor, RuntimePlatform.OSXEditor })]
+        public void WhenUsingLongPath_CopyFileWithTimestampIfDifferent_ThrowsPathTooLongException(string path1, string path2)
+        {
+            Assert.Throws<PathTooLongException>(() => ArchiveAndCompressBundles.CopyFileWithTimestampIfDifferent(path1, path2, null));
+        }
+
+        [Test]
+        // Windows has Unicode path notation for long paths: \\?\
+        // however this does not work on all unity editor versions or windows version.
+        // notably this fails on Yamato 2019.4 through 2021.1, but passed on trunk (on Nov 4, 2021)
+        [UnityPlatform(exclude = new[] { RuntimePlatform.WindowsEditor })]
+        public void PlatformCanHandle_LongPathReadingAndWriting()
+        {
+            string root = Path.GetFullPath("FolderDepthTest");
+
+            string fullPath = root;
+            while (fullPath.Length < 300)
+                fullPath = Path.Combine(fullPath, $"IncreaseFolderDepth_{fullPath.Length}");
+            string file1 = Path.Combine(fullPath, "test1.txt");
+            string file2 = Path.Combine(fullPath, "test2.txt");
+
+            Assert.DoesNotThrow(() =>
+            {
+                // Can create folder > 260 characters deep
+                Directory.CreateDirectory(fullPath);
+
+                // Can write file > 260 characters deep
+                File.WriteAllText(file1, "Test file contents");
+
+                // Can move file > 260 characters deep
+                File.Move(file1, file2);
+
+                // Can read file > 260 characters deep
+                var contents = File.ReadAllText(file2);
+                Assert.AreEqual("Test file contents", contents);
+
+                // Can delete file > 260 characters deep
+                File.Delete(file2);
+
+                // Can delete folder > 260 characters deep
+                Directory.Delete(fullPath);
+            });
+
+            // Cleanup
+            Directory.Delete(root, true);
+        }
+
         public class RebuildTestContext
         {
             internal ArchiveAndCompressBundles.TaskInput input;
@@ -53,7 +105,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         {
             get
             {
-                yield return new TestCaseData(false, new Action<RebuildTestContext>((ctx) => {})).SetName("NoChanges");
+                yield return new TestCaseData(false, new Action<RebuildTestContext>((ctx) => { })).SetName("NoChanges");
                 yield return new TestCaseData(true, new Action<RebuildTestContext>((ctx) =>
                 {
                     ctx.input.InternalFilenameToWriteMetaData["internalName"] = new SerializedFileMetaData() { ContentHash = new Hash128(0, 1), RawFileHash = new Hash128(1, 2) };
@@ -371,7 +423,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             filenameToBundleName.Add("file3", "bundle3");
 
             Dictionary<string, string[]> results = ArchiveAndCompressBundles.CalculateBundleDependencies(assetFileList, filenameToBundleName);
-            
+
             CollectionAssert.AreEquivalent(new string[] { "bundle1", "bundle2", "bundle3" }, results.Keys);
             CollectionAssert.AreEquivalent(new string[] { "bundle2", "bundle3" }, results["bundle1"]);
             CollectionAssert.AreEquivalent(new string[] { "bundle3" }, results["bundle2"]);

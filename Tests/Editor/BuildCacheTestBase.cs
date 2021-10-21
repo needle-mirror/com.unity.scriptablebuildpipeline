@@ -118,7 +118,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             return infos[0];
         }
 
-        static protected void StoreDataInCacheWithGUID(BuildCache cache, GUID guid, object data, GUID depGUID = new GUID())
+        static protected string StoreDataInCacheWithGUID(BuildCache cache, GUID guid, object data, GUID depGUID = new GUID())
         {
             List<CacheEntry> deps = new List<CacheEntry>();
             if (!depGUID.Empty())
@@ -131,6 +131,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             info.Data = new object[] { data };
             cache.SaveCachedData(new List<CachedInfo>() { info });
             cache.SyncPendingSaves();
+            return cache.GetCachedInfoFile(info.Asset);
         }
 
         static protected GUID CreateTestTextAsset(string contents)
@@ -182,6 +183,17 @@ namespace UnityEditor.Build.Pipeline.Tests
             ModifyTestTextAsset(guid, "mytext2");
             RecreateBuildCache();
             CachedInfo info = LoadCachedInfoForGUID(m_Cache, guid);
+            Assert.IsNull(info);
+        }
+
+        [Test]
+        public void WhenLoadingCachedDataForGUIDWithInvalidCacheData_CachedInfoIsNull()
+        {
+            GUID depGuid = CreateTestTextAsset("mytext");
+            string path = StoreDataInCacheWithGUID(m_Cache, TestFile1GUID, "data", depGuid);
+            RecreateBuildCache();
+            File.WriteAllText(path, "Invalidating cache file! Good luck deserializing this! =P");
+            CachedInfo info = LoadCachedInfoForGUID(m_Cache, TestFile1GUID);
             Assert.IsNull(info);
         }
 

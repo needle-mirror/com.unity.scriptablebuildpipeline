@@ -353,14 +353,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
                         try
                         {
                             string file = GetCachedInfoFile(entries[index]);
-                            byte[] bytes = null;
-                            try
-                            {
-                                bytes = File.ReadAllBytes(file);
-                            }
-                            catch (Exception)
-                            {
-                            }
+                            byte[] bytes = File.ReadAllBytes(file);
                             if ((bytes != null) && (bytes.Length > 0))
                             {
                                 using (MemoryStream memoryStream = new MemoryStream(bytes, false))
@@ -374,9 +367,9 @@ namespace UnityEditor.Build.Pipeline.Utilities
                             else
                                 LogCacheMiss($"[Cache Miss]: Missing cache entry. Entry: {entries[index]}");
                         }
-                        catch (Exception e)
+                        catch (Exception)
                         {
-                            BuildLogger.LogException(e);
+                            LogCacheMiss($"[Cache Miss]: Invalid cache entry. Entry: {entries[index]}");
                         }
                     });
                     deserializeTimer.Stop();
@@ -484,9 +477,9 @@ namespace UnityEditor.Build.Pipeline.Utilities
                             else
                                 LogCacheMiss($"[Cache Miss]: Missing cache entry. Entry: {entries[index]}");
                         }
-                        catch (Exception e)
+                        catch (Exception)
                         {
-                            BuildLogger.LogException(e);
+                            LogCacheMiss($"[Cache Miss]: Invalid cache entry. Entry: {entries[index]}");
                         }
                         cachedInfos.Add(info);
                     }

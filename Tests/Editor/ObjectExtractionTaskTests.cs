@@ -8,6 +8,7 @@ using UnityEditor.Build.Pipeline.Injector;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Tasks;
 using UnityEditor.Build.Pipeline.Utilities;
+using UnityEditor.Build.Utilities;
 using UnityEngine;
 
 namespace UnityEditor.Build.Pipeline.Tests
@@ -95,6 +96,32 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             Assert.IsFalse(layout.ExplicitObjectLocation.ContainsKey(nonMonoScriptId));
             Assert.IsTrue(layout.ExplicitObjectLocation.ContainsKey(monoScriptId));
+            Assert.AreEqual(task.MonoScriptBundleName, layout.ExplicitObjectLocation[monoScriptId]);
+        }
+
+        [Test]
+        public void CreateMonoScriptBundle_DoesNotExtractMonoScripts_FromDefaultResources()
+        {
+            TestSetup(out ObjectIdentifier nonMonoScriptId, out ObjectIdentifier monoScriptId, out CreateMonoScriptBundle task, out ExtractionDependencyData dependencyData, out ExtractionObjectLayout layout);
+
+            var defaultResourceMonoScriptId = MakeObjectId(CommonStrings.UnityDefaultResourceGuid, 50, FileType.MetaAssetType, CommonStrings.UnityDefaultResourcePath);
+            BuildCacheUtility.SetTypeForObjects(new[] {
+                new ObjectTypes(defaultResourceMonoScriptId, new[] {typeof(MonoScript) })
+            });
+
+            var assetInfo = new AssetLoadInfo();
+            assetInfo.referencedObjects = new List<ObjectIdentifier> { nonMonoScriptId, monoScriptId, defaultResourceMonoScriptId };
+            dependencyData.AssetInfo.Add(GUID.Generate(), assetInfo);
+
+            Assert.IsFalse(layout.ExplicitObjectLocation.ContainsKey(nonMonoScriptId));
+            Assert.IsFalse(layout.ExplicitObjectLocation.ContainsKey(monoScriptId));
+            Assert.IsFalse(layout.ExplicitObjectLocation.ContainsKey(defaultResourceMonoScriptId));
+
+            task.Run();
+
+            Assert.IsFalse(layout.ExplicitObjectLocation.ContainsKey(nonMonoScriptId));
+            Assert.IsTrue(layout.ExplicitObjectLocation.ContainsKey(monoScriptId));
+            Assert.IsFalse(layout.ExplicitObjectLocation.ContainsKey(defaultResourceMonoScriptId));
             Assert.AreEqual(task.MonoScriptBundleName, layout.ExplicitObjectLocation[monoScriptId]);
         }
     }

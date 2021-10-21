@@ -25,7 +25,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             public override BuildTargetGroup Group { get => BuildTargetGroup.Unknown; }
             public override TypeDB ScriptInfo { get => null; }
             public override ContentBuildFlags ContentBuildFlags { get => ContentBuildFlags.None; }
-            public override bool NonRecursiveDependencies { get => false; }
+            public override bool NonRecursiveDependencies { get; set; }
 
 #if !UNITY_2019_3_OR_NEWER
             public override string TempOutputFolder => ContentPipeline.kTempBuildPath;
@@ -46,9 +46,11 @@ namespace UnityEditor.Build.Pipeline.Tests
         class TestContent : TestBundleBuildContent
         {
             public List<GUID> TestScenes = new List<GUID>();
+            public List<GUID> TestAssets = new List<GUID>();
 
             // Inputs
             public override List<GUID> Scenes => TestScenes;
+            public override List<GUID> Assets => TestAssets;
         }
 
         class TestDependencyData : TestDependencyDataBase
@@ -74,11 +76,12 @@ namespace UnityEditor.Build.Pipeline.Tests
         const string k_CubePath = k_TestAssetsPath + "/Cube.prefab";
         const string k_CubePath2 = k_TestAssetsPath + "/Cube2.prefab";
 
-        static CalculateSceneDependencyData CreateDefaultBuildTask(List<GUID> scenes, BuildCache optionalCache)
+        static CalculateSceneDependencyData CreateDefaultBuildTask(List<GUID> scenes, BuildCache optionalCache, bool nonRecursive = false)
         {
             var task = new CalculateSceneDependencyData();
             var testParams = new TestParams();
             testParams.UseCache = optionalCache != null;
+            testParams.NonRecursiveDependencies = nonRecursive;
             var testContent = new TestContent { TestScenes = scenes };
             var testData = new TestDependencyData();
             IBuildContext context = new BuildContext(testParams, testContent, testData, optionalCache);
@@ -206,6 +209,27 @@ namespace UnityEditor.Build.Pipeline.Tests
             ExtractTestData(buildTask, out dependencyData);
 
             Assert.AreEqual(new Hash128(), dependencyData.DependencyHash[sceneGuid]);
+        }
+
+        [Test]
+        public void CalcualteSceneDependencyData_ReturnsNonEmptyUsage_ForNonRecursiveDependencies()
+        {
+            SetupSceneForTest(out Scene scene, out var _);
+
+            List<GUID> scenes = new List<GUID>();
+            GUID sceneGuid = new GUID(AssetDatabase.AssetPathToGUID(scene.path));
+            scenes.Add(sceneGuid);
+
+            TestDependencyData dependencyData;
+            var buildTask = CreateDefaultBuildTask(scenes, null, true);
+            buildTask.Run();
+            ExtractTestData(buildTask, out dependencyData);
+
+            BuildUsageTagSet usagetSet = dependencyData.SceneUsage[sceneGuid];
+            var method = typeof(BuildUsageTagSet).GetMethod("SerializeToJson", BindingFlags.Instance | BindingFlags.NonPublic);
+            var json = method.Invoke(usagetSet, new object[0]) as string;
+
+            Assert.AreNotEqual(json, "{\"m_objToUsage\":[]}");
         }
     }
 }

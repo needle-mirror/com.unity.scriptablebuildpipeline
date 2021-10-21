@@ -23,7 +23,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
     /// </summary>
     public class ArchiveAndCompressBundles : IBuildTask
     {
-        private const int kVersion = 1;
+        private const int kVersion = 2;
         /// <inheritdoc />
         public int Version { get { return kVersion; } }
 
@@ -52,10 +52,24 @@ namespace UnityEditor.Build.Pipeline.Tasks
         IBuildLogger m_Log;
 #pragma warning restore 649
 
-        static void CopyFileWithTimestampIfDifferent(string srcPath, string destPath, IBuildLogger log)
+        internal static void CopyFileWithTimestampIfDifferent(string srcPath, string destPath, IBuildLogger log)
         {
             if (srcPath == destPath)
                 return;
+
+            srcPath = Path.GetFullPath(srcPath);
+            destPath = Path.GetFullPath(destPath);
+
+#if UNITY_EDITOR_WIN
+            // Max path length per MS Path code.
+            const int MaxPath = 260;
+
+            if (srcPath.Length > MaxPath)
+                throw new PathTooLongException(srcPath);
+            
+            if (destPath.Length > MaxPath)
+                throw new PathTooLongException(destPath);
+#endif
 
             DateTime time = File.GetLastWriteTime(srcPath);
             DateTime destTime = File.Exists(destPath) ? File.GetLastWriteTime(destPath) : new DateTime();
@@ -308,7 +322,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 cachedItems = allItems.Where(x => cachedInfo[x.Index] != null).ToList();
                 nonCachedItems = allItems.Where(x => cachedInfo[x.Index] == null).ToList();
                 foreach (ArchiveWorkItem i in allItems)
-                    i.CachedArtifactPath = string.Format("{0}/{1}", input.BuildCache.GetCachedArtifactsDirectory(cacheEntries[i.Index]), i.BundleName);
+                    i.CachedArtifactPath = string.Format("{0}/{1}", input.BuildCache.GetCachedArtifactsDirectory(cacheEntries[i.Index]), HashingMethods.Calculate(i.BundleName));
             }
 
             using (input.Log.ScopedStep(LogLevel.Info, "CopyingCachedFiles"))
@@ -409,6 +423,16 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 }
             }
             Task.WaitAny(Task.WhenAll(tasks));
+            int count = 0;
+            foreach (var task in tasks)
+            {
+                if (task.Exception == null)
+                    continue;
+                Debug.LogException(task.Exception);
+                count++;
+            }
+            if (count > 0)
+                throw new BuildFailedException($"ArchiveAndCompressBundles encountered {count} exception(s). See console for logged exceptions.");
 
             return !srcToken.Token.IsCancellationRequested;
         }

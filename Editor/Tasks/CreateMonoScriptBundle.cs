@@ -4,6 +4,7 @@ using System.Linq;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Injector;
 using UnityEditor.Build.Pipeline.Interfaces;
+using UnityEditor.Build.Utilities;
 
 namespace UnityEditor.Build.Pipeline.Tasks
 {
@@ -12,6 +13,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
     /// </summary>
     public class CreateMonoScriptBundle : IBuildTask
     {
+        static readonly GUID k_DefaultGuid = new GUID(CommonStrings.UnityDefaultResourceGuid);
         /// <inheritdoc />
         public int Version { get { return 1; } }
 
@@ -56,7 +58,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             Type monoScript = typeof(MonoScript);
             for (int i = 0; i < usedTypes.Length; i++)
             {
-                if (usedTypes[i] != monoScript)
+                if (usedTypes[i] != monoScript || usedSet[i].guid == k_DefaultGuid)
                     continue;
 
                 m_Layout.ExplicitObjectLocation.Add(usedSet[i], MonoScriptBundleName);

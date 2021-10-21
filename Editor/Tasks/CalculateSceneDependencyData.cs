@@ -129,6 +129,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                             sceneInfo = ContentBuildInterface.CalculatePlayerDependenciesForScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache, DependencyType.ValidReferences);
                             ObjectIdentifier[] filteredReferences = sceneInfo.referencedObjects.ToArray();
                             filteredReferences = ExtensionMethods.FilterReferencedObjectIDs(scene, filteredReferences, m_Parameters.Target, m_Parameters.ScriptInfo, new HashSet<GUID>(m_Content.Assets));
+                            ContentBuildInterface.CalculateBuildUsageTags(filteredReferences, filteredReferences, sceneInfo.globalUsage, usageTags);
                             sceneInfo.SetReferencedObjects(filteredReferences);
                         }
                         else

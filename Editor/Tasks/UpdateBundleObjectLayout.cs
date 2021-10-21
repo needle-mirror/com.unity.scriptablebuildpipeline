@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Injector;
 using UnityEditor.Build.Pipeline.Interfaces;
@@ -30,6 +32,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
         [InjectContext(ContextUsage.In)]
         IDeterministicIdentifiers m_PackingMethod;
+
+        [InjectContext(ContextUsage.In, true)]
+        IBuildLogger m_Log;
 #pragma warning restore 649
 
         /// <inheritdoc />
@@ -38,61 +43,101 @@ namespace UnityEditor.Build.Pipeline.Tasks
             if (m_Layout == null || m_Layout.ExplicitObjectLocation.IsNullOrEmpty())
                 return ReturnCode.SuccessNotRun;
 
-            // Go object by object
-            foreach (var pair in m_Layout.ExplicitObjectLocation)
+            var ObjectToAssetReferences = new Dictionary<ObjectIdentifier, List<GUID>>();
+            var ObjectToFiles = new Dictionary<ObjectIdentifier, List<string>>();
+
+            using (m_Log.ScopedStep(LogLevel.Info, "PopulateReferencesMaps", true))
             {
-                ObjectIdentifier objectID = pair.Key;
-                string bundleName = pair.Value;
-                string internalName = string.Format(CommonStrings.AssetBundleNameFormat, m_PackingMethod.GenerateInternalFileName(bundleName));
-
-                // Add dependency on possible new file if asset depends on object
-                foreach (KeyValuePair<GUID, AssetLoadInfo> dependencyPair in m_DependencyData.AssetInfo)
+                var task = Task.Run(() =>
                 {
-                    var asset = dependencyPair.Key;
-                    var assetInfo = dependencyPair.Value;
-                    var assetFiles = m_WriteData.AssetToFiles[asset];
-                    AddFileDependencyIfFound(objectID, internalName, assetFiles, assetInfo.includedObjects);
-                    AddFileDependencyIfFound(objectID, internalName, assetFiles, assetInfo.referencedObjects);
-                }
-
-                // Add dependency on possible new file if scene depends on object
-                foreach (KeyValuePair<GUID, SceneDependencyInfo> dependencyPair in m_DependencyData.SceneInfo)
+                    using (m_Log.ScopedStep(LogLevel.Info, "Populate Assets Map", $"Count={m_DependencyData.AssetInfo.Count}"))
+                    {
+                        foreach (KeyValuePair<GUID, AssetLoadInfo> dependencyPair in m_DependencyData.AssetInfo)
+                        {
+                            PopulateReferencesMap(dependencyPair.Key, dependencyPair.Value.includedObjects, ObjectToAssetReferences);
+                            PopulateReferencesMap(dependencyPair.Key, dependencyPair.Value.referencedObjects, ObjectToAssetReferences);
+                        }
+                    }
+                    using (m_Log.ScopedStep(LogLevel.Info, "Populate Scenes Map", $"Count={m_DependencyData.SceneInfo.Count}"))
+                    {
+                        foreach (KeyValuePair<GUID, SceneDependencyInfo> dependencyPair in m_DependencyData.SceneInfo)
+                            PopulateReferencesMap(dependencyPair.Key, dependencyPair.Value.referencedObjects, ObjectToAssetReferences);
+                    }
+                });
+                
+                using (m_Log.ScopedStep(LogLevel.Info, "Populate Files Map", $"Count={m_WriteData.FileToObjects.Count}"))
                 {
-                    var asset = dependencyPair.Key;
-                    var assetInfo = dependencyPair.Value;
-                    AddFileDependencyIfFound(objectID, internalName, m_WriteData.AssetToFiles[asset], assetInfo.referencedObjects);
+                    foreach (KeyValuePair<string, List<ObjectIdentifier>> filePair in m_WriteData.FileToObjects)
+                        PopulateReferencesMap(filePair.Key, filePair.Value, ObjectToFiles);
                 }
+                task.Wait();
+            }
 
-                // Remove object from existing FileToObjects
-                foreach (List<ObjectIdentifier> fileObjects in m_WriteData.FileToObjects.Values)
+            using (m_Log.ScopedStep(LogLevel.Info, "UpdateWriteData"))
+            {
+                foreach (var group in m_Layout.ExplicitObjectLocation.GroupBy(s => s.Value))
                 {
-                    if (fileObjects.Contains(objectID))
-                        fileObjects.Remove(objectID);
-                }
+                    IEnumerable<ObjectIdentifier> objectIDs = group.Select(s => s.Key);
+                    string bundleName = group.Key;
+                    string internalName = string.Format(CommonStrings.AssetBundleNameFormat, m_PackingMethod.GenerateInternalFileName(bundleName));
 
-                // Update File to bundle and Bundle layout
-                if (!m_WriteData.FileToBundle.ContainsKey(internalName))
-                {
-                    m_WriteData.FileToBundle.Add(internalName, bundleName);
-                    m_Content.BundleLayout.Add(bundleName, new List<GUID>());
-                }
+                    foreach (var objectID in objectIDs)
+                    {
+                        UpdateAssetToFilesMap(internalName, ObjectToAssetReferences[objectID], m_WriteData.AssetToFiles);
+                        RemoveObjectIDFromFiles(objectID, ObjectToFiles[objectID], m_WriteData.FileToObjects);
+                    }
 
-                // Update File to object map
-                List<ObjectIdentifier> objectIDs;
-                m_WriteData.FileToObjects.GetOrAdd(internalName, out objectIDs);
-                if (!objectIDs.Contains(objectID))
-                    objectIDs.Add(objectID);
+                    // Add new mapping for File to Bundle
+                    UpdateFileToBundleMap(bundleName, internalName, m_WriteData.FileToBundle, m_Content.BundleLayout);
+
+                    // Update File to Object map
+                    UpdateFileToObjectMap(internalName, objectIDs, m_WriteData.FileToObjects);
+                }
             }
             return ReturnCode.Success;
         }
 
-        static void AddFileDependencyIfFound(ObjectIdentifier objectID, string fileName, ICollection<string> assetFiles, ICollection<ObjectIdentifier> collection)
+        internal static void PopulateReferencesMap<T>(T key, IList<ObjectIdentifier> objects, Dictionary<ObjectIdentifier, List<T>> map)
         {
-            if (collection.Contains(objectID))
+            foreach (var obj in objects)
             {
-                if (!assetFiles.Contains(fileName))
-                    assetFiles.Add(fileName);
+                map.GetOrAdd(obj, out var set);
+                set.Add(key);
             }
+        }
+
+        internal static void UpdateAssetToFilesMap(string file, List<GUID> assetsToUpdate, Dictionary<GUID, List<string>> AssetToFiles)
+        {
+            foreach (var asset in assetsToUpdate)
+            {
+                var assetFiles = AssetToFiles[asset];
+                if (!assetFiles.Contains(file))
+                    assetFiles.Add(file);
+            }
+        }
+
+        internal static void RemoveObjectIDFromFiles(ObjectIdentifier objectID, List<string> files, Dictionary<string, List<ObjectIdentifier>> FileToObjects)
+        {
+            foreach (var file in files)
+                FileToObjects[file].Remove(objectID);
+        }
+
+        internal static void UpdateFileToBundleMap(string bundleName, string file, Dictionary<string, string> FileToBundle, Dictionary<string, List<GUID>> BundleLayout)
+        {
+            if (!FileToBundle.ContainsKey(file))
+            {
+                FileToBundle.Add(file, bundleName);
+                // NOTE: We want the output result to know about the new bundle, but since we are only 
+                // assigning individual objects to this bundle and not full assets, the asset list will be empty
+                BundleLayout.Add(bundleName, new List<GUID>());
+            }
+        }
+
+        internal static void UpdateFileToObjectMap(string file, IEnumerable<ObjectIdentifier> newObjectIDs, Dictionary<string, List<ObjectIdentifier>> FileToObjects)
+        {
+            // This is called after remove, thus we can just AddRange as we already know these objects are not in any file
+            FileToObjects.GetOrAdd(file, out var objectIDs);
+            objectIDs.AddRange(newObjectIDs);
         }
     }
 }

@@ -4,6 +4,7 @@ using System.Linq;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Injector;
 using UnityEditor.Build.Pipeline.Interfaces;
+using UnityEditor.Build.Utilities;
 using UnityEngine;
 
 namespace UnityEditor.Build.Pipeline.Tasks
@@ -13,7 +14,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
     /// </summary>
     public class CreateBuiltInShadersBundle : IBuildTask
     {
-        static readonly GUID k_BuiltInGuid = new GUID("0000000000000000f000000000000000");
+        static readonly GUID k_BuiltInGuid = new GUID(CommonStrings.UnityBuiltInExtraGuid);
         /// <inheritdoc />
         public int Version { get { return 1; } }
 
