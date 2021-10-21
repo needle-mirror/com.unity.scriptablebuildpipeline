@@ -4,6 +4,9 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.19.6] - 2021-10-21
+- Fixed an issue where the Build Progress Bar would not go away after the build is complete.
+
 ## [1.19.5] - 2021-10-21
 - Fixed an issue where MonoScript bundle will attempt to pull in data it should not have.
 - Fixed an issue where NONRECURSIVE_DEPENDENCY_DATA would not properly calculate Shader Variants from Scenes.

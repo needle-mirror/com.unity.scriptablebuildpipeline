@@ -66,6 +66,9 @@ namespace UnityEditor.Build.Pipeline
                 }
             }
 
+            if (tracker is IDisposable disposable)
+                disposable.Dispose();
+
             return ReturnCode.Success;
         }
 
