@@ -1,8 +1,8 @@
 {
   "name": "com.unity.scriptablebuildpipeline",
   "displayName": "Scriptable Build Pipeline",
-  "version": "1.19.6",
-  "unity": "2018.4",
+  "version": "1.20.1",
+  "unity": "2019.4",
   "description": "The Scriptable Build Pipeline moves the asset bundle build pipeline to C#.  Use the pre-defined build flows, or create your own using the divided up APIs.  This system improves build time, fixes incremental build, and provides greater flexibility.",
   "keywords": [
     "build",
@@ -15,9 +15,12 @@
   "repository": {
     "url": "https://github.cds.internal.unity3d.com/unity/Addressables.git",
     "type": "git",
-    "revision": "7430a17e265967737a63efcf96f3e74aef76b8b4"
+    "revision": "f2d9aac4eb254f268ff4e23f800ccc30c53dbd75"
+  },
+  "_upm": {
+    "changelog": "- Fix an issue where cached Sprite state could be stale."
   },
   "upmCi": {
-    "footprint": "dcb8aba38e59ae97d79c7b8a9c1d64514c24a4a5"
+    "footprint": "a5753b93ff70455d833ef8b4200101686c279d8f"
   }
 }

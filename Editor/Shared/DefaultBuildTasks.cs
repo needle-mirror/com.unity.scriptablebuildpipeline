@@ -121,5 +121,40 @@ namespace UnityEditor.Build.Pipeline
 
             return buildTasks;
         }
+        
+#if UNITY_2022_2_OR_NEWER
+        public static IList<IBuildTask> ContentFileCompatible()
+        {
+            var buildTasks = new List<IBuildTask>();
+
+            // Setup
+            buildTasks.Add(new SwitchToBuildPlatform());
+            buildTasks.Add(new RebuildSpriteAtlasCache());
+
+            // Player Scripts
+            buildTasks.Add(new BuildPlayerScripts());
+            buildTasks.Add(new PostScriptsCallback());
+
+            // Dependency
+            buildTasks.Add(new CalculateSceneDependencyData());
+            buildTasks.Add(new CalculateCustomDependencyData());
+
+            buildTasks.Add(new CalculateAssetDependencyData());
+            buildTasks.Add(new StripUnusedSpriteSources());
+            buildTasks.Add(new PostDependencyCallback());
+
+            // Packing
+            buildTasks.Add(new ClusterBuildLayout());
+            buildTasks.Add(new PostPackingCallback());
+
+            // Writing
+            buildTasks.Add(new WriteSerializedFiles());
+            buildTasks.Add(new ArchiveAndCompressBundles());
+            buildTasks.Add(new GenerateLinkXml());
+            buildTasks.Add(new PostWritingCallback());
+
+            return buildTasks;
+        }
+#endif
     }
 }

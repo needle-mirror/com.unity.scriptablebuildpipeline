@@ -25,6 +25,10 @@ namespace UnityEditor.Build.Pipeline.Tests
     {
         const string kTestAssetFolder = "Assets/TestAssets";
         const string kTestAsset = "Assets/TestAssets/SpriteTexture32x32.png";
+        const string kSpriteTexture1Asset = "Assets/TestAssets/SpriteTexture1_32x32.png";
+        const string kSpriteTexture2Asset = "Assets/TestAssets/SpriteTexture2_32x32.png";
+        const string kSpriteAtlasAsset = "Assets/TestAssets/sadependencies.spriteAtlas";
+        
 
         SpritePackerMode m_PrevMode;
 
@@ -121,7 +125,13 @@ namespace UnityEditor.Build.Pipeline.Tests
         {
             m_PrevMode = EditorSettings.spritePackerMode;
             Directory.CreateDirectory(kTestAssetFolder);
-            CreateTestSpriteTexture();
+            CreateTestSpriteTexture(kTestAsset, false);
+            CreateTestSpriteTexture(kSpriteTexture1Asset, true);
+            CreateTestSpriteTexture(kSpriteTexture2Asset, true);
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
+            CreateSpriteAtlas();
+
+            
         }
 
         [TearDown]
@@ -133,42 +143,59 @@ namespace UnityEditor.Build.Pipeline.Tests
             AssetDatabase.Refresh();
         }
 
-        static void CreateTestSpriteTexture()
+        static void CreateTestSpriteTexture(string texturePath, bool single)
         {
             var data = ImageConversion.EncodeToPNG(new Texture2D(32, 32));
-            File.WriteAllBytes(kTestAsset, data);
-            AssetDatabase.ImportAsset(kTestAsset, ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
-            var importer = AssetImporter.GetAtPath(kTestAsset) as TextureImporter;
+            File.WriteAllBytes(texturePath, data);
+            AssetDatabase.ImportAsset(texturePath);//, ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
+            var importer = AssetImporter.GetAtPath(texturePath) as TextureImporter;
             importer.textureType = TextureImporterType.Sprite;
-            importer.spriteImportMode = SpriteImportMode.Multiple;
-            importer.spritesheet = new[]
+            if (single)
             {
-                new SpriteMetaData
+                importer.spriteImportMode = SpriteImportMode.Single;
+            }
+            else
+            {
+                importer.spriteImportMode = SpriteImportMode.Multiple;
+                importer.spritesheet = new[]
                 {
-                    name = "WhiteTexture32x32_0",
-                    rect = new Rect(0, 19, 32, 13),
-                    alignment = 0,
-                    pivot = new Vector2(0.5f, 0.5f),
-                    border = new Vector4(0, 0, 0, 0)
-                },
-                new SpriteMetaData
-                {
-                    name = "WhiteTexture32x32_1",
-                    rect = new Rect(4, 19, 24, 11),
-                    alignment = 0,
-                    pivot = new Vector2(0.5f, 0.5f),
-                    border = new Vector4(0, 0, 0, 0)
-                },
-                new SpriteMetaData
-                {
-                    name = "WhiteTexture32x32_2",
-                    rect = new Rect(9, 5, 12, 7),
-                    alignment = 0,
-                    pivot = new Vector2(0.5f, 0.5f),
-                    border = new Vector4(0, 0, 0, 0)
-                }
-            };
+                    new SpriteMetaData
+                    {
+                        name = "WhiteTexture32x32_0",
+                        rect = new Rect(0, 19, 32, 13),
+                        alignment = 0,
+                        pivot = new Vector2(0.5f, 0.5f),
+                        border = new Vector4(0, 0, 0, 0)
+                    },
+                    new SpriteMetaData
+                    {
+                        name = "WhiteTexture32x32_1",
+                        rect = new Rect(4, 19, 24, 11),
+                        alignment = 0,
+                        pivot = new Vector2(0.5f, 0.5f),
+                        border = new Vector4(0, 0, 0, 0)
+                    },
+                    new SpriteMetaData
+                    {
+                        name = "WhiteTexture32x32_2",
+                        rect = new Rect(9, 5, 12, 7),
+                        alignment = 0,
+                        pivot = new Vector2(0.5f, 0.5f),
+                        border = new Vector4(0, 0, 0, 0)
+                    }
+                };
+            }
+            
             importer.SaveAndReimport();
+        }
+
+        static void CreateSpriteAtlas()
+        {
+            var sa = new SpriteAtlas();
+            var targetObjects = new UnityEngine.Object[] { AssetDatabase.LoadAssetAtPath<Texture>(kSpriteTexture1Asset), AssetDatabase.LoadAssetAtPath<Texture>(kSpriteTexture2Asset) };
+            sa.Add(targetObjects);
+            AssetDatabase.CreateAsset(sa, kSpriteAtlasAsset);
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
         }
 
         CalculateAssetDependencyData.TaskInput CreateDefaultInput()
@@ -399,6 +426,51 @@ namespace UnityEditor.Build.Pipeline.Tests
             CalculateAssetDependencyData.RunInternal(input, out CalculateAssetDependencyData.TaskOutput output);
 
             Assert.AreEqual(expectedPacked, output.AssetResults[0].spriteData.PackedSprite);
+        }
+
+
+        static object[] SpriteUtilityTestCases =
+        {
+            new object[] { SpritePackerMode.BuildTimeOnlyAtlas }
+        };
+
+
+        [TestCaseSource("SpriteUtilityTestCases")]
+        [Test]
+        public void WhenSpriteWithAtlasUpdated_SpriteInfoUpdated(SpritePackerMode spriteMode)
+        {
+            var spriteAtlas = AssetDatabase.LoadAssetAtPath<SpriteAtlas>(kSpriteAtlasAsset);
+            var oldSprites = SpriteAtlasExtensions.GetPackables(spriteAtlas);
+            spriteAtlas.Remove(oldSprites);
+
+            List<UnityEngine.Object> sprites = new List<UnityEngine.Object>();
+            sprites.Add(AssetDatabase.LoadAssetAtPath<Sprite>(kSpriteTexture1Asset));
+            sprites.Add(AssetDatabase.LoadAssetAtPath<Sprite>(kSpriteTexture2Asset));
+            SpriteAtlasExtensions.Add(spriteAtlas, sprites.ToArray());
+
+            GUID.TryParse(AssetDatabase.AssetPathToGUID(kSpriteAtlasAsset), out GUID spriteGUID);
+
+            BuildCacheUtility.ClearCacheHashes();
+            CalculateAssetDependencyData.TaskInput input = CreateDefaultInput();
+            input.BuildCache = new BuildCache();
+            input.NonRecursiveDependencies = true;
+            EditorSettings.spritePackerMode = spriteMode;
+            SpriteAtlasUtility.PackAllAtlases(input.Target);
+            input.Assets = new List<GUID>() { spriteGUID };
+            CalculateAssetDependencyData.RunInternal(input, out CalculateAssetDependencyData.TaskOutput output);
+
+            Assert.AreEqual(3, output.AssetResults[0].assetInfo.referencedObjects.Count);
+            
+            spriteAtlas = AssetDatabase.LoadAssetAtPath<SpriteAtlas>(kSpriteAtlasAsset);
+            oldSprites = SpriteAtlasExtensions.GetPackables(spriteAtlas);
+            spriteAtlas.Remove(oldSprites);
+
+            sprites = new List<UnityEngine.Object>();
+            sprites.Add(AssetDatabase.LoadAssetAtPath<Sprite>(kSpriteTexture1Asset));
+            SpriteAtlasExtensions.Add(spriteAtlas, sprites.ToArray());
+            SpriteAtlasUtility.PackAllAtlases(input.Target);
+            CalculateAssetDependencyData.RunInternal(input, out CalculateAssetDependencyData.TaskOutput output2);
+            Assert.AreEqual(2, output2.AssetResults[0].assetInfo.referencedObjects.Count);
         }
 
 #if !UNITY_2020_2_OR_NEWER

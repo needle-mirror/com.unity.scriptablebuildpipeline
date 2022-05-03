@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.Serialization.Formatters.Binary;
 using NUnit.Framework;
 using UnityEditor.Build.Pipeline.Interfaces;
+using UnityEditor.Build.Pipeline.Tasks;
 using UnityEditor.Build.Pipeline.Utilities;
 
 namespace UnityEditor.Build.Pipeline.Tests
@@ -17,6 +18,10 @@ namespace UnityEditor.Build.Pipeline.Tests
             {
                 typeof(BuildCallbacks), typeof(Unity5PackedIdentifiers), typeof(PrefabPackedIdentifiers), typeof(LinearPackedIdentifiers), typeof(BuildCache),
                 typeof(ProgressTracker), typeof(ProgressLoggingTracker), typeof(BuildInterfacesWrapper)
+#if UNITY_2022_2_OR_NEWER
+                , typeof(ContentFileIdentifiers)
+                , typeof(ClusterOutput)
+#endif
             };
 
             var assembly = AppDomain.CurrentDomain.GetAssemblies().First(x => x.GetName().Name == "Unity.ScriptableBuildPipeline.Editor");

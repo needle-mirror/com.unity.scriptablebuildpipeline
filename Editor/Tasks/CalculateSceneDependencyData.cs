@@ -98,9 +98,11 @@ namespace UnityEditor.Build.Pipeline.Tasks
                     SceneDependencyInfo sceneInfo;
                     BuildUsageTagSet usageTags;
                     Hash128 prefabDependency = new Hash128();
+                    bool useUncachedScene = true;
 
                     if (cachedInfo != null && cachedInfo[i] != null)
                     {
+                        useUncachedScene = false;
                         if (!m_Tracker.UpdateInfoUnchecked(string.Format("{0} (Cached)", scenePath)))
                             return ReturnCode.Canceled;
                         m_Log.AddEntrySafe(LogLevel.Info, $"{scene} (cached)");
@@ -112,9 +114,45 @@ namespace UnityEditor.Build.Pipeline.Tasks
                         prefabDependency = (Hash128)cachedInfo[i].Data[2];
                         var objectTypes = cachedInfo[i].Data[3] as List<ObjectTypes>;
                         if (objectTypes != null)
+                        {
                             BuildCacheUtility.SetTypeForObjects(objectTypes);
+                            
+                            foreach (var objectType in objectTypes)
+                            {                                
+                                //Sprite association to SpriteAtlas might have changed since last time data was cached, this might 
+                                //imply that we have stale data in our cache, if so ensure we regenerate the data.
+                                if (objectType.Types[0] == typeof(UnityEngine.Sprite))
+                                {
+                                    ObjectIdentifier[] filteredReferences = sceneInfo.referencedObjects.ToArray();
+                                    ObjectIdentifier[] filteredReferencesNew = null;
+#if NONRECURSIVE_DEPENDENCY_DATA
+                                    if (m_Parameters.NonRecursiveDependencies)
+                                    {
+                                        var sceneInfoNew = ContentBuildInterface.CalculatePlayerDependenciesForScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache, DependencyType.ValidReferences);
+                                        filteredReferencesNew = sceneInfoNew.referencedObjects.ToArray();
+                                        filteredReferencesNew = ExtensionMethods.FilterReferencedObjectIDs(scene, filteredReferencesNew, m_Parameters.Target, m_Parameters.ScriptInfo, new HashSet<GUID>(m_Content.Assets));
+                                    }
+                                    else
+#endif
+                                    {
+                                        var sceneInfoNew = ContentBuildInterface.CalculatePlayerDependenciesForScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache);
+                                        filteredReferencesNew = sceneInfoNew.referencedObjects.ToArray();
+                                    }
+                                                                        
+                                    if (Enumerable.SequenceEqual(filteredReferences,filteredReferencesNew) == false)
+                                    {
+                                        useUncachedScene = true;
+                                    }
+                                    break;
+                                }
+                            }
+
+                        }
+                        if (!useUncachedScene)
+                            SetOutputInformation(scene, sceneInfo, usageTags, prefabDependency);
                     }
-                    else
+
+                    if(useUncachedScene)
                     {
                         if (!m_Tracker.UpdateInfoUnchecked(scenePath))
                             return ReturnCode.Canceled;
@@ -124,7 +162,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
 #if UNITY_2019_3_OR_NEWER
 #if NONRECURSIVE_DEPENDENCY_DATA
-                        if (m_Parameters.NonRecursiveDependencies)
+                        if ( m_Parameters.NonRecursiveDependencies)
                         {
                             sceneInfo = ContentBuildInterface.CalculatePlayerDependenciesForScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache, DependencyType.ValidReferences);
                             ObjectIdentifier[] filteredReferences = sceneInfo.referencedObjects.ToArray();
@@ -133,17 +171,15 @@ namespace UnityEditor.Build.Pipeline.Tasks
                             sceneInfo.SetReferencedObjects(filteredReferences);
                         }
                         else
+#endif
                         {
                             sceneInfo = ContentBuildInterface.CalculatePlayerDependenciesForScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache);
                         }
 #else
-                        sceneInfo = ContentBuildInterface.CalculatePlayerDependenciesForScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache);
-#endif
-#else
                         string outputFolder = m_Parameters.TempOutputFolder;
                         if (m_Parameters.UseCache && m_Cache != null)
                             outputFolder = m_Cache.GetCachedArtifactsDirectory(m_Cache.GetCacheEntry(scene, Version));
-                        Directory.CreateDirectory(outputFolder);
+                        System.IO.Directory.CreateDirectory(outputFolder);
 
                         sceneInfo = ContentBuildInterface.PrepareScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache, outputFolder);
 #endif
@@ -154,9 +190,8 @@ namespace UnityEditor.Build.Pipeline.Tasks
                             prefabDependency = HashingMethods.Calculate(prefabEntries).ToHash128();
                             uncachedInfo.Add(GetCachedInfo(scene, sceneInfo.referencedObjects, sceneInfo, usageTags, prefabEntries, prefabDependency));
                         }
+                        SetOutputInformation(scene, sceneInfo, usageTags, prefabDependency);
                     }
-
-                    SetOutputInformation(scene, sceneInfo, usageTags, prefabDependency);
                 }
             }
 

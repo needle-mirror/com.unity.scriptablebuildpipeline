@@ -178,3 +178,33 @@ public static class BuildAssetBundlesExample
     }
 }
 ```
+
+## Building Archives that Contain ContentFiles
+The following example shows how to build Archive files that contain ContentFiles by using the `DefaultBuildTasks.ContentFileCompatible` as the tasks for building
+
+Using `ContentFileIdentifiers` is required, otherwise the resulting AssetBundles will not be able to load. 
+
+Requires Unity 2022.2 or later.
+```csharp
+using UnityEditor;
+using UnityEditor.Build.Content;
+using UnityEditor.Build.Pipeline;
+using UnityEditor.Build.Pipeline.Tasks;
+using UnityEditor.Build.Pipeline.Utilities;
+
+public class BuildAssetBundlesExample
+{
+    public static bool BuildAssetBundles(string outputPath, bool useChunkBasedCompression, BuildTarget buildTarget, BuildTargetGroup buildGroup)
+    {
+        var buildContent = new BundleBuildContent(ContentBuildInterface.GenerateAssetBundleBuilds());
+        var buildParams = new BundleBuildParameters(buildTarget, buildGroup, outputPath);
+        if (useChunkBasedCompression)
+            buildParams.BundleCompression = UnityEngine.BuildCompression.LZ4;
+
+        var tasks = DefaultBuildTasks.ContentFileCompatible();
+        var buildLayout = new ClusterOutput();
+        var exitCode = ContentPipeline.BuildAssetBundles(buildParams, buildContent, out _, tasks, new ContentFileIdentifiers(), buildLayout);
+        return exitCode == ReturnCode.Success;
+    }
+}
+```

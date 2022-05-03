@@ -232,17 +232,52 @@ namespace UnityEditor.Build.Pipeline.Tasks
                     AssetOutput assetResult = new AssetOutput();
                     assetResult.asset = input.Assets[i];
 
+                   
                     if (cachedInfo != null && cachedInfo[i] != null)
                     {
-                        assetResult.assetInfo = cachedInfo[i].Data[0] as AssetLoadInfo;
-                        assetResult.usageTags = cachedInfo[i].Data[1] as BuildUsageTagSet;
-                        assetResult.spriteData = cachedInfo[i].Data[2] as SpriteImporterData;
-                        assetResult.extendedData = cachedInfo[i].Data[3] as ExtendedAssetData;
-                        assetResult.objectTypes = cachedInfo[i].Data[4] as List<ObjectTypes>;
-                        output.AssetResults[i] = assetResult;
-                        output.CachedAssetCount++;
-                        input.Logger.AddEntrySafe(LogLevel.Info, $"{assetResult.asset} (cached)");
-                        continue;
+                        var objectTypes = cachedInfo[i].Data[4] as List<ObjectTypes>;
+                        var assetInfos = cachedInfo[i].Data[0] as AssetLoadInfo;
+
+                        bool useCachedData = true;
+                        foreach (var objectType in objectTypes)
+                        {
+                            //Sprite association to SpriteAtlas might have changed since last time data was cached, this might 
+                            //imply that we have stale data in our cache, if so ensure we regenerate the data.
+                            if (objectType.Types[0] == typeof(UnityEngine.Sprite))
+                            {
+                                var referencedObjectOld = assetInfos.referencedObjects.ToArray();
+                                ObjectIdentifier[] referencedObjectsNew = null;
+#if NONRECURSIVE_DEPENDENCY_DATA
+                                if (input.NonRecursiveDependencies)
+                                {
+                                    referencedObjectsNew = ContentBuildInterface.GetPlayerDependenciesForObjects(assetInfos.includedObjects.ToArray(), input.Target, input.TypeDB, DependencyType.ValidReferences);
+                                    referencedObjectsNew = ExtensionMethods.FilterReferencedObjectIDs(input.Assets[i], referencedObjectsNew, input.Target, input.TypeDB, new HashSet<GUID>(input.Assets));
+                                }
+                                else
+#endif
+                                {
+                                    referencedObjectsNew = ContentBuildInterface.GetPlayerDependenciesForObjects(assetInfos.includedObjects.ToArray(), input.Target, input.TypeDB);
+                                }
+
+                                if (Enumerable.SequenceEqual(referencedObjectOld, referencedObjectsNew) == false)
+                                {
+                                    useCachedData = false;
+                                }
+                                break;
+                            }
+                        }
+                        if (useCachedData)
+                        { 
+                            assetResult.assetInfo = assetInfos;
+                            assetResult.usageTags = cachedInfo[i].Data[1] as BuildUsageTagSet;
+                            assetResult.spriteData = cachedInfo[i].Data[2] as SpriteImporterData;
+                            assetResult.extendedData = cachedInfo[i].Data[3] as ExtendedAssetData;
+                            assetResult.objectTypes = objectTypes;
+                            output.AssetResults[i] = assetResult;
+                            output.CachedAssetCount++;
+                            input.Logger.AddEntrySafe(LogLevel.Info, $"{assetResult.asset} (cached)");
+                            continue;
+                        }
                     }
 
                     GUID asset = input.Assets[i];
@@ -259,20 +294,18 @@ namespace UnityEditor.Build.Pipeline.Tasks
                     assetResult.assetInfo.asset = asset;
                     var includedObjects = ContentBuildInterface.GetPlayerObjectIdentifiersInAsset(asset, input.Target);
                     assetResult.assetInfo.includedObjects = new List<ObjectIdentifier>(includedObjects);
-#if NONRECURSIVE_DEPENDENCY_DATA
                     ObjectIdentifier[] referencedObjects;
+#if NONRECURSIVE_DEPENDENCY_DATA
                     if (input.NonRecursiveDependencies)
                     {
                         referencedObjects = ContentBuildInterface.GetPlayerDependenciesForObjects(includedObjects, input.Target, input.TypeDB, DependencyType.ValidReferences);
                         referencedObjects = ExtensionMethods.FilterReferencedObjectIDs(asset, referencedObjects, input.Target, input.TypeDB, new HashSet<GUID>(input.Assets));
                     }
                     else
+#endif
                     {
                         referencedObjects = ContentBuildInterface.GetPlayerDependenciesForObjects(includedObjects, input.Target, input.TypeDB);
                     }
-#else
-                    ObjectIdentifier[] referencedObjects = ContentBuildInterface.GetPlayerDependenciesForObjects(includedObjects, input.Target, input.TypeDB);
-#endif
 
                     assetResult.assetInfo.referencedObjects = new List<ObjectIdentifier>(referencedObjects);
                     var allObjects = new List<ObjectIdentifier>(includedObjects);

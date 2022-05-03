@@ -4,6 +4,17 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.20.1] - 2022-05-03
+- Fix an issue where cached Sprite state could be stale.
+
+## [1.20.0] - 2022-04-22
+- Adds build support for Content Files.
+    - New public methods.
+        - DefaultBuildTasks.ContentFileCompatible
+    - New public classes.
+        - ClusterOutput
+        - ContentFileIdentifiers
+
 ## [1.19.6] - 2021-10-21
 - Fixed an issue where the Build Progress Bar would not go away after the build is complete.
 
