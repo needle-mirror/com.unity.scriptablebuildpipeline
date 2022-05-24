@@ -207,7 +207,7 @@ You can work around this issue by changing the 'FileID Generator Seed' found in 
 
 #endif
 
-        void CreateSceneBundleCommand(string bundleName, string internalName, GUID scene, List<GUID> bundledScenes, Dictionary<GUID, string> assetToMainFile)
+        List<ObjectIdentifier> GetFileObjectsForScene(string internalName)
         {
             var fileObjects = m_WriteData.FileToObjects[internalName];
 #if !UNITY_2019_1_OR_NEWER || NONRECURSIVE_DEPENDENCY_DATA
@@ -221,7 +221,12 @@ You can work around this issue by changing the 'FileID Generator Seed' found in 
                 fileObjects = GetSortedSceneObjectIdentifiers(fileObjects);
             }
 #endif
+            return fileObjects;
+        }
 
+        void CreateSceneBundleCommand(string bundleName, string internalName, GUID scene, List<GUID> bundledScenes, Dictionary<GUID, string> assetToMainFile)
+        {
+            var fileObjects = GetFileObjectsForScene(internalName);
             var command = CreateWriteCommand(internalName, fileObjects, new LinearPackedIdentifiers(3)); // Start at 3: PreloadData = 1, AssetBundle = 2
             var usageSet = new BuildUsageTagSet();
             var referenceMap = new BuildReferenceMap();
@@ -272,14 +277,7 @@ You can work around this issue by changing the 'FileID Generator Seed' found in 
 
         void CreateSceneDataCommand(string internalName, GUID scene)
         {
-            var fileObjects = m_WriteData.FileToObjects[internalName];
-#if !UNITY_2019_1_OR_NEWER
-            // ContentBuildInterface.PrepareScene was not returning stable sorted references, causing a indeterminism and loading errors in some cases
-            // Add correct sorting here until patch lands to fix the API.
-            fileObjects = GetSortedSceneObjectIdentifiers(fileObjects);
-#endif
-
-
+            var fileObjects = GetFileObjectsForScene(internalName);
             var command = CreateWriteCommand(internalName, fileObjects, new LinearPackedIdentifiers(2)); // Start at 3: PreloadData = 1
             var usageSet = new BuildUsageTagSet();
             var referenceMap = new BuildReferenceMap();
