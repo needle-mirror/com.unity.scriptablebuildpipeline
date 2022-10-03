@@ -39,6 +39,8 @@ namespace UnityEditor.Build.Pipeline
         public Dictionary<string, WriteResult> WriteResults { get; private set; }
         /// <inheritdoc />
         public Dictionary<string, SerializedFileMetaData> WriteResultsMetaData { get; private set; }
+        /// <inheritdoc />
+        public Dictionary<GUID, AssetResultData> AssetResults { get; private set; }
 
         /// <summary>
         /// Default constructor, initializes properties to defaults
@@ -64,6 +66,8 @@ namespace UnityEditor.Build.Pipeline
         public Dictionary<string, WriteResult> WriteResults { get; private set; }
         /// <inheritdoc />
         public Dictionary<string, SerializedFileMetaData> WriteResultsMetaData { get; private set; }
+        /// <inheritdoc />
+        public Dictionary<GUID, AssetResultData> AssetResults { get; private set; }
 
         /// <summary>
         /// Default constructor, initializes properties to defaults
@@ -73,6 +77,7 @@ namespace UnityEditor.Build.Pipeline
             BundleInfos = new Dictionary<string, BundleDetails>();
             WriteResults = new Dictionary<string, WriteResult>();
             WriteResultsMetaData = new Dictionary<string, SerializedFileMetaData>();
+            AssetResults = new Dictionary<GUID, AssetResultData>();
         }
     }
 }

@@ -115,6 +115,8 @@ namespace UnityEditor.Build.Pipeline.Tests
         public virtual Dictionary<string, WriteResult> WriteResults => throw new System.NotImplementedException(TestTracing.Callsite());
 
         public virtual Dictionary<string, SerializedFileMetaData> WriteResultsMetaData => throw new System.NotImplementedException(TestTracing.Callsite());
+
+        public Dictionary<GUID, AssetResultData> AssetResults => throw new System.NotImplementedException(TestTracing.Callsite());
     }
 
     internal class TestBundleExplictObjectLayout : IBundleExplictObjectLayout

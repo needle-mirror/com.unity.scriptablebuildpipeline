@@ -1,7 +1,7 @@
 {
   "name": "com.unity.scriptablebuildpipeline",
   "displayName": "Scriptable Build Pipeline",
-  "version": "1.20.2",
+  "version": "1.21.0",
   "unity": "2019.4",
   "description": "The Scriptable Build Pipeline moves the asset bundle build pipeline to C#.  Use the pre-defined build flows, or create your own using the divided up APIs.  This system improves build time, fixes incremental build, and provides greater flexibility.",
   "keywords": [
@@ -12,15 +12,13 @@
     "cache",
     "server"
   ],
+  "dependencies": {},
+  "upmCi": {
+    "footprint": "66f619a7371f052f9ff911ce4d13c4e6c7b1ab52"
+  },
   "repository": {
     "url": "https://github.cds.internal.unity3d.com/unity/Addressables.git",
     "type": "git",
-    "revision": "748a8aa21f06acfb00681afc0b8a69dadf5ef532"
-  },
-  "_upm": {
-    "changelog": "- Fix an issue where Scene build ordering would cause Scenes to not load."
-  },
-  "upmCi": {
-    "footprint": "1ab9d4304a174d3b26199fec34a4a72b0bce4b2a"
+    "revision": "148a36d262049ba98822a4b222ec6c06986e051a"
   }
 }

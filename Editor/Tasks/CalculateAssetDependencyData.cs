@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor.Build.Content;
@@ -5,6 +6,7 @@ using UnityEditor.Build.Pipeline.Injector;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Utilities;
 using UnityEditor.Build.Player;
+using UnityEngine;
 
 namespace UnityEditor.Build.Pipeline.Tasks
 {
@@ -36,6 +38,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
         [InjectContext]
         IDependencyData m_DependencyData;
+
+        [InjectContext(ContextUsage.InOut, true)]
+        IBuildResults m_Results;
 
         [InjectContext(ContextUsage.InOut, true)]
         IBuildSpriteData m_SpriteData;
@@ -72,6 +77,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
         internal struct AssetOutput
         {
             public GUID asset;
+            public Hash128 Hash;
             public AssetLoadInfo assetInfo;
             public BuildUsageTagSet usageTags;
             public SpriteImporterData spriteData;
@@ -134,6 +140,23 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 {
                     m_DependencyData.AssetInfo.Add(o.asset, o.assetInfo);
                     m_DependencyData.AssetUsage.Add(o.asset, o.usageTags);
+
+                    Dictionary<ObjectIdentifier, System.Type[]> objectTypes = new Dictionary<ObjectIdentifier, Type[]>();
+                    foreach (var objectType in o.objectTypes)
+                        objectTypes.Add(objectType.ObjectID, objectType.Types);
+
+                    if (m_Results != null)
+                    {
+                        AssetResultData resultData = new AssetResultData
+                        {
+                            Guid = o.asset,
+                            Hash = o.Hash,
+                            IncludedObjects = o.assetInfo.includedObjects,
+                            ReferencedObjects = o.assetInfo.referencedObjects,
+                            ObjectTypes = objectTypes
+                        };
+                        m_Results.AssetResults.Add(o.asset, resultData);
+                    }
 
                     if (o.spriteData != null)
                     {
@@ -232,7 +255,6 @@ namespace UnityEditor.Build.Pipeline.Tasks
                     AssetOutput assetResult = new AssetOutput();
                     assetResult.asset = input.Assets[i];
 
-                   
                     if (cachedInfo != null && cachedInfo[i] != null)
                     {
                         var objectTypes = cachedInfo[i].Data[4] as List<ObjectTypes>;
@@ -241,7 +263,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                         bool useCachedData = true;
                         foreach (var objectType in objectTypes)
                         {
-                            //Sprite association to SpriteAtlas might have changed since last time data was cached, this might 
+                            //Sprite association to SpriteAtlas might have changed since last time data was cached, this might
                             //imply that we have stale data in our cache, if so ensure we regenerate the data.
                             if (objectType.Types[0] == typeof(UnityEngine.Sprite))
                             {
@@ -267,7 +289,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                             }
                         }
                         if (useCachedData)
-                        { 
+                        {
                             assetResult.assetInfo = assetInfos;
                             assetResult.usageTags = cachedInfo[i].Data[1] as BuildUsageTagSet;
                             assetResult.spriteData = cachedInfo[i].Data[2] as SpriteImporterData;
@@ -344,12 +366,42 @@ namespace UnityEditor.Build.Pipeline.Tasks
                     for (int i = 0; i < input.Assets.Count; i++)
                     {
                         AssetOutput r = output.AssetResults[i];
-                        if (cachedInfo[i] == null)
+                        CachedInfo info = cachedInfo[i];
+                        if (info == null)
                         {
-                            toCache.Add(GetCachedInfo(input.BuildCache, input.Assets[i], r.assetInfo, r.usageTags, r.spriteData, r.extendedData, input.NonRecursiveDependencies));
+                            info = GetCachedInfo(input.BuildCache, input.Assets[i], r.assetInfo, r.usageTags, r.spriteData, r.extendedData, input.NonRecursiveDependencies);
+                            toCache.Add(info);
                         }
+
+                        r.Hash = info.Asset.Hash;
+                        if (r.objectTypes == null && info.Data.Length > 4)
+                        {
+                            List<ObjectTypes> types = info.Data[4] as List<ObjectTypes>;
+                            r.objectTypes = types;
+                        }
+                        output.AssetResults[i] = r;
                     }
                     input.BuildCache.SaveCachedData(toCache);
+                }
+                else
+                {
+                    for (int i = 0; i < input.Assets.Count; i++)
+                    {
+                        AssetOutput r = output.AssetResults[i];
+                        if (r.objectTypes != null)
+                            continue;
+
+                        var info = BuildCacheUtility.GetCacheEntry(input.Assets[i], input.NonRecursiveDependencies ? -kVersion : kVersion);
+                        r.Hash = info.Hash;
+
+                        r.objectTypes = new List<ObjectTypes>(r.assetInfo.includedObjects.Count);
+                        foreach (var objectId in r.assetInfo.includedObjects)
+                        {
+                            var types = BuildCacheUtility.GetSortedUniqueTypesForObject(objectId);
+                            r.objectTypes.Add(new ObjectTypes(objectId, types));
+                        }
+                        output.AssetResults[i] = r;
+                    }
                 }
             }
 

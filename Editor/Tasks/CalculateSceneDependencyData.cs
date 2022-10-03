@@ -30,6 +30,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
         [InjectContext]
         IDependencyData m_DependencyData;
 
+        [InjectContext(ContextUsage.InOut, true)]
+        IBuildResults m_Results;
+
         [InjectContext(ContextUsage.In, true)]
         IProgressTracker m_Tracker;
 
@@ -87,6 +90,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 uncachedInfo = new List<CachedInfo>();
             }
 
+            List<CachedInfo> info = new List<CachedInfo>(m_Content.Scenes.Count);
             BuildSettings settings = m_Parameters.GetContentBuildSettings();
             for (int i = 0; i < m_Content.Scenes.Count; i++)
             {
@@ -102,6 +106,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
                     if (cachedInfo != null && cachedInfo[i] != null)
                     {
+                        info.Add(cachedInfo[i]);
                         useUncachedScene = false;
                         if (!m_Tracker.UpdateInfoUnchecked(string.Format("{0} (Cached)", scenePath)))
                             return ReturnCode.Canceled;
@@ -116,10 +121,10 @@ namespace UnityEditor.Build.Pipeline.Tasks
                         if (objectTypes != null)
                         {
                             BuildCacheUtility.SetTypeForObjects(objectTypes);
-                            
+
                             foreach (var objectType in objectTypes)
-                            {                                
-                                //Sprite association to SpriteAtlas might have changed since last time data was cached, this might 
+                            {
+                                //Sprite association to SpriteAtlas might have changed since last time data was cached, this might
                                 //imply that we have stale data in our cache, if so ensure we regenerate the data.
                                 if (objectType.Types[0] == typeof(UnityEngine.Sprite))
                                 {
@@ -138,7 +143,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                                         var sceneInfoNew = ContentBuildInterface.CalculatePlayerDependenciesForScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache);
                                         filteredReferencesNew = sceneInfoNew.referencedObjects.ToArray();
                                     }
-                                                                        
+
                                     if (Enumerable.SequenceEqual(filteredReferences,filteredReferencesNew) == false)
                                     {
                                         useUncachedScene = true;
@@ -188,7 +193,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
                             // We only need to gather prefab dependencies and calculate the hash if we are using caching, otherwise we can skip it
                             var prefabEntries = AssetDatabase.GetDependencies(AssetDatabase.GUIDToAssetPath(scene.ToString())).Where(path => path.EndsWith(".prefab")).Select(m_Cache.GetCacheEntry);
                             prefabDependency = HashingMethods.Calculate(prefabEntries).ToHash128();
-                            uncachedInfo.Add(GetCachedInfo(scene, sceneInfo.referencedObjects, sceneInfo, usageTags, prefabEntries, prefabDependency));
+                            var cacheInfo = GetCachedInfo(scene, sceneInfo.referencedObjects, sceneInfo, usageTags, prefabEntries, prefabDependency);
+                            uncachedInfo.Add(cacheInfo);
+                            info.Add(cacheInfo);
                         }
                         SetOutputInformation(scene, sceneInfo, usageTags, prefabDependency);
                     }
@@ -197,6 +204,27 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
             if (m_Parameters.UseCache && m_Cache != null)
                 m_Cache.SaveCachedData(uncachedInfo);
+
+            if (info != null && m_Results != null)
+            {
+                foreach (CachedInfo sceneFileInfo in info)
+                {
+                    Dictionary<ObjectIdentifier, System.Type[]> objectTypes = new Dictionary<ObjectIdentifier, System.Type[]>();
+                    List<ObjectTypes> types = sceneFileInfo.Data[3] as List<ObjectTypes>;
+                    foreach (var objectType in types)
+                        objectTypes.Add(objectType.ObjectID, objectType.Types);
+
+                    AssetResultData resultData = new AssetResultData
+                    {
+                        Guid = sceneFileInfo.Asset.Guid,
+                        Hash = sceneFileInfo.Asset.Hash,
+                        IncludedObjects = new List<ObjectIdentifier>(),
+                        ReferencedObjects = null,
+                        ObjectTypes = objectTypes
+                    };
+                    m_Results.AssetResults.Add(resultData.Guid, resultData);
+                }
+            }
 
             return ReturnCode.Success;
         }

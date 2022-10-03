@@ -1,10 +1,21 @@
+using System;
 using System.Collections.Generic;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Player;
+using UnityEngine;
 using UnityEngine.Build.Pipeline;
 
 namespace UnityEditor.Build.Pipeline.Interfaces
 {
+    public struct AssetResultData
+    {
+        public GUID Guid;
+        public Hash128 Hash;
+        public List<ObjectIdentifier> IncludedObjects;
+        public List<ObjectIdentifier> ReferencedObjects;
+        public Dictionary<ObjectIdentifier, Type[]> ObjectTypes;
+    }
+
     /// <summary>
     /// Base interface for the build results container
     /// </summary>
@@ -24,6 +35,11 @@ namespace UnityEditor.Build.Pipeline.Interfaces
         /// Map of serialized file name to additional metadata associated with the write result.
         /// </summary>
         Dictionary<string, SerializedFileMetaData> WriteResultsMetaData { get; }
+
+        /// <summary>
+        /// Map of Asset data included in this build
+        /// </summary>
+        Dictionary<GUID, AssetResultData> AssetResults { get; }
     }
 
     /// <summary>
