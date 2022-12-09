@@ -6,6 +6,8 @@ using System.IO;
 using System.Linq;
 using UnityEditor.Build.Pipeline.Utilities;
 using UnityEngine;
+using UnityEngine.SceneManagement;
+using UnityEditor.SceneManagement;
 
 namespace UnityEditor.Build.Pipeline.Tests
 {
@@ -29,6 +31,11 @@ namespace UnityEditor.Build.Pipeline.Tests
             get { return Path.Combine(kBuildCacheTestPath, "temporary.txt"); }
         }
 
+        protected string kTestScenePath
+        {
+            get { return Path.Combine(kBuildCacheTestPath, "testScene.unity"); }
+        }
+
         protected GUID TestFile1GUID
         {
             get { return new GUID(AssetDatabase.AssetPathToGUID(kTestFile1)); }
@@ -42,6 +49,11 @@ namespace UnityEditor.Build.Pipeline.Tests
         protected GUID TempAssetGUID
         {
             get { return new GUID(AssetDatabase.AssetPathToGUID(kTempAssetFilename)); }
+        }
+
+        protected GUID TestSceneGUID
+        {
+            get { return new GUID(AssetDatabase.AssetPathToGUID(kTestScenePath)); }
         }
 
         protected BuildCache m_Cache;
@@ -335,6 +347,35 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             Assert.IsTrue(entry1.Type == CacheEntry.EntryType.Asset);
             Assert.AreEqual(entry2, entry1);
+        }
+
+        [Test]
+        public void GetCacheEntry_DiffStripUnusedMeshComponentsSettings_ReturnsDiffHashes()
+        {
+            Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene);
+            EditorSceneManager.SaveScene(scene, kTestScenePath);
+            EditorSceneManager.NewScene(NewSceneSetup.EmptyScene); // clear active scene
+
+            int version = 2;
+            var kvp = new KeyValuePair<GUID, int>(TestSceneGUID, version);
+            bool stripUnusedMeshComponents = PlayerSettings.stripUnusedMeshComponents;
+            try
+            {
+                PlayerSettings.stripUnusedMeshComponents = false;
+                CacheEntry entry1 = m_Cache.GetCacheEntry(TestSceneGUID, version);
+                BuildCacheUtility.m_GuidToHash.Remove(kvp);
+
+                PlayerSettings.stripUnusedMeshComponents = true;
+                CacheEntry entry2 = m_Cache.GetCacheEntry(TestSceneGUID);
+                BuildCacheUtility.m_GuidToHash.Remove(kvp);
+
+                Assert.AreNotEqual(entry1.Hash, entry2.Hash);
+            }
+            finally
+            {
+                PlayerSettings.stripUnusedMeshComponents = stripUnusedMeshComponents;
+                AssetDatabase.DeleteAsset(kTestScenePath);
+            }
         }
 
         [Test]

@@ -24,7 +24,7 @@ internal class AutoBuildCacheUtility : IDisposable
 
 internal static class BuildCacheUtility
 {
-    static Dictionary<KeyValuePair<GUID, int>, CacheEntry> m_GuidToHash = new Dictionary<KeyValuePair<GUID, int>, CacheEntry>();
+    internal static Dictionary<KeyValuePair<GUID, int>, CacheEntry> m_GuidToHash = new Dictionary<KeyValuePair<GUID, int>, CacheEntry>();
     static Dictionary<KeyValuePair<string, int>, CacheEntry> m_PathToHash = new Dictionary<KeyValuePair<string, int>, CacheEntry>();
     static Dictionary<KeyValuePair<Type, int>, CacheEntry> m_TypeToHash = new Dictionary<KeyValuePair<Type, int>, CacheEntry>();
     static Dictionary<ObjectIdentifier, Type[]> m_ObjectToType = new Dictionary<ObjectIdentifier, Type[]>();
@@ -53,7 +53,7 @@ internal static class BuildCacheUtility
             if (!entry.Hash.isValid && File.Exists(path))
                 entry.Hash = HashingMethods.CalculateFile(path).ToHash128();
             if (path.EndsWith(".unity", StringComparison.OrdinalIgnoreCase))
-                entry.Hash = HashingMethods.Calculate(entry.Hash, BuildInterfacesWrapper.SceneCallbackVersionHash).ToHash128();
+                entry.Hash = HashingMethods.Calculate(entry.Hash, BuildInterfacesWrapper.SceneCallbackVersionHash, PlayerSettings.stripUnusedMeshComponents).ToHash128();
         }
 
         if (entry.Hash.isValid)
