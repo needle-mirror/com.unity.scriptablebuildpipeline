@@ -76,7 +76,8 @@ namespace UnityEditor.Build.Pipeline
                 return ReturnCode.Exception;
             }
 
-            if (!CanBuildPlayer())
+            var contentBuildSettings = parameters.GetContentBuildSettings();
+            if (!CanBuildPlayer(contentBuildSettings.target, contentBuildSettings.group))
             {
                 result = null;
                 BuildLogger.LogException(new InvalidOperationException("Unable to build with the current configuration, please check the Build Settings."));
@@ -171,18 +172,17 @@ namespace UnityEditor.Build.Pipeline
             return exitCode;
         }
 
-        private static bool CanBuildPlayer()
+        //Functionality has been removed due to issues with APV in yamato for package release (https://jira.unity3d.com/browse/BPSBP-735)
+        private static bool CanBuildPlayer(BuildTarget target, BuildTargetGroup targetGroup)
         {
             // The Editor APIs we need only exist in 2021.3 and later. For earlier versions, assume we can build.
-#if UNITY_2021_3_OR_NEWER
-            var module = ModuleManager.GetTargetStringFrom(
-                EditorUserBuildSettingsUtils.CalculateSelectedNamedBuildTarget().ToBuildTargetGroup(),
-                EditorUserBuildSettingsUtils.CalculateSelectedBuildTarget());
-            var buildWindowExtension = ModuleManager.GetBuildWindowExtension(module);
-            return buildWindowExtension != null ? buildWindowExtension.EnabledBuildButton() : false;
-#else
+//#if UNITY_2021_3_OR_NEWER
+//            var module = ModuleManager.GetTargetStringFrom(targetGroup, target);
+//            var buildWindowExtension = ModuleManager.GetBuildWindowExtension(module);
+//            return buildWindowExtension != null ? buildWindowExtension.EnabledBuildButton() : false;
+//#else
             return true;
-#endif
+//#endif
         }
     }
 }
