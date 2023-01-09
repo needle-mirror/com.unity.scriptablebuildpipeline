@@ -5,6 +5,7 @@ using System.Threading;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Utilities;
 using UnityEditor.Build.Utilities;
+using UnityEditor.Modules;
 
 namespace UnityEditor.Build.Pipeline
 {
@@ -75,6 +76,13 @@ namespace UnityEditor.Build.Pipeline
                 return ReturnCode.Exception;
             }
 
+            if (!CanBuildPlayer())
+            {
+                result = null;
+                BuildLogger.LogException(new InvalidOperationException("Unable to build with the current configuration, please check the Build Settings."));
+                return ReturnCode.Exception;
+            }
+
             // Don't run if there are unsaved changes
             if (ValidationMethods.HasDirtyScenes())
             {
@@ -123,8 +131,9 @@ namespace UnityEditor.Build.Pipeline
                         buildContext.SetContextObject(buildCache);
                         // If IDeterministicIdentifiers was passed in with contextObjects, don't add the default
                         if (!buildContext.ContainsContextObject(typeof(IDeterministicIdentifiers)))
-                            buildContext.SetContextObject(parameters.ContiguousBundles ? new PrefabPackedIdentifiers() : (IDeterministicIdentifiers) new Unity5PackedIdentifiers());
+                            buildContext.SetContextObject(parameters.ContiguousBundles ? new PrefabPackedIdentifiers() : (IDeterministicIdentifiers)new Unity5PackedIdentifiers());
                         buildContext.SetContextObject(new BuildDependencyData());
+                        buildContext.SetContextObject(new ObjectDependencyData());
                         buildContext.SetContextObject(new BundleWriteData());
                         buildContext.SetContextObject(BuildCallbacks);
                         buildCache.SetBuildLogger(logger);
@@ -160,6 +169,20 @@ namespace UnityEditor.Build.Pipeline
             long maximumCacheSize = ScriptableBuildPipeline.maximumCacheSize * BuildCache.k_BytesToGigaBytes;
             BuildCache.PruneCache_Background(maximumCacheSize);
             return exitCode;
+        }
+
+        private static bool CanBuildPlayer()
+        {
+            // The Editor APIs we need only exist in 2021.3 and later. For earlier versions, assume we can build.
+#if UNITY_2021_3_OR_NEWER
+            var module = ModuleManager.GetTargetStringFrom(
+                EditorUserBuildSettingsUtils.CalculateSelectedNamedBuildTarget().ToBuildTargetGroup(),
+                EditorUserBuildSettingsUtils.CalculateSelectedBuildTarget());
+            var buildWindowExtension = ModuleManager.GetBuildWindowExtension(module);
+            return buildWindowExtension != null ? buildWindowExtension.EnabledBuildButton() : false;
+#else
+            return true;
+#endif
         }
     }
 }

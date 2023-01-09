@@ -5,3 +5,4 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("PerformanceTests.Editor")]
 [assembly: InternalsVisibleTo("SBPDebug.Editor")]
 [assembly: InternalsVisibleTo("SBPDebug.Editor.Tests")]
+[assembly: InternalsVisibleTo("Unity.Addressables.Editor")]

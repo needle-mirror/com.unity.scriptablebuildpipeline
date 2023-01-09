@@ -4,6 +4,10 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.21.2] - 2023-01-09
+- Changed calculating AssetDependency to generate dependencies by Object instead of per Asset
+- Improved the error message when a build happens for a scripting backend that is not currently installed.
+
 ## [1.21.1] - 2022-12-09
 - Fixed issue where toggling "Optimize Mesh Data" in Project Settings doesn't invalidate build pipeline cache
 

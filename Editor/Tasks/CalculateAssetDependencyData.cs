@@ -10,6 +10,13 @@ using UnityEngine;
 
 namespace UnityEditor.Build.Pipeline.Tasks
 {
+    [Serializable]
+    internal class ObjectDependencyInfo
+    {
+        public ObjectIdentifier Object;
+        public List<ObjectIdentifier> Dependencies = new List<ObjectIdentifier>();
+    }
+
 #if !UNITY_2020_2_OR_NEWER
     internal class CalculateAssetDependencyHooks
     {
@@ -38,6 +45,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
         [InjectContext]
         IDependencyData m_DependencyData;
+
+        [InjectContext]
+        IObjectDependencyData m_ObjectDependencyData;
 
         [InjectContext(ContextUsage.InOut, true)]
         IBuildResults m_Results;
@@ -79,6 +89,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             public GUID asset;
             public Hash128 Hash;
             public AssetLoadInfo assetInfo;
+            public List<ObjectDependencyInfo> objectDependencyInfo;
             public BuildUsageTagSet usageTags;
             public SpriteImporterData spriteData;
             public ExtendedAssetData extendedData;
@@ -98,7 +109,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             return entry;
         }
 
-        static CachedInfo GetCachedInfo(IBuildCache cache, GUID asset, AssetLoadInfo assetInfo, BuildUsageTagSet usageTags, SpriteImporterData importerData, ExtendedAssetData assetData, bool NonRecursiveDependencies)
+        static CachedInfo GetCachedInfo(IBuildCache cache, GUID asset, AssetLoadInfo assetInfo, List<ObjectDependencyInfo> objectDependencies, BuildUsageTagSet usageTags, SpriteImporterData importerData, ExtendedAssetData assetData, bool NonRecursiveDependencies)
         {
             var info = new CachedInfo();
             info.Asset = GetAssetCacheEntry(cache, asset, NonRecursiveDependencies);
@@ -109,7 +120,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             ExtensionMethods.ExtractCommonCacheData(cache, assetInfo.includedObjects, assetInfo.referencedObjects, uniqueTypes, objectTypes, dependencies);
             info.Dependencies = dependencies.ToArray();
 
-            info.Data = new object[] { assetInfo, usageTags, importerData, assetData, objectTypes };
+            info.Data = new object[] { assetInfo, usageTags, importerData, assetData, objectTypes, objectDependencies };
             return info;
         }
 
@@ -139,45 +150,106 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 foreach (AssetOutput o in output.AssetResults)
                 {
                     m_DependencyData.AssetInfo.Add(o.asset, o.assetInfo);
-                    m_DependencyData.AssetUsage.Add(o.asset, o.usageTags);
+                    foreach (var objectDependencyInfo in o.objectDependencyInfo)
+                        m_ObjectDependencyData.ObjectDependencyMap[objectDependencyInfo.Object] = objectDependencyInfo.Dependencies;
+                }
+
+                foreach (AssetOutput assetOutput in output.AssetResults)
+                {
+#if NONRECURSIVE_DEPENDENCY_DATA
+                    if (!input.NonRecursiveDependencies)
+                        ExpandReferences(assetOutput, m_ObjectDependencyData.ObjectDependencyMap);
+#endif
+
+                    m_DependencyData.AssetUsage.Add(assetOutput.asset, assetOutput.usageTags);
 
                     Dictionary<ObjectIdentifier, System.Type[]> objectTypes = new Dictionary<ObjectIdentifier, Type[]>();
-                    foreach (var objectType in o.objectTypes)
+                    foreach (var objectType in assetOutput.objectTypes)
                         objectTypes.Add(objectType.ObjectID, objectType.Types);
 
                     if (m_Results != null)
                     {
                         AssetResultData resultData = new AssetResultData
                         {
-                            Guid = o.asset,
-                            Hash = o.Hash,
-                            IncludedObjects = o.assetInfo.includedObjects,
-                            ReferencedObjects = o.assetInfo.referencedObjects,
+                            Guid = assetOutput.asset,
+                            Hash = assetOutput.Hash,
+                            IncludedObjects = assetOutput.assetInfo.includedObjects,
+                            ReferencedObjects = assetOutput.assetInfo.referencedObjects,
                             ObjectTypes = objectTypes
                         };
-                        m_Results.AssetResults.Add(o.asset, resultData);
+                        m_Results.AssetResults.Add(assetOutput.asset, resultData);
                     }
 
-                    if (o.spriteData != null)
+                    if (assetOutput.spriteData != null)
                     {
                         if (m_SpriteData == null)
                             m_SpriteData = new BuildSpriteData();
-                        m_SpriteData.ImporterData.Add(o.asset, o.spriteData);
+                        m_SpriteData.ImporterData.Add(assetOutput.asset, assetOutput.spriteData);
                     }
 
-                    if (!m_Parameters.DisableVisibleSubAssetRepresentations && o.extendedData != null)
+                    if (!m_Parameters.DisableVisibleSubAssetRepresentations && assetOutput.extendedData != null)
                     {
                         if (m_ExtendedAssetData == null)
                             m_ExtendedAssetData = new BuildExtendedAssetData();
-                        m_ExtendedAssetData.ExtendedData.Add(o.asset, o.extendedData);
+                        m_ExtendedAssetData.ExtendedData.Add(assetOutput.asset, assetOutput.extendedData);
                     }
 
-                    if (o.objectTypes != null)
-                        BuildCacheUtility.SetTypeForObjects(o.objectTypes);
+                    if (assetOutput.objectTypes != null)
+                        BuildCacheUtility.SetTypeForObjects(assetOutput.objectTypes);
                 }
             }
 
             return code;
+        }
+
+        // expand dependencies to explicit assets, results in the same output as recursive dependency calculation
+        private void ExpandReferences(AssetOutput assetOutput, Dictionary<ObjectIdentifier, List<ObjectIdentifier>> objectDependencyMap)
+        {
+            HashSet<ObjectIdentifier> processed = new HashSet<ObjectIdentifier>();
+            HashSet<ObjectIdentifier> referencedObjects = new HashSet<ObjectIdentifier>(assetOutput.assetInfo.referencedObjects);
+            Stack<ObjectIdentifier> processStack = new Stack<ObjectIdentifier>(1024);
+            if (assetOutput.objectDependencyInfo != null && assetOutput.objectDependencyInfo.Count > 0)
+            {
+                foreach (ObjectDependencyInfo info in assetOutput.objectDependencyInfo)
+                {
+                    foreach (ObjectIdentifier dependency in info.Dependencies)
+                    {
+                        if (processed.Contains(dependency) || dependency.guid == assetOutput.asset)
+                            continue;
+
+                        processStack.Push(dependency);
+                        referencedObjects.Add(dependency);
+                    }
+
+                    // internal object to asset o
+                    processed.Add(info.Object);
+                }
+
+                List<ObjectIdentifier> dependencies;
+                while (processStack.Count > 0)
+                {
+                    var dep = processStack.Pop();
+                    processed.Add(dep);
+                    if (!objectDependencyMap.TryGetValue(dep, out dependencies) || dependencies.Count == 0)
+                        continue;
+
+                    foreach (ObjectIdentifier dependency in dependencies)
+                    {
+                        if (processed.Contains(dependency) || dependency.guid == assetOutput.asset)
+                            continue;
+
+                        processStack.Push(dependency);
+                        referencedObjects.Add(dependency);
+                    }
+                }
+
+                // go through all object dependencies that are not to self, add to stack
+                // loop through external dependencies
+                var refs = new List<ObjectIdentifier>(referencedObjects.ToArray());
+
+                // to mimic recursive dependency calculation
+                assetOutput.assetInfo.referencedObjects = refs;
+            }
         }
 
 #if !UNITY_2020_2_OR_NEWER
@@ -248,6 +320,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 }
             }
 
+            HashSet<GUID> explicitAssets = new HashSet<GUID>(input.Assets);
+            Dictionary<GUID, AssetOutput> implicitAssetsOutput = new Dictionary<GUID, AssetOutput>();
+
             for (int i = 0; i < input.Assets.Count; i++)
             {
                 using (input.Logger.ScopedStep(LogLevel.Info, "Calculate Asset Dependencies"))
@@ -259,6 +334,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                     {
                         var objectTypes = cachedInfo[i].Data[4] as List<ObjectTypes>;
                         var assetInfos = cachedInfo[i].Data[0] as AssetLoadInfo;
+                        var objectDependencyInfo = cachedInfo[i].Data[5] as List<ObjectDependencyInfo>;
 
                         bool useCachedData = true;
                         foreach (var objectType in objectTypes)
@@ -270,16 +346,10 @@ namespace UnityEditor.Build.Pipeline.Tasks
                                 var referencedObjectOld = assetInfos.referencedObjects.ToArray();
                                 ObjectIdentifier[] referencedObjectsNew = null;
 #if NONRECURSIVE_DEPENDENCY_DATA
-                                if (input.NonRecursiveDependencies)
-                                {
-                                    referencedObjectsNew = ContentBuildInterface.GetPlayerDependenciesForObjects(assetInfos.includedObjects.ToArray(), input.Target, input.TypeDB, DependencyType.ValidReferences);
-                                    referencedObjectsNew = ExtensionMethods.FilterReferencedObjectIDs(input.Assets[i], referencedObjectsNew, input.Target, input.TypeDB, new HashSet<GUID>(input.Assets));
-                                }
-                                else
+                                referencedObjectsNew = GetPlayerDependenciesForAsset(input.Assets[i], assetInfos.includedObjects.ToArray(), input, assetResult, explicitAssets, implicitAssetsOutput);
+#else
+                                referencedObjectsNew = ContentBuildInterface.GetPlayerDependenciesForObjects(assetInfos.includedObjects.ToArray(), input.Target, input.TypeDB);
 #endif
-                                {
-                                    referencedObjectsNew = ContentBuildInterface.GetPlayerDependenciesForObjects(assetInfos.includedObjects.ToArray(), input.Target, input.TypeDB);
-                                }
 
                                 if (Enumerable.SequenceEqual(referencedObjectOld, referencedObjectsNew) == false)
                                 {
@@ -291,6 +361,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                         if (useCachedData)
                         {
                             assetResult.assetInfo = assetInfos;
+                            assetResult.objectDependencyInfo = objectDependencyInfo;
                             assetResult.usageTags = cachedInfo[i].Data[1] as BuildUsageTagSet;
                             assetResult.spriteData = cachedInfo[i].Data[2] as SpriteImporterData;
                             assetResult.extendedData = cachedInfo[i].Data[3] as ExtendedAssetData;
@@ -311,6 +382,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                     input.Logger.AddEntrySafe(LogLevel.Info, $"{assetResult.asset}");
 
                     assetResult.assetInfo = new AssetLoadInfo();
+                    assetResult.objectDependencyInfo = new List<ObjectDependencyInfo>();
                     assetResult.usageTags = new BuildUsageTagSet();
 
                     assetResult.assetInfo.asset = asset;
@@ -318,16 +390,10 @@ namespace UnityEditor.Build.Pipeline.Tasks
                     assetResult.assetInfo.includedObjects = new List<ObjectIdentifier>(includedObjects);
                     ObjectIdentifier[] referencedObjects;
 #if NONRECURSIVE_DEPENDENCY_DATA
-                    if (input.NonRecursiveDependencies)
-                    {
-                        referencedObjects = ContentBuildInterface.GetPlayerDependenciesForObjects(includedObjects, input.Target, input.TypeDB, DependencyType.ValidReferences);
-                        referencedObjects = ExtensionMethods.FilterReferencedObjectIDs(asset, referencedObjects, input.Target, input.TypeDB, new HashSet<GUID>(input.Assets));
-                    }
-                    else
+                    referencedObjects = GetPlayerDependenciesForAsset(asset, includedObjects, input, assetResult, explicitAssets, implicitAssetsOutput);
+#else
+                    referencedObjects = ContentBuildInterface.GetPlayerDependenciesForObjects(includedObjects, input.Target, input.TypeDB);
 #endif
-                    {
-                        referencedObjects = ContentBuildInterface.GetPlayerDependenciesForObjects(includedObjects, input.Target, input.TypeDB);
-                    }
 
                     assetResult.assetInfo.referencedObjects = new List<ObjectIdentifier>(referencedObjects);
                     var allObjects = new List<ObjectIdentifier>(includedObjects);
@@ -369,7 +435,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                         CachedInfo info = cachedInfo[i];
                         if (info == null)
                         {
-                            info = GetCachedInfo(input.BuildCache, input.Assets[i], r.assetInfo, r.usageTags, r.spriteData, r.extendedData, input.NonRecursiveDependencies);
+                            info = GetCachedInfo(input.BuildCache, input.Assets[i], r.assetInfo, r.objectDependencyInfo, r.usageTags, r.spriteData, r.extendedData, input.NonRecursiveDependencies);
                             toCache.Add(info);
                         }
 
@@ -406,6 +472,129 @@ namespace UnityEditor.Build.Pipeline.Tasks
             }
 
             return ReturnCode.Success;
+        }
+
+        private static ObjectIdentifier[] GetPlayerDependenciesForAsset(GUID inputAssetGuid, ObjectIdentifier[] includedObjects, TaskInput input, AssetOutput assetResult, HashSet<GUID> explicitAssets,
+            in Dictionary<GUID, AssetOutput> implicitAssetsOutput)
+        {
+            HashSet<ObjectIdentifier> otherReferencedAssetObjectsHashSet = new HashSet<ObjectIdentifier>();
+            ObjectIdentifier[] singleObjectIdArray = new ObjectIdentifier[1];
+            foreach (ObjectIdentifier subObject in includedObjects)
+            {
+                singleObjectIdArray[0] = subObject;
+                ObjectIdentifier[] objs = ContentBuildInterface.GetPlayerDependenciesForObjects(singleObjectIdArray, input.Target, input.TypeDB, DependencyType.ValidReferences);
+                foreach (ObjectIdentifier objRef in objs)
+                {
+                    // inputAssetGuid is an explicit build asset, so it is all objects in the asset and do not need to include them
+                    if (objRef.guid == inputAssetGuid)
+                        continue;
+                    otherReferencedAssetObjectsHashSet.Add(objRef);
+                }
+
+                if (objs.Length > 0)
+                {
+                    if (assetResult.objectDependencyInfo == null)
+                        assetResult.objectDependencyInfo = new List<ObjectDependencyInfo>();
+                    assetResult.objectDependencyInfo.Add(new ObjectDependencyInfo()
+                    {
+                        Object = subObject,
+                        Dependencies = new List<ObjectIdentifier>(objs)
+                    });
+                }
+            }
+
+            var collectedImmediateReferences = new HashSet<ObjectIdentifier>();
+            var encounteredExplicitAssetDependencies = new HashSet<ObjectIdentifier>();
+            var mainRepresentationNeeded = new HashSet<GUID>();
+
+            Stack<ObjectIdentifier> objectLookingAt = new Stack<ObjectIdentifier>(otherReferencedAssetObjectsHashSet);
+            while (objectLookingAt.Count > 0)
+            {
+                var obj = objectLookingAt.Pop();
+
+                // Track which roots we encounter to do dependency pruning
+                if (obj.guid != inputAssetGuid && explicitAssets.Contains(obj.guid))
+                {
+                    encounteredExplicitAssetDependencies.Add(obj); // might just be able to add to collected
+                    mainRepresentationNeeded.Add(obj.guid);
+                }
+                // looking for implicit assets we have not visited yet
+                else if (!explicitAssets.Contains(obj.guid) && !collectedImmediateReferences.Contains(obj))
+                {
+                    collectedImmediateReferences.Add(obj);
+
+                    ObjectIdentifier[] referencedObjects = null;
+                    if (!implicitAssetsOutput.TryGetValue(obj.guid, out var implicitOutput))
+                    {
+                        implicitOutput = new AssetOutput()
+                        {
+                            asset = obj.guid,
+                            objectDependencyInfo = new List<ObjectDependencyInfo>()
+                        };
+                        implicitAssetsOutput[obj.guid] = implicitOutput;
+                    }
+                    else // implicit player dependencies for asset is cached, check for specific object
+                    {
+                        List<ObjectIdentifier> foundObjectDependencies = null;
+                        foreach (ObjectDependencyInfo dependencyInfo in implicitOutput.objectDependencyInfo)
+                        {
+                            if (dependencyInfo.Object == obj)
+                            {
+                                foundObjectDependencies = dependencyInfo.Dependencies;
+                                break;
+                            }
+                        }
+
+                        if (foundObjectDependencies != null)
+                        {
+                            foreach (ObjectIdentifier o in foundObjectDependencies)
+                                objectLookingAt.Push(o);
+
+                            if (foundObjectDependencies.Count > 0)
+                            {
+                                assetResult.objectDependencyInfo.Add(new ObjectDependencyInfo()
+                                {
+                                    Object = obj,
+                                    Dependencies = foundObjectDependencies
+                                });
+                            }
+                            continue;
+                        }
+                    }
+
+                    // have not got the object references for this object yet
+                    singleObjectIdArray[0] = obj;
+                    referencedObjects = ContentBuildInterface.GetPlayerDependenciesForObjects(singleObjectIdArray, input.Target, input.TypeDB, DependencyType.ValidReferences);
+                    List<ObjectIdentifier> referencedObjectList = new List<ObjectIdentifier>(referencedObjects);
+                    implicitOutput.objectDependencyInfo.Add(new ObjectDependencyInfo()
+                    {
+                        Object = obj,
+                        Dependencies = referencedObjectList
+                    });
+                    if (referencedObjectList.Count > 0)
+                    {
+                        assetResult.objectDependencyInfo.Add(new ObjectDependencyInfo()
+                        {
+                            Object = obj,
+                            Dependencies = referencedObjectList
+                        });
+                    }
+
+                    foreach (ObjectIdentifier o in referencedObjects)
+                        objectLookingAt.Push(o);
+                }
+            }
+
+            // We need to ensure that we have a reference to a visible representation so our runtime dependency appending process
+            // can find something that can be appended, otherwise the necessary data will fail to load correctly in all cases. (EX: prefab A has reference to component on prefab B)
+            foreach (var dependency in mainRepresentationNeeded)
+            {
+                // For each dependency, add just the main representation as a reference
+                var representations = ContentBuildInterface.GetPlayerAssetRepresentations(dependency, input.Target);
+                collectedImmediateReferences.Add(representations[0]);
+            }
+            collectedImmediateReferences.UnionWith(encounteredExplicitAssetDependencies);
+            return collectedImmediateReferences.ToArray();
         }
     }
 }

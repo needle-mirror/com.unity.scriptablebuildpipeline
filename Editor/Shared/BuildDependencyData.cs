@@ -16,6 +16,7 @@ namespace UnityEditor.Build.Pipeline
     {
         /// <inheritdoc />
         public Dictionary<GUID, AssetLoadInfo> AssetInfo { get; private set; }
+
         /// <inheritdoc />
         public Dictionary<GUID, BuildUsageTagSet> AssetUsage { get; private set; }
 
@@ -33,6 +34,7 @@ namespace UnityEditor.Build.Pipeline
 
         [NonSerialized]
         BuildUsageCache m_BuildUsageCache;
+
         /// <summary>
         /// Stores the dependency caching object.
         /// </summary>
@@ -58,6 +60,25 @@ namespace UnityEditor.Build.Pipeline
             DependencyHash = new Dictionary<GUID, Hash128>();
             m_BuildUsageCache = new BuildUsageCache();
             GlobalUsage = GraphicsSettingsApi.GetGlobalUsage();
+        }
+    }
+
+    /// <summary>
+    /// Basic implementation of IObjectDependencyData. Stores the dependencies between objects calculated during a build.
+    /// <seealso cref="IObjectDependencyData"/>
+    /// </summary>
+    [Serializable]
+    internal class ObjectDependencyData : IObjectDependencyData
+    {
+        /// <inheritdoc />
+        public Dictionary<ObjectIdentifier, List<ObjectIdentifier>> ObjectDependencyMap { get; }
+
+        /// <summary>
+        /// Default constructor, initializes properties to defaults
+        /// </summary>
+        public ObjectDependencyData()
+        {
+            ObjectDependencyMap = new Dictionary<ObjectIdentifier, List<ObjectIdentifier>>();
         }
     }
 }

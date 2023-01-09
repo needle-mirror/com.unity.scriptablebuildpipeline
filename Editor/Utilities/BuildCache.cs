@@ -12,7 +12,6 @@ using UnityEngine;
 using UnityEngine.Assertions;
 using UnityEngine.Build.Pipeline;
 using System.Collections.Concurrent;
-using System.Reflection;
 
 namespace UnityEditor.Build.Pipeline.Utilities
 {
@@ -91,7 +90,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             new USerializeCustom_BuildUsageTagSet()
         };
         const string k_CachePath = "Library/BuildCache";
-        const int k_Version = 4;
+        const int k_Version = 5;
         internal const int k_CacheServerVersion = 2;
         internal const long k_BytesToGigaBytes = 1073741824L;
 

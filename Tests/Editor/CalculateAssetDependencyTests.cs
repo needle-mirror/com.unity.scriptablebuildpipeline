@@ -28,7 +28,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         const string kSpriteTexture1Asset = "Assets/TestAssets/SpriteTexture1_32x32.png";
         const string kSpriteTexture2Asset = "Assets/TestAssets/SpriteTexture2_32x32.png";
         const string kSpriteAtlasAsset = "Assets/TestAssets/sadependencies.spriteAtlas";
-        
+
 
         SpritePackerMode m_PrevMode;
 
@@ -107,8 +107,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             var testContent = new TestContent { TestAssets = assets };
             var testDepData = new TestDependencyData();
             var testExtendedData = new TestExtendedAssetData();
+            var testObjDependencyData = new ObjectDependencyData();
 
-            IBuildContext context = new BuildContext(testParams, testContent, testDepData, testExtendedData);
+            IBuildContext context = new BuildContext(testParams, testContent, testDepData, testExtendedData, testObjDependencyData);
             ContextInjector.Inject(context, task);
             return task;
         }
@@ -131,7 +132,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
             CreateSpriteAtlas();
 
-            
+
         }
 
         [TearDown]
@@ -185,7 +186,7 @@ namespace UnityEditor.Build.Pipeline.Tests
                     }
                 };
             }
-            
+
             importer.SaveAndReimport();
         }
 
@@ -231,6 +232,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreEqual(1, output.AssetResults.Length);
             Assert.AreEqual(guid, output.AssetResults[0].asset);
             Assert.AreEqual(2, output.AssetResults[0].assetInfo.includedObjects.Count); // GameObject and Transform
+            Assert.AreEqual(2, output.AssetResults[0].objectDependencyInfo.Count);
             Assert.AreEqual(0, output.AssetResults[0].assetInfo.referencedObjects.Count);
             Assert.IsNull(output.AssetResults[0].spriteData);
             Assert.IsNull(output.AssetResults[0].extendedData);
@@ -246,6 +248,7 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             Assert.IsNull(output.AssetResults[0].extendedData);
             Assert.AreEqual(0, output.AssetResults[0].assetInfo.includedObjects.Count);
+            Assert.AreEqual(0, output.AssetResults[0].objectDependencyInfo.Count);
         }
 
         [Test]
@@ -267,6 +270,7 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             using (BuildCache cache = new BuildCache())
             {
+                cache.ClearCacheEntryMaps(); // needed if running multiple times
                 input.BuildCache = cache;
                 input.Assets = cachedGUIDs;
                 CalculateAssetDependencyData.RunInternal(input, out CalculateAssetDependencyData.TaskOutput output);
@@ -275,13 +279,32 @@ namespace UnityEditor.Build.Pipeline.Tests
                 CalculateAssetDependencyData.RunInternal(input, out CalculateAssetDependencyData.TaskOutput output2);
 
                 Assert.AreEqual(output.AssetResults[0].assetInfo.includedObjects.Count, output2.AssetResults[0].assetInfo.includedObjects.Count); // GameObject and Transform
+                Assert.AreEqual(output.AssetResults[0].objectDependencyInfo.Count, output2.AssetResults[0].objectDependencyInfo.Count);
                 Assert.AreEqual(0, output.CachedAssetCount);
                 Assert.AreEqual(kCachedCount, output2.CachedAssetCount);
 
                 for (int i = 0; i < kCachedCount; i++)
                 {
                     bool seqEqual = Enumerable.SequenceEqual(output.AssetResults[i].assetInfo.includedObjects, output2.AssetResults[i * 2].assetInfo.includedObjects);
-                    Assert.IsTrue(seqEqual);
+                    Assert.IsTrue(seqEqual, "Included Objects where not the same when Cache was used.");
+
+                    Assert.AreEqual(output.AssetResults[i].objectDependencyInfo.Count, output2.AssetResults[i * 2].objectDependencyInfo.Count);
+                    for (int o = 0; o < output.AssetResults[i].objectDependencyInfo.Count; ++o)
+                    {
+                        var left = output.AssetResults[i].objectDependencyInfo[o];
+                        bool found = false;
+                        foreach (ObjectDependencyInfo right in output2.AssetResults[i * 2].objectDependencyInfo)
+                        {
+                            if (right.Object == left.Object)
+                            {
+                                Assert.AreEqual(right.Dependencies.Count, left.Dependencies.Count, "Object dependency found between builds, but the dependencies are different count");
+                                found = true;
+                                break;
+                            }
+                        }
+
+                        Assert.IsTrue(found, "Could not find matching object dependency between builds");
+                    }
                 }
             }
         }
@@ -460,7 +483,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             CalculateAssetDependencyData.RunInternal(input, out CalculateAssetDependencyData.TaskOutput output);
 
             Assert.AreEqual(3, output.AssetResults[0].assetInfo.referencedObjects.Count);
-            
+
             spriteAtlas = AssetDatabase.LoadAssetAtPath<SpriteAtlas>(kSpriteAtlasAsset);
             oldSprites = SpriteAtlasExtensions.GetPackables(spriteAtlas);
             spriteAtlas.Remove(oldSprites);
