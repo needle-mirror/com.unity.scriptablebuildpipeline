@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEditor.Build.Content;
+using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Utilities;
 using UnityEditor.Build.Player;
 using UnityEditor.Build.Utilities;
@@ -29,11 +30,21 @@ internal static class BuildCacheUtility
     static Dictionary<KeyValuePair<Type, int>, CacheEntry> m_TypeToHash = new Dictionary<KeyValuePair<Type, int>, CacheEntry>();
     static Dictionary<ObjectIdentifier, Type[]> m_ObjectToType = new Dictionary<ObjectIdentifier, Type[]>();
     static TypeDB m_TypeDB;
+    internal static HashSet<GUID> m_ExplicitAssets = new HashSet<GUID>();
 
 #if !ENABLE_TYPE_HASHING
     static Hash128 m_UnityVersion = HashingMethods.Calculate(Application.unityVersion).ToHash128();
 #endif
 
+    public static void SetCurrentBuildContent(IBuildContent content)
+    {
+        m_ExplicitAssets.Clear();
+        foreach (GUID asset in content.Assets)
+            m_ExplicitAssets.Add(asset);
+        foreach (GUID scene in content.Scenes)
+            m_ExplicitAssets.Add(scene);
+    }
+    
     public static CacheEntry GetCacheEntry(GUID asset, int version = 1)
     {
         CacheEntry entry;
@@ -59,6 +70,8 @@ internal static class BuildCacheUtility
         if (entry.Hash.isValid)
             entry.Hash = HashingMethods.Calculate(entry.Hash, entry.Version).ToHash128();
 
+        entry.Inclusion = m_ExplicitAssets.Contains(asset) ? CacheEntry.InclusionType.Explicit : CacheEntry.InclusionType.Implicit;
+        
         m_GuidToHash[key] = entry;
         return entry;
     }

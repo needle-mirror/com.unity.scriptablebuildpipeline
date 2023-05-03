@@ -556,6 +556,22 @@ namespace UnityEditor.Build.Pipeline.Tests
                 Assert.IsTrue(expectedReps.Contains(id));
         }
 
+        [Test]
+        public void WhenExplicitSpriteAndAtlas_AtlasOnlyReferencesSprites()
+        {
+            GUID spriteAtlasGuid = new GUID(AssetDatabase.AssetPathToGUID(kSpriteAtlasAsset));
+            GUID sprite1Guid = new GUID(AssetDatabase.AssetPathToGUID(kSpriteTexture1Asset));
+            GUID sprite2Guid = new GUID(AssetDatabase.AssetPathToGUID(kSpriteTexture2Asset));
+
+            EditorSettings.spritePackerMode = SpritePackerMode.BuildTimeOnlyAtlas;
+            CalculateAssetDependencyData.TaskInput input = CreateDefaultInput();
+            SpriteAtlasUtility.PackAllAtlases(input.Target);
+            input.Assets = new List<GUID>() { spriteAtlasGuid, sprite1Guid, sprite2Guid };
+
+            CalculateAssetDependencyData.RunInternal(input, out CalculateAssetDependencyData.TaskOutput output);
+            Assert.AreEqual(3, output.AssetResults[0].assetInfo.referencedObjects.Count);
+        }
+
         class TestProgressTracker : IProgressTracker
         {
             int count = 0;

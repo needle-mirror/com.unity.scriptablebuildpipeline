@@ -1,7 +1,7 @@
 # Usage Examples
 
 ## Basic Example
-This example assumes that your are already familiar with the basic usage of the two `BuildPipeline.BuildAssetBundles` methods and want to switch to using Scriptable Build Pipeline with as little effort  as possible.
+This example assumes that your are already familiar with the basic usage of `BuildPipeline.BuildAssetBundles` and want to switch to using Scriptable Build Pipeline with as little effort as possible.
 
 The following code example shows how AssetBundles are currently built:
 
@@ -54,40 +54,6 @@ public static class BuildAssetBundlesExample
 }
 ```
 **Notes:** Some changes in the SBP building and loading process do not match the BuildPipeline behavior. For more information on these changes, see [Upgrade Guide](UpgradeGuide.md).
-
-## Cache Server Integration Example
-This following example shows how to share build artifacts between team members or multiple machines to achieve faster build times.
-
-Requirements:
-1. A separate Cache Server instance dedicated to build artifacts. It cannot be shared as an Asset Cache Server as data collisions will occur.
-2. High Reliability mode turned off on the Build Cache Server instance. The build cache uses dynamic dependencies which is incompatible with high reliability mode.
-3. The build code must use the `ContentPipeline.BuildAssetBundles` method.
-4. `BundleBuildParameters.UseCache` is set to true.
-5. `BundleBuildParameters.CacheServerHost` and `BundleBuildParameters.CacheServerPort` are set to the cache server instance host or IP address and port respectively.
-
-Example code:
-
-```csharp
-public static class BuildAssetBundlesExample
-{
-    public static bool BuildAssetBundles(string outputPath, bool useChunkBasedCompression, BuildTarget buildTarget, BuildTargetGroup buildGroup)
-    {
-        var buildContent = new BundleBuildContent(ContentBuildInterface.GenerateAssetBundleBuilds());
-        var buildParams = new BundleBuildParameters(buildTarget, buildGroup, outputPath);
-        // Set build parameters for connecting to the Cache Server
-        buildParams.UseCache = true;
-        buildParams.CacheServerHost = "buildcache.unitygames.com";
-        buildParams.CacheServerPort = 8126;
-
-        if (useChunkBasedCompression)
-            buildParams.BundleCompression = BuildCompression.DefaultLZ4;
-
-        IBundleBuildResults results;
-        ReturnCode exitCode = ContentPipeline.BuildAssetBundles(buildParams, buildContent, out results);
-        return exitCode == ReturnCode.Success;
-    }
-}
-```
 
 ## Per-Bundle Compression Example
 The following example shows how to build your AssetBundles using different compression levels for each AssetBundle.This is useful if you are planning on shipping part of your bundles as Lz4 or Uncompressed with Player and want to download the remainder as Lzma later.

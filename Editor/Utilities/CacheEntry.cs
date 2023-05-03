@@ -56,6 +56,11 @@ namespace UnityEditor.Build.Pipeline.Utilities
             ScriptType
         }
 
+        internal enum InclusionType
+        {
+            None, Explicit, Implicit
+        }
+
         /// <summary>
         /// Stores the entry hash.
         /// </summary>
@@ -75,6 +80,8 @@ namespace UnityEditor.Build.Pipeline.Utilities
         /// Stores the entry type.
         /// </summary>
         public EntryType Type { get; internal set; }
+        
+        internal InclusionType Inclusion { get; set; } 
 
         /// <summary>
         /// Stores the entry file name.
@@ -131,6 +138,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 hashCode = (hashCode * 397) ^ Guid.GetHashCode();
                 hashCode = (hashCode * 397) ^ Version;
                 hashCode = (hashCode * 397) ^ (int)Type;
+                hashCode = (hashCode * 397) ^ (int)Inclusion;
                 hashCode = (hashCode * 397) ^ (File != null ? File.GetHashCode() : 0);
                 hashCode = (hashCode * 397) ^ (ScriptType != null ? ScriptType.GetHashCode() : 0);
                 return hashCode;
@@ -157,7 +165,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
         /// <returns>Returns true if the entries are equivalent. Returns false otherwise.</returns>
         public bool Equals(CacheEntry other)
         {
-            return Hash.Equals(other.Hash) && Guid.Equals(other.Guid) && Version == other.Version && Type == other.Type && string.Equals(File, other.File) && string.Equals(ScriptType, other.ScriptType);
+            return Hash.Equals(other.Hash) && Guid.Equals(other.Guid) && Version == other.Version && Type == other.Type && Inclusion == other.Inclusion && string.Equals(File, other.File) && string.Equals(ScriptType, other.ScriptType);
         }
     }
 }

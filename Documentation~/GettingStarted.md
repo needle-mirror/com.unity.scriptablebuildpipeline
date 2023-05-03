@@ -16,4 +16,4 @@ To build an AssetBundle, use the ContentPipeline.BuildAssetBundles() method. In 
 
 **Note:** The `UnityEditor.Build.Pipeline` namespace contains default implementations for all of the SBP required interfaces.  Implementation names mirror the interfaces, with the leading 'I' removed. For example, the `IBuildParameters` interface is implemented as `BuildParameters`.
 
-To quickly switch to building AssetBundles with SBP, use the `CompatibilityBuildPipeline.BuildAssetBundles()` method as a drop in replacement for existing code. This method has the nearly identical parameters as the `BuildPipeline.BuildAssetBundles()` method. For additional information, see the [Usage Examples](UsageExamples.md) and [Upgrade Guide](UpgradeGuide.md).
+To quickly switch to building AssetBundles with SBP, use the `CompatibilityBuildPipeline.BuildAssetBundles()` method as a drop in replacement for calls to `BuildPipeline.BuildAssetBundles()` in your existing code. See also [Usage Examples](UsageExamples.md) and [Upgrade Guide](UpgradeGuide.md).

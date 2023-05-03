@@ -112,7 +112,7 @@ namespace UnityEditor.Build.Pipeline.Interfaces
     public interface IBundleBuildParameters : IBuildParameters
     {
         /// <summary>
-        /// Append the hash to the assetBundle file name.
+        /// Append the hash of the AssetBundle content to the file name.
         /// </summary>
         bool AppendHash { get; set; }
 

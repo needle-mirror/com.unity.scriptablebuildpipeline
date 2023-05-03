@@ -149,6 +149,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             public bool Threaded;
             public List<string> OutCachedBundles;
             public IBuildLogger Log;
+            public bool StripUnityVersion;
         }
 
         internal struct TaskOutput
@@ -173,6 +174,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             input.AssetToFilesDependencies = m_WriteData.AssetToFiles;
             input.InternalFilenameToWriteMetaData = m_Results.WriteResultsMetaData;
             input.Log = m_Log;
+            input.StripUnityVersion = (m_Parameters.GetContentBuildSettings().buildFlags & ContentBuildFlags.StripUnityVersion) != 0;
 
             input.Threaded = ReflectionExtensions.SupportsMultiThreadedArchiving && ScriptableBuildPipeline.threadedArchiving;
 
@@ -339,7 +341,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             }
 
             // Write all the files that aren't cached
-            if (!ArchiveItems(nonCachedItems, input.TempOutputFolder, input.ProgressTracker, input.Threaded, input.Log))
+            if (!ArchiveItems(nonCachedItems, input.TempOutputFolder, input.ProgressTracker, input.Threaded, input.Log, input.StripUnityVersion))
                 return ReturnCode.Canceled;
 
             PostArchiveProcessing(allItems, input.AssetToFilesDependencies.Values.ToList(), input.InternalFilenameToBundleName, input.Log);
@@ -362,7 +364,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             return ReturnCode.Success;
         }
 
-        static private void ArchiveSingleItem(ArchiveWorkItem item, string tempOutputFolder, IBuildLogger log)
+        static private void ArchiveSingleItem(ArchiveWorkItem item, string tempOutputFolder, IBuildLogger log, bool stripUnityVersion)
         {
             using (log.ScopedStep(LogLevel.Info, "ArchiveSingleItem", item.BundleName))
             {
@@ -373,32 +375,32 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
                 Directory.CreateDirectory(Path.GetDirectoryName(writePath));
                 item.ResultDetails.FileName = item.OutputFilePath;
-                item.ResultDetails.Crc = ContentBuildInterface.ArchiveAndCompress(item.ResourceFiles.ToArray(), writePath, item.Compression);
+                item.ResultDetails.Crc = ContentBuildInterface.ArchiveAndCompress(item.ResourceFiles.ToArray(), writePath, item.Compression, stripUnityVersion); 
 
                 CopyFileWithTimestampIfDifferent(writePath, item.ResultDetails.FileName, log);
             }
         }
 
-        static private bool ArchiveItems(List<ArchiveWorkItem> items, string tempOutputFolder, IProgressTracker tracker, bool threaded, IBuildLogger log)
+        static private bool ArchiveItems(List<ArchiveWorkItem> items, string tempOutputFolder, IProgressTracker tracker, bool threaded, IBuildLogger log, bool stripUnityVersion)
         {
             using (log.ScopedStep(LogLevel.Info, "ArchiveItems", threaded))
             {
                 log?.AddEntry(LogLevel.Info, $"Archiving {items.Count} Bundles");
                 if (threaded)
-                    return ArchiveItemsThreaded(items, tempOutputFolder, tracker, log);
+                    return ArchiveItemsThreaded(items, tempOutputFolder, tracker, log, stripUnityVersion);
 
                 foreach (ArchiveWorkItem item in items)
                 {
                     if (tracker != null && !tracker.UpdateInfoUnchecked(item.BundleName))
                         return false;
 
-                    ArchiveSingleItem(item, tempOutputFolder, log);
+                    ArchiveSingleItem(item, tempOutputFolder, log, stripUnityVersion);
                 }
                 return true;
             }
         }
 
-        static private bool ArchiveItemsThreaded(List<ArchiveWorkItem> items, string tempOutputFolder, IProgressTracker tracker, IBuildLogger log)
+        static private bool ArchiveItemsThreaded(List<ArchiveWorkItem> items, string tempOutputFolder, IProgressTracker tracker, IBuildLogger log, bool stripUnityVersion)
         {
             CancellationTokenSource srcToken = new CancellationTokenSource();
 
@@ -408,7 +410,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             {
                 tasks.Add(Task.Run(() =>
                 {
-                    try { ArchiveSingleItem(item, tempOutputFolder, log); }
+                    try { ArchiveSingleItem(item, tempOutputFolder, log, stripUnityVersion); }
                     finally { semaphore.Release(); }
                 }, srcToken.Token));
             }

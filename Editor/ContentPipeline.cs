@@ -119,6 +119,7 @@ namespace UnityEditor.Build.Pipeline
                 using (var interfacesWrapper = new BuildInterfacesWrapper())
                 using (var buildCache = new BuildCache(parameters.CacheServerHost, parameters.CacheServerPort))
                 {
+                    BuildCacheUtility.SetCurrentBuildContent(content);
                     Directory.CreateDirectory(parameters.TempOutputFolder);
                     Directory.CreateDirectory(parameters.ScriptOutputFolder);
 

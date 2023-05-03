@@ -1,6 +1,10 @@
 # About the Cache Server Client
 
-Use the Cache Server Client to upload and download files to any Unity Cache Server. The Cache Server Client is used to integrate the Unity Cache Server into processes that extend outside of the normal asset import pipeline - for example, to store and retrieve incremental artifacts of a build process.
+Use the Cache Server Client to upload and download files to any Unity Cache Server. The Cache Server Client is used to communicate with a Unity Cache Server to store and retrieve incremental artifacts of the SBP build process, so that contents of the SBP build cache can be reused by multiple machines that are using the same project.
+
+*Warning:* The [Unity Cache Server](https://docs.unity3d.com/Manual/CacheServer.html) has some performance limitations when dealing with a high volume of small cache entries. That can occur when performing large builds. The Cache Server is no longer under active development, as the Asset Import Pipeline now uses the [Unity Accelerator](https://docs.unity3d.com/Manual/UnityAccelerator.html). The Scriptable Build Pipeline retains the support to cache build artifacts through the Cache Server, as documented here, but this is not a recommended configuration.
+
+The Unity Accelerator can speed up the Asset Import process when the same project is opened on different machines. But it does not support sharing artifacts stored in the local SBP build cache.
 
 # Installation
 
@@ -8,6 +12,41 @@ To install this package, follow the instructions in the [Package Manager documen
 
 # Usage
 ## API Examples
+
+This following example shows how to share build artifacts between team members or multiple machines to achieve faster build times.
+
+Requirements:
+1. A Cache Server instance dedicated to build artifacts. In addition you may run an Accelerator to speed up Asset Imports. 
+2. High Reliability mode turned off on the Build Cache Server instance. The build cache uses dynamic dependencies which is incompatible with high reliability mode.
+3. The build code must use the `ContentPipeline.BuildAssetBundles` method.
+4. `BundleBuildParameters.UseCache` is set to true.
+5. `BundleBuildParameters.CacheServerHost` and `BundleBuildParameters.CacheServerPort` are set to the cache server instance host or IP address and port respectively.
+
+Example code:
+
+```csharp
+public static class BuildAssetBundlesExample
+{
+    public static bool BuildAssetBundles(string outputPath, bool useChunkBasedCompression, BuildTarget buildTarget, BuildTargetGroup buildGroup)
+    {
+        var buildContent = new BundleBuildContent(ContentBuildInterface.GenerateAssetBundleBuilds());
+        var buildParams = new BundleBuildParameters(buildTarget, buildGroup, outputPath);
+        // Set build parameters for connecting to the Cache Server
+        buildParams.UseCache = true;
+        buildParams.CacheServerHost = "buildcache.unitygames.com";
+        buildParams.CacheServerPort = 8126;
+
+        if (useChunkBasedCompression)
+            buildParams.BundleCompression = BuildCompression.DefaultLZ4;
+
+        IBundleBuildResults results;
+        ReturnCode exitCode = ContentPipeline.BuildAssetBundles(buildParams, buildContent, out results);
+        return exitCode == ReturnCode.Success;
+    }
+}
+```
+
+
 ### Upload a file
 ```csharp
 const string guidStr = "f7950ee725f9d47c7b90b02224b4534f";
@@ -78,9 +117,3 @@ This version of the Cache Server Client is compatible with the following version
 This Cache Server Client is compatible with the following versions of the Unity Cache Server:
 * [v5.x](https://github.com/Unity-Technologies/unity-cache-server) and later (recommended)
 * Other Cache Server versions shipped with Unity 5.x and later
-
-## Document revision history
-|Date|Reason|
-|---|---|
-|May 17, 2018|Added utility documentation.|
-|May 15, 2018|Initial revision.|

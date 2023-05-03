@@ -32,7 +32,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
     /// </summary>
     public class CalculateAssetDependencyData : IBuildTask
     {
-        internal const int kVersion = 5;
+        internal const int kVersion = 6;
         /// <inheritdoc />
         public int Version { get { return kVersion; } }
 
@@ -102,22 +102,28 @@ namespace UnityEditor.Build.Pipeline.Tasks
             public int CachedAssetCount;
         }
 
-        static CacheEntry GetAssetCacheEntry(IBuildCache cache, GUID asset, bool NonRecursiveDependencies)
+        static CacheEntry GetCacheEntry(GUID asset, TaskInput input)
         {
-            CacheEntry entry;
-            entry = cache.GetCacheEntry(asset, NonRecursiveDependencies ? -kVersion : kVersion);
+            if (input.BuildCache == null)
+                return default;
+#if NONRECURSIVE_DEPENDENCY_DATA
+            CacheEntry entry = input.BuildCache.GetCacheEntry(asset, input.NonRecursiveDependencies ? -kVersion : kVersion);
+#else
+            CacheEntry entry = input.BuildCache.GetCacheEntry(asset, Version);
+#endif
+
             return entry;
         }
 
-        static CachedInfo GetCachedInfo(IBuildCache cache, GUID asset, AssetLoadInfo assetInfo, List<ObjectDependencyInfo> objectDependencies, BuildUsageTagSet usageTags, SpriteImporterData importerData, ExtendedAssetData assetData, bool NonRecursiveDependencies)
+        static CachedInfo GetCachedInfo(TaskInput input, GUID asset, AssetLoadInfo assetInfo, List<ObjectDependencyInfo> objectDependencies, BuildUsageTagSet usageTags, SpriteImporterData importerData, ExtendedAssetData assetData)
         {
             var info = new CachedInfo();
-            info.Asset = GetAssetCacheEntry(cache, asset, NonRecursiveDependencies);
+            info.Asset = GetCacheEntry(asset, input);
 
             var uniqueTypes = new HashSet<System.Type>();
             var objectTypes = new List<ObjectTypes>();
             var dependencies = new HashSet<CacheEntry>();
-            ExtensionMethods.ExtractCommonCacheData(cache, assetInfo.includedObjects, assetInfo.referencedObjects, uniqueTypes, objectTypes, dependencies);
+            ExtensionMethods.ExtractCommonCacheData(input.BuildCache, assetInfo.includedObjects, assetInfo.referencedObjects, uniqueTypes, objectTypes, dependencies);
             info.Dependencies = dependencies.ToArray();
 
             info.Data = new object[] { assetInfo, usageTags, importerData, assetData, objectTypes, objectDependencies };
@@ -315,13 +321,14 @@ namespace UnityEditor.Build.Pipeline.Tasks
             {
                 if (input.BuildCache != null)
                 {
-                    IList<CacheEntry> entries = input.Assets.Select(x => GetAssetCacheEntry(input.BuildCache, x, input.NonRecursiveDependencies)).ToList();
+                    IList<CacheEntry> entries = input.Assets.Select(x => GetCacheEntry(x, input)).ToList();
                     input.BuildCache.LoadCachedData(entries, out cachedInfo);
                 }
             }
 
             HashSet<GUID> explicitAssets = new HashSet<GUID>(input.Assets);
             Dictionary<GUID, AssetOutput> implicitAssetsOutput = new Dictionary<GUID, AssetOutput>();
+            var textureImporters = new Dictionary<GUID, TextureImporter>();
 
             for (int i = 0; i < input.Assets.Count; i++)
             {
@@ -346,7 +353,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                                 var referencedObjectOld = assetInfos.referencedObjects.ToArray();
                                 ObjectIdentifier[] referencedObjectsNew = null;
 #if NONRECURSIVE_DEPENDENCY_DATA
-                                referencedObjectsNew = GetPlayerDependenciesForAsset(input.Assets[i], assetInfos.includedObjects.ToArray(), input, assetResult, explicitAssets, implicitAssetsOutput);
+                                referencedObjectsNew = GetPlayerDependenciesForAsset(input.Assets[i], assetInfos.includedObjects.ToArray(), input, assetResult, explicitAssets, implicitAssetsOutput, textureImporters);
 #else
                                 referencedObjectsNew = ContentBuildInterface.GetPlayerDependenciesForObjects(assetInfos.includedObjects.ToArray(), input.Target, input.TypeDB);
 #endif
@@ -390,7 +397,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                     assetResult.assetInfo.includedObjects = new List<ObjectIdentifier>(includedObjects);
                     ObjectIdentifier[] referencedObjects;
 #if NONRECURSIVE_DEPENDENCY_DATA
-                    referencedObjects = GetPlayerDependenciesForAsset(asset, includedObjects, input, assetResult, explicitAssets, implicitAssetsOutput);
+                    referencedObjects = GetPlayerDependenciesForAsset(asset, includedObjects, input, assetResult, explicitAssets, implicitAssetsOutput, textureImporters);
 #else
                     referencedObjects = ContentBuildInterface.GetPlayerDependenciesForObjects(includedObjects, input.Target, input.TypeDB);
 #endif
@@ -400,8 +407,22 @@ namespace UnityEditor.Build.Pipeline.Tasks
                     allObjects.AddRange(referencedObjects);
                     ContentBuildInterface.CalculateBuildUsageTags(allObjects.ToArray(), includedObjects, input.GlobalUsage, assetResult.usageTags, input.DependencyUsageCache);
 
-                    var importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
-                    if (importer != null && importer.textureType == TextureImporterType.Sprite)
+                    TextureImporter importer = null;
+                    bool isSprite = false;
+                    if (textureImporters.ContainsKey(asset))
+                    {
+                        importer = textureImporters[asset];
+                        isSprite = true;
+                    }
+                    else
+                    {
+                        importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
+                        isSprite = importer != null && importer.textureType == TextureImporterType.Sprite;
+                        if (isSprite)
+                            textureImporters.Add(asset, importer);
+                    }
+
+                    if (isSprite)
                     {
                         assetResult.spriteData = new SpriteImporterData();
                         assetResult.spriteData.PackedSprite = false;
@@ -435,7 +456,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                         CachedInfo info = cachedInfo[i];
                         if (info == null)
                         {
-                            info = GetCachedInfo(input.BuildCache, input.Assets[i], r.assetInfo, r.objectDependencyInfo, r.usageTags, r.spriteData, r.extendedData, input.NonRecursiveDependencies);
+                            info = GetCachedInfo(input, input.Assets[i], r.assetInfo, r.objectDependencyInfo, r.usageTags, r.spriteData, r.extendedData);
                             toCache.Add(info);
                         }
 
@@ -475,7 +496,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
         }
 
         private static ObjectIdentifier[] GetPlayerDependenciesForAsset(GUID inputAssetGuid, ObjectIdentifier[] includedObjects, TaskInput input, AssetOutput assetResult, HashSet<GUID> explicitAssets,
-            in Dictionary<GUID, AssetOutput> implicitAssetsOutput)
+            in Dictionary<GUID, AssetOutput> implicitAssetsOutput, Dictionary<GUID, TextureImporter> textureImporters)
         {
             HashSet<ObjectIdentifier> otherReferencedAssetObjectsHashSet = new HashSet<ObjectIdentifier>();
             ObjectIdentifier[] singleObjectIdArray = new ObjectIdentifier[1];
@@ -507,6 +528,8 @@ namespace UnityEditor.Build.Pipeline.Tasks
             var encounteredExplicitAssetDependencies = new HashSet<ObjectIdentifier>();
             var mainRepresentationNeeded = new HashSet<GUID>();
 
+            string assetPath = AssetDatabase.GUIDToAssetPath(inputAssetGuid.ToString());
+            bool isSpriteAtlas = AssetDatabase.GetMainAssetTypeAtPath(assetPath) == typeof(UnityEngine.U2D.SpriteAtlas);
             Stack<ObjectIdentifier> objectLookingAt = new Stack<ObjectIdentifier>(otherReferencedAssetObjectsHashSet);
             while (objectLookingAt.Count > 0)
             {
@@ -516,6 +539,29 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 if (obj.guid != inputAssetGuid && explicitAssets.Contains(obj.guid))
                 {
                     encounteredExplicitAssetDependencies.Add(obj); // might just be able to add to collected
+
+                    // Don't include source textures for sprites included in an atlas
+                    if (isSpriteAtlas)
+                    {
+                        string explicitAssetPath = AssetDatabase.GUIDToAssetPath(obj.guid.ToString());
+                        TextureImporter importer = null;
+                        bool isSprite = false;
+                        if (textureImporters.ContainsKey(obj.guid))
+                        {
+                            importer = textureImporters[obj.guid];
+                            isSprite = true;
+                        }
+                        else
+                        {
+                            importer = AssetImporter.GetAtPath(explicitAssetPath) as TextureImporter;
+                            isSprite = importer != null && importer.textureType == TextureImporterType.Sprite;
+                            if (isSprite)
+                                textureImporters.Add(obj.guid, importer);
+                        }
+                        if (isSprite)
+                            continue;
+                    }
+
                     mainRepresentationNeeded.Add(obj.guid);
                 }
                 // looking for implicit assets we have not visited yet

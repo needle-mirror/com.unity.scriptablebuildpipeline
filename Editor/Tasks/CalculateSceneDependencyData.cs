@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEditor.Build.Content;
@@ -18,7 +19,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
     public class CalculateSceneDependencyData : IBuildTask
     {
         /// <inheritdoc />
-        public int Version { get { return 5; } }
+        public int Version { get { return 6; } }
 
 #pragma warning disable 649
         [InjectContext(ContextUsage.In)]
@@ -43,7 +44,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
         IBuildLogger m_Log;
 #pragma warning restore 649
 
-        CacheEntry GetSceneCacheEntry(GUID asset)
+        CacheEntry GetCacheEntry(GUID asset)
         {
             CacheEntry entry;
 #if NONRECURSIVE_DEPENDENCY_DATA
@@ -54,10 +55,29 @@ namespace UnityEditor.Build.Pipeline.Tasks
             return entry;
         }
 
+        CacheEntry GetCacheEntry(string asset)
+        {
+#if UNITY_2020_1_OR_NEWER
+            GUID guid = AssetDatabase.AssetPathToGUID_Internal(asset);
+#else
+            string stringGUID = AssetDatabase.AssetPathToGUID(asset);
+            if (GUID.TryParse(stringGUID, out GUID guid))
+                return GetCacheEntry(guid);
+#endif
+            if (!guid.Empty())
+                return GetCacheEntry(guid);
+
+#if NONRECURSIVE_DEPENDENCY_DATA
+            return m_Cache.GetCacheEntry(asset, m_Parameters.NonRecursiveDependencies ? -Version : Version);
+#else
+            return m_Cache.GetCacheEntry(asset, Version);
+#endif
+        }
+
         CachedInfo GetCachedInfo(GUID scene, IEnumerable<ObjectIdentifier> references, SceneDependencyInfo sceneInfo, BuildUsageTagSet usageTags, IEnumerable<CacheEntry> prefabEntries, Hash128 prefabDependency)
         {
             var info = new CachedInfo();
-            info.Asset = GetSceneCacheEntry(scene);
+            info.Asset = GetCacheEntry(scene);
 
 #if ENABLE_TYPE_HASHING || UNITY_2020_1_OR_NEWER
             var uniqueTypes = new HashSet<System.Type>(sceneInfo.includedTypes);
@@ -84,7 +104,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             IList<CachedInfo> uncachedInfo = null;
             if (m_Parameters.UseCache && m_Cache != null)
             {
-                IList<CacheEntry> entries = m_Content.Scenes.Select(x => GetSceneCacheEntry(x)).ToList();
+                IList<CacheEntry> entries = m_Content.Scenes.Select(x => GetCacheEntry(x)).ToList();
                 m_Cache.LoadCachedData(entries, out cachedInfo);
 
                 uncachedInfo = new List<CachedInfo>();
@@ -183,7 +203,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 #else
                         string outputFolder = m_Parameters.TempOutputFolder;
                         if (m_Parameters.UseCache && m_Cache != null)
-                            outputFolder = m_Cache.GetCachedArtifactsDirectory(m_Cache.GetCacheEntry(scene, Version));
+                            outputFolder = m_Cache.GetCachedArtifactsDirectory(GetSceneCacheEntry(scene, Version));
                         System.IO.Directory.CreateDirectory(outputFolder);
 
                         sceneInfo = ContentBuildInterface.PrepareScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache, outputFolder);
@@ -191,7 +211,13 @@ namespace UnityEditor.Build.Pipeline.Tasks
                         if (uncachedInfo != null)
                         {
                             // We only need to gather prefab dependencies and calculate the hash if we are using caching, otherwise we can skip it
-                            var prefabEntries = AssetDatabase.GetDependencies(AssetDatabase.GUIDToAssetPath(scene.ToString())).Where(path => path.EndsWith(".prefab")).Select(m_Cache.GetCacheEntry);
+                            string[] sceneDependencyPaths = AssetDatabase.GetDependencies(scenePath);
+                            List<CacheEntry> prefabEntries = new List<CacheEntry>();
+                            foreach (string assetPath in sceneDependencyPaths)
+                            {
+                                if (assetPath.EndsWith(".prefab", StringComparison.Ordinal))
+                                    prefabEntries.Add(GetCacheEntry(assetPath));
+                            }
                             prefabDependency = HashingMethods.Calculate(prefabEntries).ToHash128();
                             var cacheInfo = GetCachedInfo(scene, sceneInfo.referencedObjects, sceneInfo, usageTags, prefabEntries, prefabDependency);
                             uncachedInfo.Add(cacheInfo);

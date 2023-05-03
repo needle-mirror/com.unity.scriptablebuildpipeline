@@ -34,6 +34,7 @@ namespace UnityEditor.Build.Pipeline
         /// <returns>CompatibilityAssetBundleManifest object exposing information about the generated asset bundles.</returns>
         public static CompatibilityAssetBundleManifest BuildAssetBundles(string outputPath, BuildAssetBundleOptions assetBundleOptions, BuildTarget targetPlatform)
         {
+            // Retrieve the AssetBundle definitions as defined through the Inspector and saved in the AssetDatabase
             var buildInput = ContentBuildInterface.GenerateAssetBundleBuilds();
             return BuildAssetBundles_Internal(outputPath, new BundleBuildContent(buildInput), assetBundleOptions, targetPlatform);
         }
