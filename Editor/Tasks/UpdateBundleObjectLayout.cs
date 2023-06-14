@@ -84,7 +84,8 @@ namespace UnityEditor.Build.Pipeline.Tasks
                     foreach (var objectID in objectIDs)
                     {
                         UpdateAssetToFilesMap(internalName, ObjectToAssetReferences[objectID], m_WriteData.AssetToFiles);
-                        RemoveObjectIDFromFiles(objectID, ObjectToFiles[objectID], m_WriteData.FileToObjects);
+                        if (ObjectToFiles.ContainsKey(objectID))
+                            RemoveObjectIDFromFiles(objectID, ObjectToFiles[objectID], m_WriteData.FileToObjects);
                     }
 
                     // Add new mapping for File to Bundle

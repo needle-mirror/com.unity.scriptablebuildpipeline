@@ -425,7 +425,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             var header1 = new SerializedLocation();
             header1.SetFileName(resourceFiles[0].fileAlias);
             header1.SetOffset(200);
-            
+
             var header2 = new SerializedLocation();
             header2.SetFileName(resourceFiles[1].fileAlias);
             header2.SetOffset(100);
@@ -433,7 +433,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             var serializedObjects = new ObjectSerializedInfo[2];
             serializedObjects[0].SetHeader(header1);
             serializedObjects[1].SetHeader(header2);
-            
+
             WriteResult results = new WriteResult();
             results.SetResourceFiles(resourceFiles);
             results.SetSerializedObjects(serializedObjects);
@@ -503,7 +503,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             LogStep runCachedOp = m_Log.Root.Children.Find(x => x.Name == "RunCachedOperation");
             LogStep processEntries = runCachedOp.Children.Find(x => x.Name == "Process Entries");
             LogStep writingOp = processEntries.Children.Find(x => x.Name == "Writing TestWriteOperation");
-            
+
             Assert.IsTrue(writingOp.Children.Count > 0);
 
             double taskEndTime = runCachedOp.StartTime + runCachedOp.DurationMS;

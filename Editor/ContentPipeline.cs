@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Threading;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Utilities;
 using UnityEditor.Build.Utilities;
@@ -173,17 +172,35 @@ namespace UnityEditor.Build.Pipeline
             return exitCode;
         }
 
-        //Functionality has been removed due to issues with APV in yamato for package release (https://jira.unity3d.com/browse/BPSBP-735)
-        private static bool CanBuildPlayer(BuildTarget target, BuildTargetGroup targetGroup)
+        internal static bool CanBuildPlayer(BuildTarget target, BuildTargetGroup targetGroup)
         {
             // The Editor APIs we need only exist in 2021.3 and later. For earlier versions, assume we can build.
-//#if UNITY_2021_3_OR_NEWER
-//            var module = ModuleManager.GetTargetStringFrom(targetGroup, target);
-//            var buildWindowExtension = ModuleManager.GetBuildWindowExtension(module);
-//            return buildWindowExtension != null ? buildWindowExtension.EnabledBuildButton() : false;
-//#else
+#if UNITY_2021_3_OR_NEWER
+            return CanBuildPlayer(target, targetGroup, GetBuildWindowExtension(target, targetGroup));
+#else
             return true;
-//#endif
+#endif
         }
+
+#if UNITY_2021_3_OR_NEWER
+        private static IBuildWindowExtension GetBuildWindowExtension(BuildTarget target, BuildTargetGroup targetGroup)
+        {
+            var module = ModuleManager.GetTargetStringFrom(targetGroup, target);
+            return ModuleManager.GetBuildWindowExtension(module);
+        }
+
+        internal static bool CanBuildPlayer(BuildTarget target, BuildTargetGroup targetGroup, IBuildWindowExtension buildWindowExtension)
+        {
+            // we expect this to mainly happen within yamato when no build target modules are installed
+            if (!BuildPipeline.IsBuildTargetSupported(targetGroup, target))
+            {
+                BuildLogger.LogWarning("The currently selected build target is not supported. If the build fails please check the Build Settings.");
+                return true;
+            }
+
+            return buildWindowExtension != null ? buildWindowExtension.EnabledBuildButton() : false;
+        }
+#endif
     }
+
 }

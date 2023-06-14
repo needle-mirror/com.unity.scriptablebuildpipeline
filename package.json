@@ -1,7 +1,7 @@
 {
   "name": "com.unity.scriptablebuildpipeline",
   "displayName": "Scriptable Build Pipeline",
-  "version": "1.21.5",
+  "version": "1.21.7",
   "unity": "2019.4",
   "description": "The Scriptable Build Pipeline moves the asset bundle build pipeline to C#.  Use the pre-defined build flows, or create your own using the divided up APIs.  This system improves build time, fixes incremental build, and provides greater flexibility.",
   "keywords": [
@@ -14,15 +14,15 @@
   ],
   "dependencies": {},
   "_upm": {
-    "changelog": "- When the \"Strip Unity Version\" build flag is used, the Unity Version is stripped for the archive file header and serialized files in the bundle.\n- Fixed issue when changing dependencies of an asset change from being explicit to implicit and non-recursive dependencies enabled, and cache is available. Can result in incorrect depdencies being built incorrectly.\n- Improvements to the documentation\n- Fixed bug where source textures were getting included in the build when a SpriteAtlas was also included"
+    "changelog": "- Building addressables for il2cpp fails with unclear error when il2cpp not installed\n- Fixed issue where InvalidKeyException occurs during the UpdateBundleObjectLayout build task."
   },
   "upmCi": {
-    "footprint": "895619fa49ada773227b9c496cb16b822d58e26e"
+    "footprint": "fcca82e652e99a1549e2fd867385a24cf91dd3b0"
   },
   "documentationUrl": "https://docs.unity3d.com/Packages/com.unity.scriptablebuildpipeline@1.21/manual/index.html",
   "repository": {
     "url": "https://github.cds.internal.unity3d.com/unity/Addressables.git",
     "type": "git",
-    "revision": "7fd90c8ec6027a1b533ef270b9067262eb8d6e3e"
+    "revision": "cca77c1bbecdfe2a0204e60d45fbe3a5b6b4b811"
   }
 }
