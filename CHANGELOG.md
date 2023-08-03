@@ -4,6 +4,11 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.21.8] - 2023-08-03
+- Removed Cache ServerV1 support
+- Fix issue where source textures aren't stripped when assets reference explicit packed sprites.
+- Fix CalculateSceneDependencyData given changed sprite atlas
+
 ## [1.21.7] - 2023-06-14
 - Building addressables for il2cpp fails with unclear error when il2cpp not installed
 - Fixed issue where InvalidKeyException occurs during the UpdateBundleObjectLayout build task.
