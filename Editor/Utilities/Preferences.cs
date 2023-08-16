@@ -52,10 +52,6 @@ namespace UnityEditor.Build.Pipeline.Utilities
             public static readonly GUIContent pruneCache = EditorGUIUtility.TrTextContent("Prune Cache");
             public static readonly GUIContent cacheSizeIs = EditorGUIUtility.TrTextContent("Cache size is");
             public static readonly GUIContent pleaseWait = EditorGUIUtility.TrTextContent("Please wait...");
-            public static readonly GUIContent cacheServerConfig = EditorGUIUtility.TrTextContent("Cache Server Configuration");
-            public static readonly GUIContent useBuildCacheServer = EditorGUIUtility.TrTextContent("Use Build Cache Server");
-            public static readonly GUIContent cacheServerHost = EditorGUIUtility.TrTextContent("Cache Server Host");
-            public static readonly GUIContent cacheServerPort = EditorGUIUtility.TrTextContent("Cache Server Port");
             public static bool startedCalculation = false;
             public static long currentCacheSize = -1;
             public static readonly GUIContent useDetailedBuildLog = EditorGUIUtility.TrTextContent("Use Detailed Build Log", "Writes detailed event information in the build log.");
@@ -299,16 +295,6 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 GUILayout.Label(Properties.cacheSizeIs.text + " " + EditorUtility.FormatBytes(Properties.currentCacheSize));
             else
                 GUILayout.Label(Properties.cacheSizeIs.text + " is being calculated...");
-
-            GUILayout.Space(15);
-            GUILayout.Label(Properties.cacheServerConfig, EditorStyles.boldLabel);
-
-            s_Settings.useBuildCacheServer = EditorGUILayout.Toggle(Properties.useBuildCacheServer, s_Settings.useBuildCacheServer);
-            if (s_Settings.useBuildCacheServer)
-            {
-                s_Settings.cacheServerHost = EditorGUILayout.TextField(Properties.cacheServerHost, s_Settings.cacheServerHost);
-                s_Settings.cacheServerPort = EditorGUILayout.IntField(Properties.cacheServerPort, s_Settings.cacheServerPort);
-            }
         }
     }
 }

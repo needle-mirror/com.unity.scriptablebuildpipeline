@@ -226,22 +226,6 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
 
         [Test]
-        public void WhenGlobalVersionChanges_OriginalCachedInfoDoesNotNeedRebuild()
-        {
-            m_Cache.OverrideGlobalHash(new Hash128(0, 1, 0, 0));
-
-            StoreDataInCacheWithGUID(m_Cache, TestFile1GUID, "data");
-            CachedInfo info1 = LoadCachedInfoForGUID(m_Cache, TestFile1GUID);
-
-            RecreateBuildCache();
-            m_Cache.OverrideGlobalHash(new Hash128(0, 2, 0, 0));
-            CachedInfo info2 = LoadCachedInfoForGUID(m_Cache, TestFile1GUID);
-
-            Assert.IsFalse(m_Cache.HasAssetOrDependencyChanged(info1)); // original info still doesn't need rebuild. Required for content update
-            Assert.IsNull(info2); // however the data cannot be recovered
-        }
-
-        [Test]
         public void WhenLocalVersionChanges_AssetReturnsDifferentCacheEntry()
         {
             GUID guid = CreateTestTextAsset("mytext");

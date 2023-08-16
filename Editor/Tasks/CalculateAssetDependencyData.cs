@@ -429,7 +429,18 @@ namespace UnityEditor.Build.Pipeline.Tasks
                         assetResult.spriteData.SourceTexture = includedObjects.FirstOrDefault();
 
                         if (EditorSettings.spritePackerMode != SpritePackerMode.Disabled)
-                            assetResult.spriteData.PackedSprite = referencedObjects.Length > 0;
+                        {
+                            foreach (var obj in referencedObjects)
+                            {
+                                var t = BuildCacheUtility.GetMainTypeForObject(obj);
+                                if (t != typeof(Texture2D))
+                                {
+                                    assetResult.spriteData.PackedSprite = true;
+                                    break;
+                                }
+                            }
+                        }
+
 #if !UNITY_2020_1_OR_NEWER
                         if (EditorSettings.spritePackerMode == SpritePackerMode.AlwaysOn || EditorSettings.spritePackerMode == SpritePackerMode.BuildTimeOnly)
                             assetResult.spriteData.PackedSprite = !string.IsNullOrEmpty(importer.spritePackingTag);

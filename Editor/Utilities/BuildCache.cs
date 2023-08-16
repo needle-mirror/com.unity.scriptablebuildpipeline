@@ -100,12 +100,6 @@ namespace UnityEditor.Build.Pipeline.Utilities
         [NonSerialized]
         Hash128 m_GlobalHash;
 
-        [NonSerialized]
-        CacheServerUploader m_Uploader;
-
-        [NonSerialized]
-        CacheServerDownloader m_Downloader;
-
         /// <summary>
         /// Creates a new build cache object.
         /// </summary>
@@ -126,29 +120,9 @@ namespace UnityEditor.Build.Pipeline.Utilities
             if (string.IsNullOrEmpty(host))
                 return;
 
-            try
-            {
-                m_Uploader = new CacheServerUploader(host, port);
-                m_Downloader = new CacheServerDownloader(this, new DeSerializer(CustomSerializers, ObjectFactories), host, port);
-            }
-            catch (Exception e)
-            {
-                m_Uploader = null;
-                m_Downloader = null;
-                string msg = $"Failed to connect build cache to CacheServer. ip: {host}, port: {port}. With exception, \"{e.Message}\"";
-                m_Logger.AddEntrySafe(LogLevel.Warning, msg);
-                UnityEngine.Debug.LogWarning(msg);
-            }
-        }
-
-        // internal for testing purposes only
-        internal void OverrideGlobalHash(Hash128 hash)
-        {
-            m_GlobalHash = hash;
-            if (m_Uploader != null)
-                m_Uploader.SetGlobalHash(m_GlobalHash);
-            if (m_Downloader != null)
-                m_Downloader.SetGlobalHash(m_GlobalHash);
+            string msg = $"Cache Server is no longer supported.";
+            m_Logger.AddEntrySafe(LogLevel.Warning, msg);
+            UnityEngine.Debug.LogWarning(msg);
         }
 
         static Hash128 CalculateGlobalArtifactVersionHash()
@@ -168,13 +142,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
         /// <summary>
         /// Disposes the build cache instance.
         /// </summary>
-        public void Dispose()
-        {
-            if (m_Downloader != null)
-                m_Downloader.Dispose();
-            m_Uploader = null;
-            m_Downloader = null;
-        }
+        public void Dispose() { }
 
         /// <inheritdoc />
         public CacheEntry GetCacheEntry(GUID asset, int version = 1)
@@ -392,19 +360,6 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 m_Logger.AddEntrySafe(LogLevel.Info, $"Unchanged dependencies count: {unchangedCount}");
             }
 
-            // If we have a cache server connection, download & check any missing info
-            int downloadedCount = 0;
-            if (m_Downloader != null)
-            {
-                using (m_Logger.ScopedStep(LogLevel.Info, "Download Missing Entries"))
-                {
-                    m_Downloader.DownloadMissing(entries, cachedInfos);
-                    downloadedCount = cachedInfos.Count(i => i != null) - cachedCount;
-                }
-            }
-
-            m_Logger.AddEntrySafe(LogLevel.Info, $"Local Cache hit count: {cachedCount}, Cache Server hit count: {downloadedCount}");
-
             Assert.AreEqual(entries.Count, cachedInfos.Count);
         }
 
@@ -572,15 +527,6 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
                                 if (stream.Length > 0)
                                 {
-                                    // If we have a cache server connection, upload the cached data. The ThreadingManager.QueueTask() API used by CacheServerUploader.QueueUpload() is not thread safe so we lock around this
-                                    if (m_Uploader != null)
-                                    {
-                                        lock (m_Uploader)
-                                        {
-                                            m_Uploader.QueueUpload(infos[index].Asset, GetCachedArtifactsDirectory(infos[index].Asset), new MemoryStream(stream.GetBuffer(), 0, (int)stream.Length, false));
-                                        }
-                                    }
-
                                     string cachedInfoFilepath = GetCachedInfoFile(infos[index].Asset);
                                     Directory.CreateDirectory(Path.GetDirectoryName(cachedInfoFilepath));
 
