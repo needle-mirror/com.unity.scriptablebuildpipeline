@@ -4,11 +4,13 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.0.1] - 2023-08-30
+- Fix issue where source textures aren't stripped when assets reference explicit packed sprites. 
+
 ## [1.21.9] - 2023-08-16
 - Removed Cache ServerV1 support
 
 ## [1.21.8] - 2023-08-03
-- Fix issue where source textures aren't stripped when assets reference explicit packed sprites.
 - Fix CalculateSceneDependencyData given changed sprite atlas
 
 ## [1.21.7] - 2023-06-14

@@ -122,12 +122,11 @@ namespace UnityEditor.Build.Pipeline.Tasks
                     SceneDependencyInfo sceneInfo;
                     BuildUsageTagSet usageTags;
                     Hash128 prefabDependency = new Hash128();
-                    bool useUncachedScene = true;
+                    bool useCachedScene = false;
 
                     if (cachedInfo != null && cachedInfo[i] != null)
                     {
-                        info.Add(cachedInfo[i]);
-                        useUncachedScene = false;
+                        useCachedScene = true;
                         if (!m_Tracker.UpdateInfoUnchecked(string.Format("{0} (Cached)", scenePath)))
                             return ReturnCode.Canceled;
                         m_Log.AddEntrySafe(LogLevel.Info, $"{scene} (cached)");
@@ -166,18 +165,22 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
                                     if (Enumerable.SequenceEqual(filteredReferences,filteredReferencesNew) == false)
                                     {
-                                        useUncachedScene = true;
+                                        useCachedScene = false;
+                                        break;
                                     }
-                                    break;
                                 }
                             }
 
                         }
-                        if (!useUncachedScene)
+
+                        if (useCachedScene)
+                        {
                             SetOutputInformation(scene, sceneInfo, usageTags, prefabDependency);
+                            info.Add(cachedInfo[i]);
+                        }
                     }
 
-                    if(useUncachedScene)
+                    if (!useCachedScene)
                     {
                         if (!m_Tracker.UpdateInfoUnchecked(scenePath))
                             return ReturnCode.Canceled;

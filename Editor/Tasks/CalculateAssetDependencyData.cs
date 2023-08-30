@@ -328,17 +328,18 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
             HashSet<GUID> explicitAssets = new HashSet<GUID>(input.Assets);
             Dictionary<GUID, AssetOutput> implicitAssetsOutput = new Dictionary<GUID, AssetOutput>();
-            var textureImporters = new Dictionary<GUID, TextureImporter>();
+            HashSet<GUID> packedSprites = new HashSet<GUID>();
 
+            Queue<int> assetsToProcess = new Queue<int>();
             for (int i = 0; i < input.Assets.Count; i++)
             {
                 using (input.Logger.ScopedStep(LogLevel.Info, "Calculate Asset Dependencies"))
                 {
-                    AssetOutput assetResult = new AssetOutput();
-                    assetResult.asset = input.Assets[i];
-
                     if (cachedInfo != null && cachedInfo[i] != null)
                     {
+                        AssetOutput assetResult = new AssetOutput();
+                        assetResult.asset = input.Assets[i];
+
                         var objectTypes = cachedInfo[i].Data[4] as List<ObjectTypes>;
                         var assetInfos = cachedInfo[i].Data[0] as AssetLoadInfo;
                         var objectDependencyInfo = cachedInfo[i].Data[5] as List<ObjectDependencyInfo>;
@@ -353,7 +354,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                                 var referencedObjectOld = assetInfos.referencedObjects.ToArray();
                                 ObjectIdentifier[] referencedObjectsNew = null;
 #if NONRECURSIVE_DEPENDENCY_DATA
-                                referencedObjectsNew = GetPlayerDependenciesForAsset(input.Assets[i], assetInfos.includedObjects.ToArray(), input, assetResult, explicitAssets, implicitAssetsOutput, textureImporters);
+                                referencedObjectsNew = GetPlayerDependenciesForAsset(input.Assets[i], assetInfos.includedObjects.ToArray(), input, assetResult, explicitAssets, implicitAssetsOutput, packedSprites);
 #else
                                 referencedObjectsNew = ContentBuildInterface.GetPlayerDependenciesForObjects(assetInfos.includedObjects.ToArray(), input.Target, input.TypeDB);
 #endif
@@ -386,74 +387,22 @@ namespace UnityEditor.Build.Pipeline.Tasks
                     if (!input.ProgressTracker.UpdateInfoUnchecked(assetPath))
                         return ReturnCode.Canceled;
 
-                    input.Logger.AddEntrySafe(LogLevel.Info, $"{assetResult.asset}");
-
-                    assetResult.assetInfo = new AssetLoadInfo();
-                    assetResult.objectDependencyInfo = new List<ObjectDependencyInfo>();
-                    assetResult.usageTags = new BuildUsageTagSet();
-
-                    assetResult.assetInfo.asset = asset;
-                    var includedObjects = ContentBuildInterface.GetPlayerObjectIdentifiersInAsset(asset, input.Target);
-                    assetResult.assetInfo.includedObjects = new List<ObjectIdentifier>(includedObjects);
-                    ObjectIdentifier[] referencedObjects;
-#if NONRECURSIVE_DEPENDENCY_DATA
-                    referencedObjects = GetPlayerDependenciesForAsset(asset, includedObjects, input, assetResult, explicitAssets, implicitAssetsOutput, textureImporters);
-#else
-                    referencedObjects = ContentBuildInterface.GetPlayerDependenciesForObjects(includedObjects, input.Target, input.TypeDB);
-#endif
-
-                    assetResult.assetInfo.referencedObjects = new List<ObjectIdentifier>(referencedObjects);
-                    var allObjects = new List<ObjectIdentifier>(includedObjects);
-                    allObjects.AddRange(referencedObjects);
-                    ContentBuildInterface.CalculateBuildUsageTags(allObjects.ToArray(), includedObjects, input.GlobalUsage, assetResult.usageTags, input.DependencyUsageCache);
-
-                    TextureImporter importer = null;
-                    bool isSprite = false;
-                    if (textureImporters.ContainsKey(asset))
-                    {
-                        importer = textureImporters[asset];
-                        isSprite = true;
-                    }
+                    // Process uncached Sprites first, then all other uncached assets
+                    var importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
+                    if (importer != null && importer.textureType == TextureImporterType.Sprite)
+                        output.AssetResults[i] = ProcessAsset(true, asset, assetPath, input, explicitAssets, implicitAssetsOutput, packedSprites, importer);
                     else
-                    {
-                        importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
-                        isSprite = importer != null && importer.textureType == TextureImporterType.Sprite;
-                        if (isSprite)
-                            textureImporters.Add(asset, importer);
-                    }
-
-                    if (isSprite)
-                    {
-                        assetResult.spriteData = new SpriteImporterData();
-                        assetResult.spriteData.PackedSprite = false;
-                        assetResult.spriteData.SourceTexture = includedObjects.FirstOrDefault();
-
-                        if (EditorSettings.spritePackerMode != SpritePackerMode.Disabled)
-                        {
-                            foreach (var obj in referencedObjects)
-                            {
-                                var t = BuildCacheUtility.GetMainTypeForObject(obj);
-                                if (t != typeof(Texture2D))
-                                {
-                                    assetResult.spriteData.PackedSprite = true;
-                                    break;
-                                }
-                            }
-                        }
-
-#if !UNITY_2020_1_OR_NEWER
-                        if (EditorSettings.spritePackerMode == SpritePackerMode.AlwaysOn || EditorSettings.spritePackerMode == SpritePackerMode.BuildTimeOnly)
-                            assetResult.spriteData.PackedSprite = !string.IsNullOrEmpty(importer.spritePackingTag);
-#endif
-                    }
-
-#if !UNITY_2020_2_OR_NEWER
-                    GatherAssetRepresentations(assetPath, input.EngineHooks.LoadAllAssetRepresentationsAtPath, includedObjects, out assetResult.extendedData);
-#else
-                    GatherAssetRepresentations(asset, input.Target, includedObjects, out assetResult.extendedData);
-#endif
-                    output.AssetResults[i] = assetResult;
+                        assetsToProcess.Enqueue(i);
                 }
+            }
+
+            // Process all other uncached assets
+            while (assetsToProcess.Count > 0)
+            {
+                int i = assetsToProcess.Dequeue();
+                GUID asset = input.Assets[i];
+                string assetPath = AssetDatabase.GUIDToAssetPath(asset.ToString());
+                output.AssetResults[i] = ProcessAsset(false, asset, assetPath, input, explicitAssets, implicitAssetsOutput, packedSprites);
             }
 
             using (input.Logger.ScopedStep(LogLevel.Info, "Gathering Cache Entries to Save"))
@@ -506,8 +455,69 @@ namespace UnityEditor.Build.Pipeline.Tasks
             return ReturnCode.Success;
         }
 
+        private static AssetOutput ProcessAsset(bool isSprite, GUID asset, string assetPath, TaskInput input, HashSet<GUID> explicitAssets,
+            in Dictionary<GUID, AssetOutput> implicitAssetsOutput, HashSet<GUID> packedSprites, TextureImporter importer = null)
+        {
+            AssetOutput assetResult = new AssetOutput();
+            assetResult.asset = asset;
+
+            input.Logger.AddEntrySafe(LogLevel.Info, $"{assetResult.asset}");
+
+            assetResult.assetInfo = new AssetLoadInfo();
+            assetResult.objectDependencyInfo = new List<ObjectDependencyInfo>();
+            assetResult.usageTags = new BuildUsageTagSet();
+
+            assetResult.assetInfo.asset = asset;
+            var includedObjects = ContentBuildInterface.GetPlayerObjectIdentifiersInAsset(asset, input.Target);
+            assetResult.assetInfo.includedObjects = new List<ObjectIdentifier>(includedObjects);
+            ObjectIdentifier[] referencedObjects;
+#if NONRECURSIVE_DEPENDENCY_DATA
+            referencedObjects = GetPlayerDependenciesForAsset(asset, includedObjects, input, assetResult, explicitAssets, implicitAssetsOutput, packedSprites);
+#else
+            referencedObjects = ContentBuildInterface.GetPlayerDependenciesForObjects(includedObjects, input.Target, input.TypeDB);
+#endif
+            assetResult.assetInfo.referencedObjects = new List<ObjectIdentifier>(referencedObjects);
+            var allObjects = new List<ObjectIdentifier>(includedObjects);
+            allObjects.AddRange(referencedObjects);
+            ContentBuildInterface.CalculateBuildUsageTags(allObjects.ToArray(), includedObjects, input.GlobalUsage, assetResult.usageTags, input.DependencyUsageCache);
+
+            if (isSprite)
+            {
+                assetResult.spriteData = new SpriteImporterData();
+                assetResult.spriteData.PackedSprite = false;
+                assetResult.spriteData.SourceTexture = includedObjects.FirstOrDefault();
+
+                if (EditorSettings.spritePackerMode != SpritePackerMode.Disabled)
+                {
+                    foreach (var obj in referencedObjects)
+                    {
+                        var t = BuildCacheUtility.GetMainTypeForObject(obj);
+                        if (t != typeof(Texture2D))
+                        {
+                            assetResult.spriteData.PackedSprite = true;
+                            break;
+                        }
+                    }
+                }
+
+#if !UNITY_2020_1_OR_NEWER
+                if (EditorSettings.spritePackerMode == SpritePackerMode.AlwaysOn || EditorSettings.spritePackerMode == SpritePackerMode.BuildTimeOnly)
+                    assetResult.spriteData.PackedSprite = !string.IsNullOrEmpty(importer?.spritePackingTag);
+#endif
+                if (assetResult.spriteData.PackedSprite)
+                    packedSprites.Add(asset);
+            }
+
+#if !UNITY_2020_2_OR_NEWER
+            GatherAssetRepresentations(assetPath, input.EngineHooks.LoadAllAssetRepresentationsAtPath, includedObjects, out assetResult.extendedData);
+#else
+            GatherAssetRepresentations(asset, input.Target, includedObjects, out assetResult.extendedData);
+#endif
+            return assetResult;
+        }
+
         private static ObjectIdentifier[] GetPlayerDependenciesForAsset(GUID inputAssetGuid, ObjectIdentifier[] includedObjects, TaskInput input, AssetOutput assetResult, HashSet<GUID> explicitAssets,
-            in Dictionary<GUID, AssetOutput> implicitAssetsOutput, Dictionary<GUID, TextureImporter> textureImporters)
+            in Dictionary<GUID, AssetOutput> implicitAssetsOutput, HashSet<GUID> packedSprites)
         {
             HashSet<ObjectIdentifier> otherReferencedAssetObjectsHashSet = new HashSet<ObjectIdentifier>();
             ObjectIdentifier[] singleObjectIdArray = new ObjectIdentifier[1];
@@ -539,8 +549,6 @@ namespace UnityEditor.Build.Pipeline.Tasks
             var encounteredExplicitAssetDependencies = new HashSet<ObjectIdentifier>();
             var mainRepresentationNeeded = new HashSet<GUID>();
 
-            string assetPath = AssetDatabase.GUIDToAssetPath(inputAssetGuid.ToString());
-            bool isSpriteAtlas = AssetDatabase.GetMainAssetTypeAtPath(assetPath) == typeof(UnityEngine.U2D.SpriteAtlas);
             Stack<ObjectIdentifier> objectLookingAt = new Stack<ObjectIdentifier>(otherReferencedAssetObjectsHashSet);
             while (objectLookingAt.Count > 0)
             {
@@ -551,29 +559,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 {
                     encounteredExplicitAssetDependencies.Add(obj); // might just be able to add to collected
 
-                    // Don't include source textures for sprites included in an atlas
-                    if (isSpriteAtlas)
-                    {
-                        string explicitAssetPath = AssetDatabase.GUIDToAssetPath(obj.guid.ToString());
-                        TextureImporter importer = null;
-                        bool isSprite = false;
-                        if (textureImporters.ContainsKey(obj.guid))
-                        {
-                            importer = textureImporters[obj.guid];
-                            isSprite = true;
-                        }
-                        else
-                        {
-                            importer = AssetImporter.GetAtPath(explicitAssetPath) as TextureImporter;
-                            isSprite = importer != null && importer.textureType == TextureImporterType.Sprite;
-                            if (isSprite)
-                                textureImporters.Add(obj.guid, importer);
-                        }
-                        if (isSprite)
-                            continue;
-                    }
-
-                    mainRepresentationNeeded.Add(obj.guid);
+                    // Don't include source textures for packed sprites
+                    if (!packedSprites.Contains(obj.guid))
+                        mainRepresentationNeeded.Add(obj.guid);
                 }
                 // looking for implicit assets we have not visited yet
                 else if (!explicitAssets.Contains(obj.guid) && !collectedImmediateReferences.Contains(obj))

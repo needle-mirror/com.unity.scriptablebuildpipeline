@@ -90,6 +90,7 @@ namespace UnityEditor.Build.Pipeline.Tests.ContentLoad
         }
 
         [UnityTest]
+        [Ignore("Unstable, unexpected errors thrown from the engine side. https://jira.unity3d.com/browse/ADDR-3515")]
         public IEnumerator CanLoadSceneWithNoDependencies()
         {
             LoadCatalog("nodepscene");

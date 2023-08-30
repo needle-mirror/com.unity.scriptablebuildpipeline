@@ -98,7 +98,7 @@ namespace UnityEditor.Build.Pipeline
             buildTasks.Add(new CalculateAssetDependencyData());
             buildTasks.Add(new StripUnusedSpriteSources());
             if (shaderTask)
-                buildTasks.Add(new CreateBuiltInShadersBundle("UnityBuiltInShaders.bundle"));
+                buildTasks.Add(new CreateBuiltInBundle("UnityBuiltIn.bundle"));
             if (monoscriptTask)
                 buildTasks.Add(new CreateMonoScriptBundle("UnityMonoScripts.bundle"));
             buildTasks.Add(new PostDependencyCallback());
@@ -121,7 +121,7 @@ namespace UnityEditor.Build.Pipeline
 
             return buildTasks;
         }
-        
+
 #if UNITY_2022_2_OR_NEWER
         public static IList<IBuildTask> ContentFileCompatible()
         {

@@ -35,6 +35,7 @@ namespace UnityEditor.Build.Pipeline
         /// <param name="content">Set of content and explicit asset bundle layout to build.</param>
         /// <param name="result">Results from building the content and explicit asset bundle layout.</param>
         /// <returns>Return code with status information about success or failure causes.</returns>
+        /// <remarks>The target platform must be installed. Otherwise AssetBundles will be built based on the editor version of the Assemblies and may have incorrect content.</remarks>
         public static ReturnCode BuildAssetBundles(IBundleBuildParameters parameters, IBundleBuildContent content, out IBundleBuildResults result)
         {
             var taskList = DefaultBuildTasks.Create(DefaultBuildTasks.Preset.AssetBundleCompatible);
@@ -50,6 +51,7 @@ namespace UnityEditor.Build.Pipeline
         /// <param name="taskList">Custom task list for building asset bundles.</param>
         /// <param name="contextObjects">Additional context objects to make available to the build.</param>
         /// <returns>Return code with status information about success or failure causes.</returns>
+        /// <remarks>The target platform must be installed. Otherwise AssetBundles will be built based on the editor version of the Assemblies and may have incorrect content.</remarks>
         public static ReturnCode BuildAssetBundles(IBundleBuildParameters parameters, IBundleBuildContent content, out IBundleBuildResults result, IList<IBuildTask> taskList, params IContextObject[] contextObjects)
         {
             if (BuildPipeline.isBuildingPlayer)

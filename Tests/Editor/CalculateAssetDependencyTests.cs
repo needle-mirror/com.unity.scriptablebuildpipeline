@@ -559,9 +559,21 @@ namespace UnityEditor.Build.Pipeline.Tests
         [Test]
         public void WhenExplicitSpriteAndAtlas_AtlasOnlyReferencesSprites()
         {
+            var sprite1 = AssetDatabase.LoadAssetAtPath<Sprite>(kSpriteTexture1Asset);
+            var sprite2 = AssetDatabase.LoadAssetAtPath<Sprite>(kSpriteTexture2Asset);
+            var texture1 = AssetDatabase.LoadAssetAtPath<Texture>(kSpriteTexture1Asset);
+            var texture2 = AssetDatabase.LoadAssetAtPath<Texture>(kSpriteTexture2Asset);
+
+            AssetDatabase.TryGetGUIDAndLocalFileIdentifier(sprite1, out string sprite1GuidStr, out long sprite1LocalId);
+            AssetDatabase.TryGetGUIDAndLocalFileIdentifier(sprite2, out string sprite2GuidStr, out long sprite2LocalId);
+            AssetDatabase.TryGetGUIDAndLocalFileIdentifier(texture1, out string texture1GuidStr, out long texture1LocalId);
+            AssetDatabase.TryGetGUIDAndLocalFileIdentifier(texture2, out string texture2GuidStr, out long texture2LocalId);
+
             GUID spriteAtlasGuid = new GUID(AssetDatabase.AssetPathToGUID(kSpriteAtlasAsset));
-            GUID sprite1Guid = new GUID(AssetDatabase.AssetPathToGUID(kSpriteTexture1Asset));
-            GUID sprite2Guid = new GUID(AssetDatabase.AssetPathToGUID(kSpriteTexture2Asset));
+            GUID sprite1Guid = new GUID(sprite1GuidStr);
+            GUID sprite2Guid = new GUID(sprite2GuidStr);
+            GUID texture1Guid = new GUID(texture1GuidStr);
+            GUID texture2Guid = new GUID(texture2GuidStr);
 
             EditorSettings.spritePackerMode = SpritePackerMode.BuildTimeOnlyAtlas;
             CalculateAssetDependencyData.TaskInput input = CreateDefaultInput();
@@ -569,7 +581,112 @@ namespace UnityEditor.Build.Pipeline.Tests
             input.Assets = new List<GUID>() { spriteAtlasGuid, sprite1Guid, sprite2Guid };
 
             CalculateAssetDependencyData.RunInternal(input, out CalculateAssetDependencyData.TaskOutput output);
-            Assert.AreEqual(3, output.AssetResults[0].assetInfo.referencedObjects.Count);
+            List<ObjectIdentifier> referencedObjs = output.AssetResults[0].assetInfo.referencedObjects;
+            Assert.AreEqual(3, referencedObjs.Count);
+
+            bool refsSprite1 = false;
+            bool refsSprite2 = false;
+            bool refsTexture1 = false;
+            bool refsTexture2 = false;
+            foreach (ObjectIdentifier id in referencedObjs)
+            {
+                if (id.guid == sprite1Guid && id.localIdentifierInFile == sprite1LocalId)
+                    refsSprite1 = true;
+                else if (id.guid == texture1Guid && id.localIdentifierInFile == texture1LocalId)
+                    refsTexture1 = true;
+                else if (id.guid == sprite2Guid && id.localIdentifierInFile == sprite2LocalId)
+                    refsSprite2 = true;
+                else if (id.guid == texture2Guid && id.localIdentifierInFile == texture2LocalId)
+                    refsTexture2 = true;
+            }
+            Assert.IsTrue(refsSprite1, "Prefab should reference the first Sprite.");
+            Assert.IsTrue(refsSprite2, "Prefab should reference the second Sprite.");
+            Assert.IsFalse(refsTexture1, "Prefab should not reference the first source texture.");
+            Assert.IsFalse(refsTexture2, "Prefab should not reference the second source texture.");
+        }
+
+        [Test]
+        public void WhenAssetRefsExplicitPackedSprite_AssetOnlyRefsSprite()
+        {
+            var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(kSpriteTexture1Asset);
+            var texture = AssetDatabase.LoadAssetAtPath<Texture>(kSpriteTexture1Asset);
+
+            string prefabName = "myPrefab.prefab";
+            string assetPath = Path.Combine(kTestAssetFolder, prefabName);
+            GameObject go = new GameObject(prefabName);
+            SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = sprite;
+            PrefabUtility.SaveAsPrefabAsset(go, assetPath);
+            UnityEngine.Object.DestroyImmediate(go, false);
+
+            string prefabGuidStr = AssetDatabase.AssetPathToGUID(assetPath);
+            AssetDatabase.TryGetGUIDAndLocalFileIdentifier(sprite, out string spriteGuidStr, out long spriteLocalId);
+            AssetDatabase.TryGetGUIDAndLocalFileIdentifier(texture, out string textureGuidStr, out long textureLocalId);
+            GUID prefabGuid = new GUID(prefabGuidStr);
+            GUID spriteGuid = new GUID(spriteGuidStr);
+            GUID textureGuid = new GUID(textureGuidStr);
+
+            EditorSettings.spritePackerMode = SpritePackerMode.BuildTimeOnlyAtlas;
+            CalculateAssetDependencyData.TaskInput input = CreateDefaultInput();
+            SpriteAtlasUtility.PackAllAtlases(input.Target);
+            input.Assets = new List<GUID>() { prefabGuid, spriteGuid };
+
+            CalculateAssetDependencyData.RunInternal(input, out CalculateAssetDependencyData.TaskOutput output);
+            List<ObjectIdentifier> referencedObjs = output.AssetResults[0].assetInfo.referencedObjects;
+            Assert.AreEqual(3, referencedObjs.Count);
+
+            bool refsSprite = false;
+            bool refsTexture = false;
+            foreach (ObjectIdentifier id in referencedObjs)
+            {
+                if (id.guid == spriteGuid && id.localIdentifierInFile == spriteLocalId)
+                    refsSprite = true;
+                else if (id.guid == textureGuid && id.localIdentifierInFile == textureLocalId)
+                    refsTexture = true;
+            }
+            Assert.IsTrue(refsSprite, "Prefab should reference the Sprite.");
+            Assert.IsFalse(refsTexture, "Prefab should not reference the source texture.");
+        }
+
+        [Test]
+        public void WhenAssetRefsExplicitSprite_AssetRefsSpriteAndTexture()
+        {
+            var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(kSpriteTexture1Asset);
+            var texture = AssetDatabase.LoadAssetAtPath<Texture>(kSpriteTexture1Asset);
+
+            string prefabName = "myPrefab.prefab";
+            string assetPath = Path.Combine(kTestAssetFolder, prefabName);
+            GameObject go = new GameObject(prefabName);
+            SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
+            sr.sprite = sprite;
+            PrefabUtility.SaveAsPrefabAsset(go, assetPath);
+            UnityEngine.Object.DestroyImmediate(go, false);
+
+            string prefabGuidStr = AssetDatabase.AssetPathToGUID(assetPath);
+            AssetDatabase.TryGetGUIDAndLocalFileIdentifier(sprite, out string spriteGuidStr, out long spriteLocalId);
+            AssetDatabase.TryGetGUIDAndLocalFileIdentifier(texture, out string textureGuidStr, out long textureLocalId);
+            GUID prefabGuid = new GUID(prefabGuidStr);
+            GUID spriteGuid = new GUID(spriteGuidStr);
+            GUID textureGuid = new GUID(textureGuidStr);
+
+            CalculateAssetDependencyData.TaskInput input = CreateDefaultInput();
+            input.Assets = new List<GUID>() { prefabGuid, spriteGuid };
+
+            CalculateAssetDependencyData.RunInternal(input, out CalculateAssetDependencyData.TaskOutput output);
+            List<ObjectIdentifier> referencedObjs = output.AssetResults[0].assetInfo.referencedObjects;
+            Assert.AreEqual(4, referencedObjs.Count);
+
+            bool refsSprite = false;
+            bool refsTexture = false;
+            foreach (ObjectIdentifier id in referencedObjs)
+            {
+                if (id.guid == spriteGuid && id.localIdentifierInFile == spriteLocalId)
+                    refsSprite = true;
+                else if (id.guid == textureGuid && id.localIdentifierInFile == textureLocalId)
+                    refsTexture = true;
+            }
+            Assert.IsTrue(refsSprite, "Prefab should reference the Sprite.");
+            Assert.IsTrue(refsTexture, "Prefab should reference the source texture.");
         }
 
         class TestProgressTracker : IProgressTracker

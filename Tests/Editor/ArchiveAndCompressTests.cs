@@ -204,7 +204,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         {
             get
             {
-                yield return new TestCaseData(true, new Action<ContentHashTestContext>((ctx) =>
+                yield return new TestCaseData(false, new Action<ContentHashTestContext>((ctx) =>
                 {
                     ctx.input.AssetToFilesDependencies[ctx.assetGUID] = new List<string>() { "internalName", "internalName3" };
                 })).SetName("DependencyChanges");
@@ -424,6 +424,7 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             Dictionary<string, string[]> results = ArchiveAndCompressBundles.CalculateBundleDependencies(assetFileList, filenameToBundleName);
 
+            //Check full dependency list
             CollectionAssert.AreEquivalent(new string[] { "bundle1", "bundle2", "bundle3" }, results.Keys);
             CollectionAssert.AreEquivalent(new string[] { "bundle2", "bundle3" }, results["bundle1"]);
             CollectionAssert.AreEquivalent(new string[] { "bundle3" }, results["bundle2"]);

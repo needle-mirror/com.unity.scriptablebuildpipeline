@@ -111,13 +111,13 @@ namespace UnityEditor.Build.Pipeline.Tasks
             return info;
         }
 
-        internal static Hash128 CalculateHashVersion(ArchiveWorkItem item, string[] dependencies)
+        internal static Hash128 CalculateHashVersion(ArchiveWorkItem item)
         {
             List<Hash128> hashes = new List<Hash128>();
 
             hashes.AddRange(item.SeriliazedFileMetaDatas.Select(x => x.ContentHash));
 
-            return HashingMethods.Calculate(hashes, dependencies).ToHash128();
+            return HashingMethods.Calculate(hashes).ToHash128();
         }
 
         internal class ArchiveWorkItem
@@ -190,6 +190,13 @@ namespace UnityEditor.Build.Pipeline.Tasks
             return code;
         }
 
+        /// <summary>
+        /// Returns a mapping of bundle name to the complete list of dependencies, including indirect dependencies
+        /// </summary>
+        /// <param name="assetFileList">asset file list</param>
+        /// <param name="filenameToBundleName">asset file to bundle names</param>
+        /// <param name="directDependencies">a map of bundle names to only the direct dependencies, used primarily for bundle hash calculation</param>
+        /// <returns></returns>
         internal static Dictionary<string, string[]> CalculateBundleDependencies(List<List<string>> assetFileList, Dictionary<string, string> filenameToBundleName)
         {
             var bundleDependencies = new Dictionary<string, string[]>();
@@ -202,6 +209,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 string bundle = filenameToBundleName[files.First()];
                 HashSet<string> dependencies;
                 bundleDependenciesHash.GetOrAdd(bundle, out dependencies);
+
                 dependencies.UnionWith(files.Select(x => filenameToBundleName[x]));
                 dependencies.Remove(bundle);
 
@@ -244,7 +252,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 {
                     // apply bundle dependencies
                     item.ResultDetails.Dependencies = bundleDependencies.ContainsKey(item.BundleName) ? bundleDependencies[item.BundleName] : new string[0];
-                    item.ResultDetails.Hash = CalculateHashVersion(item, item.ResultDetails.Dependencies);
+                    item.ResultDetails.Hash = CalculateHashVersion(item);
                 }
             }
         }

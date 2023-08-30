@@ -4,7 +4,8 @@
         "Unity.ScriptableBuildPipeline.Editor",
         "Unity.ScriptableBuildPipeline",
         "Unity.PerformanceTesting",
-        "Unity.PerformanceTesting.Editor"
+        "Unity.PerformanceTesting.Editor",
+		"ScriptableBuildPipelineTests"
     ],
     "optionalUnityReferences": [
         "TestAssemblies"
