@@ -1,7 +1,7 @@
 {
   "name": "com.unity.scriptablebuildpipeline",
   "displayName": "Scriptable Build Pipeline",
-  "version": "1.21.20",
+  "version": "1.21.21",
   "unity": "2019.4",
   "description": "The Scriptable Build Pipeline moves the asset bundle build pipeline to C#.  Use the pre-defined build flows, or create your own using the divided up APIs.  This system improves build time, fixes incremental build, and provides greater flexibility.",
   "keywords": [
@@ -14,15 +14,15 @@
   ],
   "dependencies": {},
   "_upm": {
-    "changelog": "- Fix issue where source textures aren't stripped when assets reference explicit packed sprites.\n- Fixed large memory usage when using BuildLayoutGenerationTask"
+    "changelog": "- Fix CalculateSceneDependencyData given changed sprite atlas"
   },
   "upmCi": {
-    "footprint": "0e38755bca408632556ef152241f9af942b3fd98"
+    "footprint": "fcf0e109f286090efa0e05ca2ab469c8097c1f41"
   },
   "documentationUrl": "https://docs.unity3d.com/Packages/com.unity.scriptablebuildpipeline@1.21/manual/index.html",
   "repository": {
     "url": "https://github.cds.internal.unity3d.com/unity/Addressables.git",
     "type": "git",
-    "revision": "258a622874bed1fce148ed59cb0960165dff5e86"
+    "revision": "a981d4bc6c5de7a6a62ec3f63f3bdfc87ece371a"
   }
 }

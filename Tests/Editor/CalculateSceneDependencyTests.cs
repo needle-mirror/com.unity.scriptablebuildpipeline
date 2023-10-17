@@ -10,6 +10,7 @@ using UnityEditor.Build.Pipeline.Tasks;
 using UnityEditor.Build.Pipeline.Utilities;
 using UnityEditor.Build.Player;
 using UnityEditor.SceneManagement;
+using UnityEditor.U2D;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -75,6 +76,8 @@ namespace UnityEditor.Build.Pipeline.Tests
         const string k_TestAssetsPath = "Assets/TestAssetsOnlyWillBeDeleted";
         const string k_CubePath = k_TestAssetsPath + "/Cube.prefab";
         const string k_CubePath2 = k_TestAssetsPath + "/Cube2.prefab";
+        const string k_SpriteAtlasPath = k_TestAssetsPath + "/SpriteAtlas.spriteatlasv2";
+        const string k_BlackTexturePath = k_TestAssetsPath + "/BlackTexture.png";
 
         static CalculateSceneDependencyData CreateDefaultBuildTask(List<GUID> scenes, BuildCache optionalCache, bool nonRecursive = false)
         {
@@ -84,7 +87,8 @@ namespace UnityEditor.Build.Pipeline.Tests
             testParams.NonRecursiveDependencies = nonRecursive;
             var testContent = new TestContent { TestScenes = scenes };
             var testData = new TestDependencyData();
-            IBuildContext context = new BuildContext(testParams, testContent, testData, optionalCache);
+            var buildResult = new BundleBuildResults();
+            IBuildContext context = new BuildContext(testParams, testContent, testData, optionalCache, buildResult);
             ContextInjector.Inject(context, task);
             return task;
         }
@@ -123,6 +127,33 @@ namespace UnityEditor.Build.Pipeline.Tests
             AssetDatabase.ImportAsset(k_CubePath);
             AssetDatabase.ImportAsset(k_CubePath2);
         }
+
+#if UNITY_2021_3_OR_NEWER
+        public void SetupSceneWithSpritesForTest(out Scene scene)
+        {
+            var spriteAtlasAsset = new SpriteAtlasAsset();
+            SpriteAtlasAsset.Save(spriteAtlasAsset, k_SpriteAtlasPath);
+
+            File.WriteAllBytes(k_BlackTexturePath, Texture2D.blackTexture.EncodeToPNG());
+            AssetDatabase.ImportAsset(k_BlackTexturePath);
+            var blackTextureImporter = (TextureImporter)AssetImporter.GetAtPath(k_BlackTexturePath);
+            var blackTextureImporterSettings = new TextureImporterSettings();
+            blackTextureImporterSettings.ApplyTextureType(TextureImporterType.Sprite);
+            blackTextureImporterSettings.spriteMode = (int)SpriteImportMode.Single;
+            blackTextureImporterSettings.textureShape = TextureImporterShape.Texture2D;
+            blackTextureImporter.SetTextureSettings(blackTextureImporterSettings);
+            blackTextureImporter.SaveAndReimport();
+
+            scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene);
+
+            var blackSprite = AssetDatabase.LoadAssetAtPath<Sprite>(k_BlackTexturePath);
+            var newGameObject = new GameObject("ObjectWithSprite");
+            var spriteRenderer = newGameObject.AddComponent<SpriteRenderer>();
+            spriteRenderer.sprite = blackSprite;
+
+            EditorSceneManager.SaveScene(scene, k_ScenePath);
+        }
+#endif
 
         [OneTimeTearDown]
         public void Cleanup()
@@ -231,5 +262,45 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             Assert.AreNotEqual(json, "{\"m_objToUsage\":[]}");
         }
+
+#if UNITY_2022_3_OR_NEWER
+        [Test]
+        public void CalculateSceneDependencyData_WhenSpriteDependencyChanges_RecalculatesDependencies()
+        {
+            var prevSpritePackerModeMode = EditorSettings.spritePackerMode;
+            EditorSettings.spritePackerMode = SpritePackerMode.SpriteAtlasV2;
+            SetupSceneWithSpritesForTest(out var scene);
+
+            List<GUID> scenes = new List<GUID>();
+            GUID sceneGuid = new GUID(AssetDatabase.AssetPathToGUID(scene.path));
+            scenes.Add(sceneGuid);
+
+            TestDependencyData dependencyData1;
+            using (BuildCache cache = new BuildCache())
+            {
+                var buildTask = CreateDefaultBuildTask(scenes, cache);
+                buildTask.Run();
+                ExtractTestData(buildTask, out dependencyData1);
+            }
+
+            var spriteAtlas = SpriteAtlasAsset.Load(k_SpriteAtlasPath);
+            var blackSprite = AssetDatabase.LoadAssetAtPath<Sprite>(k_BlackTexturePath);
+            spriteAtlas.Add(new UnityEngine.Object[] { blackSprite });
+            SpriteAtlasAsset.Save(spriteAtlas, k_SpriteAtlasPath);
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
+
+            TestDependencyData dependencyData2;
+            using (BuildCache cache = new BuildCache())
+            {
+                var buildTask = CreateDefaultBuildTask(scenes, cache);
+                buildTask.Run();
+                ExtractTestData(buildTask, out dependencyData2);
+            }
+
+            Assert.AreNotEqual(dependencyData1.SceneInfo[sceneGuid].referencedObjects.Count, dependencyData2.SceneInfo[sceneGuid].referencedObjects.Count);
+
+            EditorSettings.spritePackerMode = prevSpritePackerModeMode;
+        }
+#endif
     }
 }
