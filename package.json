@@ -1,7 +1,7 @@
 {
   "name": "com.unity.scriptablebuildpipeline",
   "displayName": "Scriptable Build Pipeline",
-  "version": "2.0.2",
+  "version": "2.1.0",
   "unity": "2019.4",
   "description": "The Scriptable Build Pipeline moves the asset bundle build pipeline to C#.  Use the pre-defined build flows, or create your own using the divided up APIs.  This system improves build time, fixes incremental build, and provides greater flexibility.",
   "keywords": [
@@ -17,12 +17,12 @@
     "changelog": "- Fixing compile issue with custom build script in ECS package."
   },
   "upmCi": {
-    "footprint": "42f94fabe3fb8af1844b396528e4bac9324aa438"
+    "footprint": "838be0357bffc87b8ff50184f465f900fac02f9a"
   },
-  "documentationUrl": "https://docs.unity3d.com/Packages/com.unity.scriptablebuildpipeline@2.0/manual/index.html",
+  "documentationUrl": "https://docs.unity3d.com/Packages/com.unity.scriptablebuildpipeline@2.1/manual/index.html",
   "repository": {
     "url": "https://github.cds.internal.unity3d.com/unity/Addressables.git",
     "type": "git",
-    "revision": "c01562d285acd08dae7372e6ad37bc56d24ce1ea"
+    "revision": "fce2672212e4b36e11860396db983d5a00949900"
   }
 }
