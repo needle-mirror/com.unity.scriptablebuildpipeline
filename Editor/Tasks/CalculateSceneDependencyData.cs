@@ -166,8 +166,10 @@ namespace UnityEditor.Build.Pipeline.Tasks
                                     if (Enumerable.SequenceEqual(filteredReferences,filteredReferencesNew) == false)
                                     {
                                         useCachedScene = false;
-                                        break;
                                     }
+
+                                    // ADDR-3596: break must be here to prevent CalculatePlayerDependenciesForScene from being called unnecessarily.
+                                    break;
                                 }
                             }
 

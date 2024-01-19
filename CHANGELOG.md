@@ -4,6 +4,14 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.1.2] - 2024-01-19
+- Fixed a bug where calculating scene dependency data could throw an error
+- Fixed a bug that lead to builds being much slower than they should be
+- Fixed issue where "Build Task CalculateSceneDependencyData failed with exception: Object reference not set to an instance of an object" is thrown when building.
+
+## [2.1.1] - 2023-12-11
+- Fixing error in GeBuildWindowExtension in newer versions of the Editor
+
 ## [2.1.0] - 2023-10-30
 - Fixing compile issue with custom build script in ECS package.
 
