@@ -99,6 +99,9 @@ internal static class BuildCacheUtility
 
     public static CacheEntry GetCacheEntry(Type type, int version = 1)
     {
+        if (type == null)
+            return new CacheEntry { Version = version };
+
         CacheEntry entry;
         KeyValuePair<Type, int> key = new KeyValuePair<Type, int>(type, version);
         if (m_TypeToHash.TryGetValue(key, out entry))

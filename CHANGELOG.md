@@ -4,6 +4,11 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.21.22] - 2024-02-08
+- Fixed a bug where calculating scene dependency data could throw an error
+- Fixed a bug that lead to builds being much slower than they should be
+- Fixed issue where "Build Task CalculateSceneDependencyData failed with exception: Object reference not set to an instance of an object" is thrown when building.
+
 ## [1.21.21] - 2023-10-17
 - Fix CalculateSceneDependencyData given changed sprite atlas
 

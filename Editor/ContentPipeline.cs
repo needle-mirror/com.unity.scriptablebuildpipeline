@@ -185,7 +185,11 @@ namespace UnityEditor.Build.Pipeline
 #if UNITY_2021_3_OR_NEWER
         private static IBuildWindowExtension GetBuildWindowExtension(BuildTarget target, BuildTargetGroup targetGroup)
         {
+#if UNITY_2023_3_OR_NEWER
+            var module = ModuleManager.GetTargetStringFrom(target);
+#else
             var module = ModuleManager.GetTargetStringFrom(targetGroup, target);
+#endif
             return ModuleManager.GetBuildWindowExtension(module);
         }
 
