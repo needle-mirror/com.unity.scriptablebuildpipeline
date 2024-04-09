@@ -1,7 +1,7 @@
 {
   "name": "com.unity.scriptablebuildpipeline",
   "displayName": "Scriptable Build Pipeline",
-  "version": "2.1.2",
+  "version": "2.1.3",
   "unity": "2019.4",
   "description": "The Scriptable Build Pipeline moves the asset bundle build pipeline to C#.  Use the pre-defined build flows, or create your own using the divided up APIs.  This system improves build time, fixes incremental build, and provides greater flexibility.",
   "keywords": [
@@ -14,15 +14,15 @@
   ],
   "dependencies": {},
   "_upm": {
-    "changelog": "- Fixed a bug where calculating scene dependency data could throw an error\n- Fixed a bug that lead to builds being much slower than they should be\n- Fixed issue where \"Build Task CalculateSceneDependencyData failed with exception: Object reference not set to an instance of an object\" is thrown when building."
+    "changelog": "- Fixed error where key was already in a dictionary and we try to add it again\n- Fixed issue where SpriteAtlas addressable bundle size is doubled if previous build cache is not cleared"
   },
   "upmCi": {
-    "footprint": "a81c00d0a74b9232c0fa7e862fe4cc74ffd35a5e"
+    "footprint": "7632bcf5a0a46f55ac4f9c2ed79ce93143da1f67"
   },
   "documentationUrl": "https://docs.unity3d.com/Packages/com.unity.scriptablebuildpipeline@2.1/manual/index.html",
   "repository": {
     "url": "https://github.cds.internal.unity3d.com/unity/Addressables.git",
     "type": "git",
-    "revision": "807de828c34632d1203296e32c09d3a9dbdb5513"
+    "revision": "ce0566e3aa96bd3b1648c405187751d0306cc931"
   }
 }

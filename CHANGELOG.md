@@ -4,6 +4,10 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.1.3] - 2024-04-09
+- Fixed error where key was already in a dictionary and we try to add it again
+- Fixed issue where SpriteAtlas addressable bundle size is doubled if previous build cache is not cleared
+
 ## [2.1.2] - 2024-01-19
 - Fixed a bug where calculating scene dependency data could throw an error
 - Fixed a bug that lead to builds being much slower than they should be
