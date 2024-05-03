@@ -328,7 +328,19 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
             HashSet<GUID> explicitAssets = new HashSet<GUID>(input.Assets);
             Dictionary<GUID, AssetOutput> implicitAssetsOutput = new Dictionary<GUID, AssetOutput>();
+
+            // Populate the collection of packed sprites from the cache
             HashSet<GUID> packedSprites = new HashSet<GUID>();
+            for (int i = 0; i < input.Assets.Count; i++)
+            {
+                if (cachedInfo != null && cachedInfo[i] != null)
+                {
+                    var guid = input.Assets[i];
+                    var spriteData = cachedInfo[i].Data[2] as SpriteImporterData;
+                    if (spriteData != null && spriteData.PackedSprite)
+                        packedSprites.Add(guid);
+                }
+            }
 
             Queue<int> assetsToProcess = new Queue<int>();
             for (int i = 0; i < input.Assets.Count; i++)
