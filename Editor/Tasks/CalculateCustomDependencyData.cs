@@ -6,7 +6,6 @@ using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Injector;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Utilities;
-using ExtensionMethods = UnityEditor.Build.Pipeline.Utilities.ExtensionMethods;
 
 namespace UnityEditor.Build.Pipeline.Tasks
 {
@@ -89,7 +88,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             var uniqueTypes = new HashSet<Type>();
             var objectTypes = new List<ObjectTypes>();
             var dependencies = new HashSet<CacheEntry>();
-            ExtensionMethods.ExtractCommonCacheData(m_Cache, assetInfo.includedObjects, assetInfo.referencedObjects, uniqueTypes, objectTypes, dependencies);
+            Utilities.ExtensionMethods.ExtractCommonCacheData(m_Cache, assetInfo.includedObjects, assetInfo.referencedObjects, uniqueTypes, objectTypes, dependencies);
             info.Dependencies = dependencies.ToArray();
 
             info.Data = new object[] { assetInfo, usageTags, objectTypes };
