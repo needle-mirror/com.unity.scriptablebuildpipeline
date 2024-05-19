@@ -7,6 +7,7 @@ using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Utilities;
 using UnityEditor.Build.Player;
 using UnityEngine;
+using ExtensionMethods = UnityEditor.Build.Pipeline.Utilities.ExtensionMethods;
 
 namespace UnityEditor.Build.Pipeline.Tasks
 {
