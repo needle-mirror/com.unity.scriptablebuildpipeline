@@ -4,6 +4,10 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [1.21.24] - 2024-06-26
+Fix issue where build fails when not installed server platform is selected in the Build Settings Window
+Fixed issue where total size of all bundles changes when updating the same Addressable Groups build.
+
 ## [1.21.23] - 2024-05-03
 - Fixed issue where SpriteAtlas addressable bundle size is doubled if previous build cache is not cleared
 

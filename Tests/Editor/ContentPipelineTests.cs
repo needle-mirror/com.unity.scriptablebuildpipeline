@@ -23,6 +23,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             }
             else
             {
+                Assert.AreEqual(false, ContentPipeline.CanBuildPlayer(BuildTarget.StandaloneWindows, BuildTargetGroup.Standalone, null)); // null check BuildWindowExtension
                 Assert.AreEqual(false, ContentPipeline.CanBuildPlayer(BuildTarget.StandaloneWindows, BuildTargetGroup.Standalone, new TestBuildWindowExtension(false)));
                 Assert.AreEqual(true, ContentPipeline.CanBuildPlayer(BuildTarget.StandaloneWindows, BuildTargetGroup.Standalone, new TestBuildWindowExtension(true)));
             }

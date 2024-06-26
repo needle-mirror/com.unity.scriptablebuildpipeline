@@ -402,7 +402,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                     // Process uncached Sprites first, then all other uncached assets
                     var importer = AssetImporter.GetAtPath(assetPath) as TextureImporter;
                     if (importer != null && importer.textureType == TextureImporterType.Sprite)
-                        output.AssetResults[i] = ProcessAsset(true, asset, assetPath, input, explicitAssets, implicitAssetsOutput, packedSprites, importer);
+                        output.AssetResults[i] = ProcessAsset(asset, assetPath, input, explicitAssets, implicitAssetsOutput, packedSprites, importer);
                     else
                         assetsToProcess.Enqueue(i);
                 }
@@ -414,7 +414,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 int i = assetsToProcess.Dequeue();
                 GUID asset = input.Assets[i];
                 string assetPath = AssetDatabase.GUIDToAssetPath(asset.ToString());
-                output.AssetResults[i] = ProcessAsset(false, asset, assetPath, input, explicitAssets, implicitAssetsOutput, packedSprites);
+                output.AssetResults[i] = ProcessAsset(asset, assetPath, input, explicitAssets, implicitAssetsOutput, packedSprites, null);
             }
 
             using (input.Logger.ScopedStep(LogLevel.Info, "Gathering Cache Entries to Save"))
@@ -467,8 +467,8 @@ namespace UnityEditor.Build.Pipeline.Tasks
             return ReturnCode.Success;
         }
 
-        private static AssetOutput ProcessAsset(bool isSprite, GUID asset, string assetPath, TaskInput input, HashSet<GUID> explicitAssets,
-            in Dictionary<GUID, AssetOutput> implicitAssetsOutput, HashSet<GUID> packedSprites, TextureImporter importer = null)
+        private static AssetOutput ProcessAsset(GUID asset, string assetPath, TaskInput input, HashSet<GUID> explicitAssets,
+            in Dictionary<GUID, AssetOutput> implicitAssetsOutput, HashSet<GUID> packedSprites, TextureImporter spriteImporter)
         {
             AssetOutput assetResult = new AssetOutput();
             assetResult.asset = asset;
@@ -483,8 +483,16 @@ namespace UnityEditor.Build.Pipeline.Tasks
             var includedObjects = ContentBuildInterface.GetPlayerObjectIdentifiersInAsset(asset, input.Target);
             assetResult.assetInfo.includedObjects = new List<ObjectIdentifier>(includedObjects);
             ObjectIdentifier[] referencedObjects;
+
+            bool isSprite = spriteImporter != null;
+
 #if NONRECURSIVE_DEPENDENCY_DATA
-            referencedObjects = GetPlayerDependenciesForAsset(asset, includedObjects, input, assetResult, explicitAssets, implicitAssetsOutput, packedSprites);
+            // The packedSprites hashset is used to include source texture references for a non-packed sprite dependency.
+            // We process all sprites before all other assets. A sprite is added to the hashset at the end of each iteration.
+            // So the hashset may not be fully populated while processing sprites.
+            // To resolve this, we can skip the source texture inclusion step by passing in a null hashset.
+            // This is safe to do because sprites cannot have a non-packed sprite dependency. They can only reference other sprites packed in the same atlas.
+            referencedObjects = GetPlayerDependenciesForAsset(asset, includedObjects, input, assetResult, explicitAssets, implicitAssetsOutput, isSprite ? null : packedSprites);
 #else
             referencedObjects = ContentBuildInterface.GetPlayerDependenciesForObjects(includedObjects, input.Target, input.TypeDB);
 #endif
@@ -514,7 +522,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
 #if !UNITY_2020_1_OR_NEWER
                 if (EditorSettings.spritePackerMode == SpritePackerMode.AlwaysOn || EditorSettings.spritePackerMode == SpritePackerMode.BuildTimeOnly)
-                    assetResult.spriteData.PackedSprite = !string.IsNullOrEmpty(importer.spritePackingTag);
+                    assetResult.spriteData.PackedSprite = !string.IsNullOrEmpty(spriteImporter?.spritePackingTag);
 #endif
                 if (assetResult.spriteData.PackedSprite)
                     packedSprites.Add(asset);
@@ -571,8 +579,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 {
                     encounteredExplicitAssetDependencies.Add(obj); // might just be able to add to collected
 
-                    // Don't include source textures for packed sprites
-                    if (!packedSprites.Contains(obj.guid))
+                    // Without this check, if the asset references a packed sprite its source texture will also be included as reference.
+                    // This conflicts with the StripUnusedSpriteSource build step which removes any unreferenced source textures.
+                    if (packedSprites != null && !packedSprites.Contains(obj.guid))
                         mainRepresentationNeeded.Add(obj.guid);
                 }
                 // looking for implicit assets we have not visited yet

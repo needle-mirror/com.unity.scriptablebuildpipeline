@@ -1,5 +1,6 @@
 {
     "name": "Unity.ScriptableBuildPipeline.Editor",
+    "rootNamespace": "",
     "references": [
         "Unity.ScriptableBuildPipeline",
         "UnityEditor.CacheServer"
@@ -28,6 +29,17 @@
             "name": "Unity",
             "expression": "2019.4.19f1",
             "define": "NONRECURSIVE_DEPENDENCY_DATA"
+        },
+        {
+            "name": "Unity",
+            "expression": "[2022.3.30f1,2023)",
+            "define": "STANDALONE_BUILD_ERROR_CHECK_2022_3"
+        },
+        {
+            "name": "Unity",
+            "expression": "[2021.3.39f1,2022)",
+            "define": "STANDALONE_BUILD_ERROR_CHECK_2021_3"
         }
-    ]
+    ],
+    "noEngineReferences": false
 }
