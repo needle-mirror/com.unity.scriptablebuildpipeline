@@ -599,10 +599,64 @@ namespace UnityEditor.Build.Pipeline.Tests
                 else if (id.guid == texture2Guid && id.localIdentifierInFile == texture2LocalId)
                     refsTexture2 = true;
             }
-            Assert.IsTrue(refsSprite1, "Prefab should reference the first Sprite.");
-            Assert.IsTrue(refsSprite2, "Prefab should reference the second Sprite.");
-            Assert.IsFalse(refsTexture1, "Prefab should not reference the first source texture.");
-            Assert.IsFalse(refsTexture2, "Prefab should not reference the second source texture.");
+            Assert.IsTrue(refsSprite1, "Atlas should reference the first Sprite.");
+            Assert.IsTrue(refsSprite2, "Atlas should reference the second Sprite.");
+            Assert.IsFalse(refsTexture1, "Atlas should not reference the first source texture.");
+            Assert.IsFalse(refsTexture2, "Atlas should not reference the second source texture.");
+        }
+
+        [Test]
+        public void WhenExplicitSpritesAndImplicitAtlas_SpritesOnlyReferenceSprites()
+        {
+            var sprite1 = AssetDatabase.LoadAssetAtPath<Sprite>(kSpriteTexture1Asset);
+            var sprite2 = AssetDatabase.LoadAssetAtPath<Sprite>(kSpriteTexture2Asset);
+            var texture1 = AssetDatabase.LoadAssetAtPath<Texture>(kSpriteTexture1Asset);
+            var texture2 = AssetDatabase.LoadAssetAtPath<Texture>(kSpriteTexture2Asset);
+
+            AssetDatabase.TryGetGUIDAndLocalFileIdentifier(sprite1, out string sprite1GuidStr, out long sprite1LocalId);
+            AssetDatabase.TryGetGUIDAndLocalFileIdentifier(sprite2, out string sprite2GuidStr, out long sprite2LocalId);
+            AssetDatabase.TryGetGUIDAndLocalFileIdentifier(texture1, out string texture1GuidStr, out long texture1LocalId);
+            AssetDatabase.TryGetGUIDAndLocalFileIdentifier(texture2, out string texture2GuidStr, out long texture2LocalId);
+
+            GUID sprite1Guid = new GUID(sprite1GuidStr);
+            GUID sprite2Guid = new GUID(sprite2GuidStr);
+            GUID texture1Guid = new GUID(texture1GuidStr);
+            GUID texture2Guid = new GUID(texture2GuidStr);
+
+            EditorSettings.spritePackerMode = SpritePackerMode.BuildTimeOnlyAtlas;
+            CalculateAssetDependencyData.TaskInput input = CreateDefaultInput();
+            SpriteAtlasUtility.PackAllAtlases(input.Target);
+            input.Assets = new List<GUID>() { sprite1Guid, sprite2Guid };
+
+            CalculateAssetDependencyData.RunInternal(input, out CalculateAssetDependencyData.TaskOutput output);
+
+            List<ObjectIdentifier> referencedObjs1 = output.AssetResults[0].assetInfo.referencedObjects;
+            Assert.AreEqual(3, referencedObjs1.Count);
+            bool refsSprite2 = false;
+            bool refsTexture2 = false;
+            foreach (ObjectIdentifier id in referencedObjs1)
+            {
+                if (id.guid == sprite2Guid && id.localIdentifierInFile == sprite2LocalId)
+                    refsSprite2 = true;
+                else if (id.guid == texture2Guid && id.localIdentifierInFile == texture2LocalId)
+                    refsTexture2 = true;
+            }
+            Assert.IsTrue(refsSprite2, "Sprite should reference the second Sprite.");
+            Assert.IsFalse(refsTexture2, "Sprite should not reference the second source texture.");
+
+            List<ObjectIdentifier> referencedObjs2 = output.AssetResults[1].assetInfo.referencedObjects;
+            Assert.AreEqual(3, referencedObjs2.Count);
+            bool refsSprite1 = false;
+            bool refsTexture1 = false;
+            foreach (ObjectIdentifier id in referencedObjs2)
+            {
+                if (id.guid == sprite1Guid && id.localIdentifierInFile == sprite1LocalId)
+                    refsSprite1 = true;
+                else if (id.guid == texture1Guid && id.localIdentifierInFile == texture1LocalId)
+                    refsTexture1 = true;
+            }
+            Assert.IsTrue(refsSprite1, "Sprite should reference the first Sprite.");
+            Assert.IsFalse(refsTexture1, "Sprite should not reference the first source texture.");
         }
 
         [Test]
