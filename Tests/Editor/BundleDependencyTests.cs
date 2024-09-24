@@ -55,7 +55,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             AssetDatabase.DeleteAsset(k_TmpAssetPath);
         }
 
-        static CompatibilityAssetBundleManifest BuildPrefabBundles()
+        static CompatibilityAssetBundleManifest BuildPrefabBundles(bool recurseDeps)
         {
             // Put each prefab into its own AssetBundle
             var bundleDefinitions = new AssetBundleBuild[k_CntPrefabChain];
@@ -72,11 +72,26 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             // Todo, confirm that the NonRecursive Mode is enabled, the test assumes that it is and i think that is the default but its not exposed in this API
 
-            var manifest = CompatibilityBuildPipeline.BuildAssetBundles(
-                k_BuildFolder,
-                bundleDefinitions,
-                BuildAssetBundleOptions.AppendHashToAssetBundleName,
-                EditorUserBuildSettings.activeBuildTarget);
+            var manifest = default(CompatibilityAssetBundleManifest);
+
+#if BUILD_OPTIONS_RECURSE_DEPENDENCIES_2022_3 || BUILD_OPTIONS_RECURSE_DEPENDENCIES_2023_3 || UNITY_6000_0_OR_NEWER
+            if (recurseDeps)
+            {
+                manifest = CompatibilityBuildPipeline.BuildAssetBundles(
+                    k_BuildFolder,
+                    bundleDefinitions,
+                    BuildAssetBundleOptions.AppendHashToAssetBundleName | BuildAssetBundleOptions.RecurseDependencies,
+                    EditorUserBuildSettings.activeBuildTarget);
+            }
+            else
+#endif
+            {
+                manifest = CompatibilityBuildPipeline.BuildAssetBundles(
+                    k_BuildFolder,
+                    bundleDefinitions,
+                    BuildAssetBundleOptions.AppendHashToAssetBundleName,
+                    EditorUserBuildSettings.activeBuildTarget);
+            }
 
             Assert.IsNotNull(manifest);
 
@@ -87,7 +102,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         [Test, Description("BPSBP-736")]
         public void BundeHashChanges_WhenDirectDependencyChanges()
         {
-            CompatibilityAssetBundleManifest manifest = BuildPrefabBundles();
+            CompatibilityAssetBundleManifest manifest = BuildPrefabBundles(false);
 
             //var outputFiles = Directory.EnumerateFiles(k_BuildFolder, "*", SearchOption.TopDirectoryOnly);
             //Debug.Log("Output of the build:\n\t" + string.Join("\n\t", outputFiles));
@@ -103,7 +118,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             // Change bundle 3, e.g. remove its dependency on bundle 4
             SetPrefabReferenceToNull(3);
 
-            CompatibilityAssetBundleManifest manifest2 = BuildPrefabBundles();
+            CompatibilityAssetBundleManifest manifest2 = BuildPrefabBundles(false);
 
             var rebuildPaths = new string[k_CntPrefabChain];
             for (int i = 0; i < k_CntPrefabChain; i++)
@@ -125,7 +140,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         [Test, Description("BPSBP-736")]
         public void BundleHashDoesNotChange_IfListOfReferencedBundlesDoesNotChange()
         {
-            CompatibilityAssetBundleManifest manifest = BuildPrefabBundles();
+            CompatibilityAssetBundleManifest manifest = BuildPrefabBundles(false);
 
             //var outputFiles = Directory.EnumerateFiles(k_BuildFolder, "*", SearchOption.TopDirectoryOnly);
             //Debug.Log("Output of the build:\n\t" + string.Join("\n\t", outputFiles));
@@ -141,7 +156,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             // Change bundle 3, e.g. remove its dependency on bundle 4
             AddToTransformValues(3);
 
-            CompatibilityAssetBundleManifest manifest2 = BuildPrefabBundles();
+            CompatibilityAssetBundleManifest manifest2 = BuildPrefabBundles(false);
 
             var rebuildPaths = new string[k_CntPrefabChain];
             for (int i = 0; i < k_CntPrefabChain; i++)
@@ -195,12 +210,12 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
 #endif
 
-        [Ignore("BPSBP-737 / ADDR-3262")]
+#if BUILD_OPTIONS_RECURSE_DEPENDENCIES_2022_3 || BUILD_OPTIONS_RECURSE_DEPENDENCIES_2023_3 || UNITY_6000_0_OR_NEWER
         [Test, Description("BPSBP-737 / ADDR-3262")]
         public void MonoScriptsAreNotNullInChainedBundles()
         {
             // Note: Test could also do variations, with MonoScript bundle enabled, maybe also NonRecursive=false
-            CompatibilityAssetBundleManifest manifest = BuildPrefabBundles();
+            CompatibilityAssetBundleManifest manifest = BuildPrefabBundles(true);
 
             string prefabBundleMatch = "*_*"; // Match bundle names like 0_f5b4234bbd5a5a599bd740802cc6f9cf and ignore other build output
 
@@ -209,11 +224,10 @@ namespace UnityEditor.Build.Pipeline.Tests
             var builtBundlePaths = Directory.EnumerateFiles(k_BuildFolder, prefabBundleMatch, SearchOption.TopDirectoryOnly).ToArray();
             LoadBundlesAndCheckMonoScript(builtBundlePaths);
         }
+#endif
 
         static void LoadBundlesAndCheckMonoScript(string[] bundleNames)
         {
-            //Debug.Log("Loading " + string.Join("\n", bundleNames));
-
             var bundleCount = bundleNames.Length;
             var bundles = new AssetBundle[bundleCount];
             for (int i = 0; i < bundleCount; i++)
@@ -225,19 +239,13 @@ namespace UnityEditor.Build.Pipeline.Tests
             {
                 for (int i = 0; i < bundleCount; i++)
                 {
+                    if (bundles[i].name == "UnityMonoScripts.bundle")
+                        continue;
+
                     var prefab = bundles[i].LoadAllAssets<GameObject>()[0];
                     var monoBehaviour = prefab.GetComponent<MonoBehaviourWithReference>();
 
-                    //TEMPORARY Assert disabled until BPSBP-737 fixed
-                    //Assert.IsNotNull(monoBehaviour, "Missing MonoScript or MonoBehaviourWithReference on " + bundleNames[i]);
-                    //
-
-                    if (monoBehaviour == null)
-                    {
-                        // Missing monoscript will result in the entire MonoBehaviour not being loaded
-                        Debug.Log("Missing MonoScript or MonoBehaviourWithReference on " + bundleNames[i]);
-                        continue;
-                    }
+                    Assert.IsNotNull(monoBehaviour, "Missing MonoScript or MonoBehaviourWithReference on " + bundleNames[i]);
 
                     var monoScript = MonoScript.FromMonoBehaviour(monoBehaviour);
                     Assert.IsNotNull(monoScript);

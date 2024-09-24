@@ -1,5 +1,6 @@
 {
     "name": "Unity.ScriptableBuildPipeline.Editor",
+    "rootNamespace": "",
     "references": [
         "Unity.ScriptableBuildPipeline",
         "UnityEditor.CacheServer"
@@ -28,6 +29,17 @@
             "name": "Unity",
             "expression": "2019.4.19f1",
             "define": "NONRECURSIVE_DEPENDENCY_DATA"
+        },
+        {
+            "name": "Unity",
+            "expression": "[2022.3.21f1,2023.1)",
+            "define": "BUILD_OPTIONS_RECURSE_DEPENDENCIES_2022_3"
+        },
+        {
+            "name": "Unity",
+            "expression": "2023.3.0b1",
+            "define": "BUILD_OPTIONS_RECURSE_DEPENDENCIES_2023_3"
         }
-    ]
+    ],
+    "noEngineReferences": false
 }
