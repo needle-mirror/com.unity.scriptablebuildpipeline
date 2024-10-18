@@ -32,13 +32,13 @@
         },
         {
             "name": "Unity",
-            "expression": "[2022.3.30f1,2023)",
-            "define": "STANDALONE_BUILD_ERROR_CHECK_2022_3"
+            "expression": "[2022.3.21f1,2023.1)",
+            "define": "BUILD_OPTIONS_RECURSE_DEPENDENCIES_2022_3"
         },
         {
             "name": "Unity",
-            "expression": "[2021.3.39f1,2022)",
-            "define": "STANDALONE_BUILD_ERROR_CHECK_2021_3"
+            "expression": "2023.3.0b1",
+            "define": "BUILD_OPTIONS_RECURSE_DEPENDENCIES_2023_3"
         }
     ],
     "noEngineReferences": false

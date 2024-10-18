@@ -87,6 +87,11 @@ namespace UnityEditor.Build.Pipeline
             if ((options & BuildAssetBundleOptions.DisableWriteTypeTree) != 0)
                 parameters.ContentBuildFlags |= ContentBuildFlags.DisableWriteTypeTree;
 
+#if BUILD_OPTIONS_RECURSE_DEPENDENCIES_2022_3 || BUILD_OPTIONS_RECURSE_DEPENDENCIES_2023_3 || UNITY_6000_0_OR_NEWER
+            if ((options & BuildAssetBundleOptions.RecurseDependencies) != 0)
+                parameters.NonRecursiveDependencies = false;
+#endif
+
             IBundleBuildResults results;
             ReturnCode exitCode = ContentPipeline.BuildAssetBundles(parameters, content, out results);
             if (exitCode < ReturnCode.Success)

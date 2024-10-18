@@ -204,13 +204,20 @@ namespace UnityEditor.Build.Pipeline
 
             if (buildWindowExtension == null)
                 return false;
+
 #if STANDALONE_BUILD_ERROR_CHECK_2022_3 || STANDALONE_BUILD_ERROR_CHECK_2021_3
             // Special case. DesktopStandaloneBuildWindowExtension.EnabledBuildButton() checks for the currently selected (not active) build target in the window.
             if (buildWindowExtension is DesktopStandaloneBuildWindowExtension standaloneExtension)
             {
                 var namedBuildTarget = NamedBuildTarget.FromActiveSettings(target);
                 string errorMsg = standaloneExtension.GetBuildPlayerError(namedBuildTarget);
-                return string.IsNullOrEmpty(errorMsg);
+
+                if (!string.IsNullOrEmpty(errorMsg))
+                {
+                    BuildLogger.LogError(errorMsg);
+                    return false;
+                }
+                return true;
             }
 #endif
             return buildWindowExtension.EnabledBuildButton();
