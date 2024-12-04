@@ -8,6 +8,7 @@ using UnityEditor.Build.Pipeline;
 using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEngine.TestTools;
+using UnityEditor.Build.Pipeline.Tests;
 
 /// <summary>
 /// Tests to ensure we are creating the correct file name
@@ -41,9 +42,6 @@ public class AppendHashToAssetBundleNameTests
     [Test]
     public void AppendHashToAssetBundleName_Sets_Bundle_Extension_After_HashNumber()
     {
-        if (!string.IsNullOrEmpty(ContentPipeline.CanBuildPlayer(EditorUserBuildSettings.activeBuildTarget, EditorUserBuildSettings.selectedBuildTargetGroup, "tempFolder")))
-            Assert.Ignore("Platform support is not installed and is required for AssetBundles tests");
-
         List<AssetBundleBuild> assetBundleDefinitionList = new List<AssetBundleBuild>();
         {
             AssetBundleBuild assetBundleBuild = new AssetBundleBuild();

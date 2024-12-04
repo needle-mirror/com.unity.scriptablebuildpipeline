@@ -1,5 +1,3 @@
-using System;
-using System.IO;
 using NUnit.Framework;
 using UnityEditor.Modules;
 using UnityEngine;
@@ -7,35 +5,11 @@ using UnityEngine;
 namespace UnityEditor.Build.Pipeline.Tests
 {
     /// <summary>
-    /// ContentPipelineTests
+    /// Tests for the Content Pipeline
     /// </summary>
     [TestFixture]
     public class ContentPipelineTests
     {
-
-        private const string k_TempBuildFolder = "TempBuildFolder";
-
-        /// <summary>
-        /// Setup
-        /// </summary>
-        [SetUp]
-        public void Setup()
-        {
-            if (!string.IsNullOrEmpty(ContentPipeline.CanBuildPlayer(EditorUserBuildSettings.activeBuildTarget, EditorUserBuildSettings.selectedBuildTargetGroup, "tempFolder")))
-                Assert.Ignore("Platform support is not installed and is required for AssetBundles tests");
-
-            Directory.CreateDirectory(k_TempBuildFolder);
-        }
-
-        /// <summary>
-        /// Teardown
-        /// </summary>
-        [TearDown]
-        public void TearDown()
-        {
-            if(Directory.Exists(k_TempBuildFolder))
-                Directory.Delete(k_TempBuildFolder, true);
-        }
 
         /// <summary>
         /// TestCanBuildPlayer
@@ -43,66 +17,151 @@ namespace UnityEditor.Build.Pipeline.Tests
         [Test]
         public void TestCanBuildPlayer()
         {
+#if UNITY_2021_3_OR_NEWER
             // this will always return false for IsBuildTargetSupported, so it tests that pathway
-            var caughtException = false;
-            try
-            {
-                Assert.IsNotNull(ContentPipeline.CanBuildPlayer(BuildTarget.NoTarget, BuildTargetGroup.Unknown, k_TempBuildFolder));
-            }
-            catch (Exception e)
-            {
-                caughtException = true;
-#if UNITY_2023_3_OR_NEWER
-                Assert.AreEqual("target must be valid", e.Message);
-#else
-                Assert.AreEqual("targetGroup must be valid", e.Message);
-#endif
-            }
-            Assert.True(caughtException, "Did not catch exception for no build target.");
+            Assert.AreEqual(true, ContentPipeline.CanBuildPlayer(BuildTarget.NoTarget, BuildTargetGroup.Unknown, null));
+#if UNITY_EDITOR_WIN
             // this can happen if the player is not installed like in yamato, it will always return true
             if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Standalone, BuildTarget.StandaloneWindows))
             {
-                Assert.AreEqual("Module StandaloneWindows is not installed.", ContentPipeline.CanBuildPlayer(BuildTarget.StandaloneWindows, BuildTargetGroup.Standalone, k_TempBuildFolder));
+                Assert.AreEqual(true, ContentPipeline.CanBuildPlayer(BuildTarget.StandaloneWindows, BuildTargetGroup.Standalone, new TestBuildWindowExtension(false)));
             }
             else
             {
-                Assert.IsNull(ContentPipeline.CanBuildPlayer(BuildTarget.StandaloneWindows, BuildTargetGroup.Standalone, k_TempBuildFolder));
+                Assert.AreEqual(false, ContentPipeline.CanBuildPlayer(BuildTarget.StandaloneWindows, BuildTargetGroup.Standalone, null)); // null check BuildWindowExtension
+                Assert.AreEqual(false, ContentPipeline.CanBuildPlayer(BuildTarget.StandaloneWindows, BuildTargetGroup.Standalone, new TestBuildWindowExtension(false)));
+                Assert.AreEqual(true, ContentPipeline.CanBuildPlayer(BuildTarget.StandaloneWindows, BuildTargetGroup.Standalone, new TestBuildWindowExtension(true)));
             }
-
+#elif UNITY_EDITOR_OSX
             // this can happen if the player is not installed like in yamato, it will always return true
             if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Standalone, BuildTarget.StandaloneOSX))
             {
-                Assert.AreEqual("Module StandaloneOSX is not installed.", ContentPipeline.CanBuildPlayer(BuildTarget.StandaloneOSX, BuildTargetGroup.Standalone, k_TempBuildFolder));
+                Assert.AreEqual(true, ContentPipeline.CanBuildPlayer(BuildTarget.StandaloneOSX, BuildTargetGroup.Standalone, new TestBuildWindowExtension(false)));
             } else {
-                Assert.IsNull(ContentPipeline.CanBuildPlayer(BuildTarget.StandaloneOSX, BuildTargetGroup.Standalone, k_TempBuildFolder));
+                Assert.AreEqual(false, ContentPipeline.CanBuildPlayer(BuildTarget.StandaloneOSX, BuildTargetGroup.Standalone, new TestBuildWindowExtension(false)));
+                Assert.AreEqual(true, ContentPipeline.CanBuildPlayer(BuildTarget.StandaloneOSX, BuildTargetGroup.Standalone, new TestBuildWindowExtension(true)));
             }
 
-#if UNITY_EDITOR_LINUX
-            // scripting backend compatability seems like it might make this not work on all platforms
+#elif UNITY_EDITOR_LINUX
             if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Standalone, BuildTarget.StandaloneLinux64))
             {
-                Assert.AreEqual("Module StandaloneLinux is not installed.", ContentPipeline.CanBuildPlayer(BuildTarget.StandaloneLinux64, BuildTargetGroup.Standalone, k_TempBuildFolder));
+                Assert.AreEqual(true, ContentPipeline.CanBuildPlayer(BuildTarget.StandaloneLinux64, BuildTargetGroup.Standalone, new TestBuildWindowExtension(false)));
             } else {
-                Assert.IsNull(ContentPipeline.CanBuildPlayer(BuildTarget.StandaloneLinux64, BuildTargetGroup.Standalone, k_TempBuildFolder));
+                Assert.AreEqual(false, ContentPipeline.CanBuildPlayer(BuildTarget.StandaloneLinux64, BuildTargetGroup.Standalone, new TestBuildWindowExtension(false)));
+                Assert.AreEqual(true, ContentPipeline.CanBuildPlayer(BuildTarget.StandaloneLinux64, BuildTargetGroup.Standalone, new TestBuildWindowExtension(true)));
             }
 #endif
 
-#if UNITY_2022_3_OR_NEWER
-            if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Standalone, BuildTarget.QNX))
-            {
-                Assert.AreEqual("Module QNX is not installed.", ContentPipeline.CanBuildPlayer(BuildTarget.QNX, BuildTargetGroup.Standalone, k_TempBuildFolder));
-            } else {
-                Assert.IsNull(ContentPipeline.CanBuildPlayer(BuildTarget.QNX, BuildTargetGroup.Standalone, k_TempBuildFolder));
-            }
-
-            if (!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Standalone, BuildTarget.EmbeddedLinux))
-            {
-                Assert.AreEqual("Module EmbeddedLinux is not installed.", ContentPipeline.CanBuildPlayer(BuildTarget.EmbeddedLinux, BuildTargetGroup.Standalone, k_TempBuildFolder));
-            } else {
-                Assert.IsNull(ContentPipeline.CanBuildPlayer(BuildTarget.EmbeddedLinux, BuildTargetGroup.Standalone, k_TempBuildFolder));
-            }
+#else
+            Assert.AreEqual(true, ContentPipeline.CanBuildPlayer(BuildTarget.StandaloneWindows, BuildTargetGroup.Standalone));
 #endif
         }
+
+#if UNITY_2021_3_OR_NEWER
+        internal class TestBuildWindowExtension : IBuildWindowExtension
+        {
+            private bool m_EnabledBuildButton;
+            public TestBuildWindowExtension(bool enabledBuildButton)
+            {
+                m_EnabledBuildButton = enabledBuildButton;
+            }
+            public void ShowPlatformBuildOptions()
+            {
+            }
+
+            public void ShowPlatformBuildWarnings()
+            {
+            }
+
+            public void ShowInternalPlatformBuildOptions()
+            {
+            }
+
+            public bool EnabledBuildButton()
+            {
+                return m_EnabledBuildButton;
+            }
+
+            public bool EnabledBuildAndRunButton()
+            {
+                return true;
+            }
+
+            public void GetBuildButtonTitles(out GUIContent buildButtonTitle, out GUIContent buildAndRunButtonTitle)
+            {
+                buildButtonTitle = null;
+                buildAndRunButtonTitle = null;
+            }
+
+            public bool AskForBuildLocation()
+            {
+                return false;
+            }
+
+            public bool ShouldDrawRunLastBuildButton()
+            {
+                return true;
+            }
+
+            public void DoRunLastBuildButtonGui()
+            {
+            }
+
+            public bool ShouldDrawScriptDebuggingCheckbox()
+            {
+                return false;
+            }
+
+            public bool ShouldDrawProfilerCheckbox()
+            {
+                return false;
+            }
+
+            public bool ShouldDrawDevelopmentPlayerCheckbox()
+            {
+                return false;
+            }
+
+            public bool ShouldDrawExplicitNullCheckbox()
+            {
+                return false;
+            }
+
+            public bool ShouldDrawExplicitDivideByZeroCheckbox()
+            {
+                return false;
+            }
+
+            public bool ShouldDrawExplicitArrayBoundsCheckbox()
+            {
+                return false;
+            }
+
+            public bool ShouldDrawForceOptimizeScriptsCheckbox()
+            {
+                return false;
+            }
+
+            public bool ShouldDrawWaitForManagedDebugger()
+            {
+                return false;
+            }
+
+            public bool ShouldDrawManagedDebuggerFixedPort()
+            {
+                return false;
+            }
+
+            public bool ShouldDisableManagedDebuggerCheckboxes()
+            {
+                return false;
+            }
+
+            public void DoScriptsOnlyGUI()
+            {
+            }
+        }
+#endif
     }
 }
 

@@ -14,9 +14,6 @@ namespace UnityEditor.Build.Pipeline.Tests
         [OneTimeSetUp]
         public void OneTimeSetUp()
         {
-            if (!string.IsNullOrEmpty(ContentPipeline.CanBuildPlayer(EditorUserBuildSettings.activeBuildTarget, EditorUserBuildSettings.selectedBuildTargetGroup, "tempFolder")))
-                Assert.Ignore("Platform support is not installed and is required for AssetBundles tests");
-
             WriteOperations = new IWriteOperation[5];
             WriteOperations[0] = new AssetBundleWriteOperation();
 #pragma warning disable CS0618 // Type or member is obsolete

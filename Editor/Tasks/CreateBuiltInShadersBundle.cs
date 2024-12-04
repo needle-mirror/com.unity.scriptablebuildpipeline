@@ -10,7 +10,7 @@ using UnityEngine;
 namespace UnityEditor.Build.Pipeline.Tasks
 {
     /// <summary>
-    /// Optional build task that extracts Unity's built in shaders and assigns them to the specified bundle
+    /// Optional build task that extracts Unity's built in extras and assigns them to the specified bundle
     /// </summary>
     public class CreateBuiltInShadersBundle : IBuildTask
     {
@@ -27,12 +27,12 @@ namespace UnityEditor.Build.Pipeline.Tasks
 #pragma warning restore 649
 
         /// <summary>
-        /// Stores the name for the built-in shaders bundle.
+        /// Stores the name for the built-in bundle.
         /// </summary>
-        public string ShaderBundleName { get; set; }
+        public string ShaderBundleName {get; set; }
 
         /// <summary>
-        /// Create the built-in shaders bundle.
+        /// Create the built-in bundle.
         /// </summary>
         /// <param name="bundleName">The name of the bundle.</param>
         public CreateBuiltInShadersBundle(string bundleName)
@@ -45,10 +45,26 @@ namespace UnityEditor.Build.Pipeline.Tasks
         {
             HashSet<ObjectIdentifier> buildInObjects = new HashSet<ObjectIdentifier>();
             foreach (AssetLoadInfo dependencyInfo in m_DependencyData.AssetInfo.Values)
-                buildInObjects.UnionWith(dependencyInfo.referencedObjects.Where(x => x.guid == k_BuiltInGuid));
+            {
+                foreach (var referencedObject in dependencyInfo.referencedObjects)
+                {
+                    if (referencedObject.guid == k_BuiltInGuid)
+                    {
+                        buildInObjects.Add(referencedObject);
+                    }
+                }
+            }
 
             foreach (SceneDependencyInfo dependencyInfo in m_DependencyData.SceneInfo.Values)
-                buildInObjects.UnionWith(dependencyInfo.referencedObjects.Where(x => x.guid == k_BuiltInGuid));
+            {
+                foreach (var referencedObject in dependencyInfo.referencedObjects)
+                {
+                    if (referencedObject.guid == k_BuiltInGuid)
+                    {
+                        buildInObjects.Add(referencedObject);
+                    }
+                }
+            }
 
             ObjectIdentifier[] usedSet = buildInObjects.ToArray();
             Type[] usedTypes = BuildCacheUtility.GetMainTypeForObjects(usedSet);
@@ -56,12 +72,8 @@ namespace UnityEditor.Build.Pipeline.Tasks
             if (m_Layout == null)
                 m_Layout = new BundleExplictObjectLayout();
 
-            Type shader = typeof(Shader);
             for (int i = 0; i < usedTypes.Length; i++)
             {
-                if (usedTypes[i] != shader)
-                    continue;
-
                 m_Layout.ExplicitObjectLocation.Add(usedSet[i], ShaderBundleName);
             }
 

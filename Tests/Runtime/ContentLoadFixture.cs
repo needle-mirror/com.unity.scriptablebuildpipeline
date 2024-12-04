@@ -86,12 +86,6 @@ namespace UnityEditor.Build.Pipeline.Tests.ContentLoad
 
         protected virtual void DefaultBuild()
         {
-            if (!string.IsNullOrEmpty(ContentPipeline.CanBuildPlayer(EditorUserBuildSettings.activeBuildTarget, EditorUserBuildSettings.selectedBuildTargetGroup, "tempFolder")))
-            {
-                Assert.Ignore("Platform support is not installed and is required for AssetBundles tests");
-                return;
-            }
-
             PrepareBuildLayout();
             foreach (var kvp in m_CurrentBuildLayouts)
             {

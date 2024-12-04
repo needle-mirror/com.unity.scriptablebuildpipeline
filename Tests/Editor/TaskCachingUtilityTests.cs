@@ -101,9 +101,6 @@ namespace UnityEditor.Build.Pipeline.Tests
         [Test]
         public void RunCachedOperation_WhenSomeItemsCached_UncachedItemsAreProcessed()
         {
-            if (!string.IsNullOrEmpty(ContentPipeline.CanBuildPlayer(EditorUserBuildSettings.activeBuildTarget, EditorUserBuildSettings.selectedBuildTargetGroup, "tempFolder")))
-                Assert.Ignore("Platform support is not installed and is required for AssetBundles tests");
-
             Func<int, int> transform = (x) => x * 27;
             const int kFirstPassCount = 5;
             const int kSecondPassCount = 12;
