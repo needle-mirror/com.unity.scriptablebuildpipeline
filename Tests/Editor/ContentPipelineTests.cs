@@ -21,6 +21,9 @@ namespace UnityEditor.Build.Pipeline.Tests
         [SetUp]
         public void Setup()
         {
+            if (!string.IsNullOrEmpty(ContentPipeline.CanBuildPlayer(EditorUserBuildSettings.activeBuildTarget, EditorUserBuildSettings.selectedBuildTargetGroup, "tempFolder")))
+                Assert.Ignore("Platform support is not installed and is required for AssetBundles tests");
+
             Directory.CreateDirectory(k_TempBuildFolder);
         }
 
@@ -30,7 +33,8 @@ namespace UnityEditor.Build.Pipeline.Tests
         [TearDown]
         public void TearDown()
         {
-            Directory.Delete(k_TempBuildFolder, true);
+            if(Directory.Exists(k_TempBuildFolder))
+                Directory.Delete(k_TempBuildFolder, true);
         }
 
         /// <summary>

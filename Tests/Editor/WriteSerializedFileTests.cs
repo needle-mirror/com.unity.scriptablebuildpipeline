@@ -204,6 +204,9 @@ namespace UnityEditor.Build.Pipeline.Tests
         [SetUp]
         public void Setup()
         {
+            if (!string.IsNullOrEmpty(ContentPipeline.CanBuildPlayer(EditorUserBuildSettings.activeBuildTarget, EditorUserBuildSettings.selectedBuildTargetGroup, "tempFolder")))
+                Assert.Ignore("Platform support is not installed and is required for AssetBundles tests");
+
             m_PreviousSlimSettings = ScriptableBuildPipeline.slimWriteResults;
             ScriptableBuildPipeline.s_Settings.slimWriteResults = false;
             m_PreviousStripUnusedMeshComponents = PlayerSettings.stripUnusedMeshComponents;
@@ -247,6 +250,9 @@ namespace UnityEditor.Build.Pipeline.Tests
         [TearDown]
         public void Teardown()
         {
+            if (string.IsNullOrEmpty(m_TestTempDir) || !Directory.Exists(m_TestTempDir))
+                return;
+
             Directory.Delete(m_TestTempDir, true);
             ScriptableBuildPipeline.s_Settings.slimWriteResults = m_PreviousSlimSettings;
             PlayerSettings.stripUnusedMeshComponents = m_PreviousStripUnusedMeshComponents;
