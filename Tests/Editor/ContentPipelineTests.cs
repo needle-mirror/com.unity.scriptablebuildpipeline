@@ -6,24 +6,36 @@ using UnityEngine;
 
 namespace UnityEditor.Build.Pipeline.Tests
 {
+    /// <summary>
+    /// ContentPipelineTests
+    /// </summary>
     [TestFixture]
     public class ContentPipelineTests
     {
 
         private const string k_TempBuildFolder = "TempBuildFolder";
 
+        /// <summary>
+        /// Setup
+        /// </summary>
         [SetUp]
         public void Setup()
         {
             Directory.CreateDirectory(k_TempBuildFolder);
         }
 
+        /// <summary>
+        /// Teardown
+        /// </summary>
         [TearDown]
         public void TearDown()
         {
             Directory.Delete(k_TempBuildFolder, true);
         }
 
+        /// <summary>
+        /// TestCanBuildPlayer
+        /// </summary>
         [Test]
         public void TestCanBuildPlayer()
         {

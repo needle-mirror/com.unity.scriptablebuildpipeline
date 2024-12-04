@@ -47,7 +47,7 @@ namespace UnityEditor.Build.Pipeline
                 else
                     hash = HashingMethods.Calculate<MD4>(objectID.filePath, objectID.localIdentifierInFile);
             }
-            
+
             return BitConverter.ToInt64(hash.ToBytes(), 0);
         }
     }

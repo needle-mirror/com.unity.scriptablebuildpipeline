@@ -13,7 +13,7 @@ namespace UnityEditor.Build.Pipeline
 #endif
 
     /// <summary>
-    /// Static class exposing convenient methods that match the BuildPipeline <seealso cref="BuildPipeline.BuildAssetBundles"/> method, suitable
+    /// Static class exposing convenient methods that match the BuildPipeline <see cref="BuildPipeline.BuildAssetBundles"/> method, suitable
     /// for porting existing projects to the Scriptable Build Pipeline quickly.
     /// New projects could consider calling <see cref="ContentPipeline.BuildAssetBundles"/> directly.
     /// </summary>
@@ -21,7 +21,7 @@ namespace UnityEditor.Build.Pipeline
     {
         /// <summary>
         /// Wrapper API to match BuildPipeline API but use the Scriptable Build Pipeline to build Asset Bundles.
-        /// <seealso cref="BuildPipeline.BuildAssetBundles(string, BuildAssetBundleOptions, BuildTarget)"/>
+        /// <see cref="BuildPipeline.BuildAssetBundles(string, BuildAssetBundleOptions, BuildTarget)"/>
         /// </summary>
         /// <remarks>
         /// Not all BuildAssetBundleOptions are supported in the Scriptable Build Pipeline.
@@ -41,7 +41,7 @@ namespace UnityEditor.Build.Pipeline
 
         /// <summary>
         /// Wrapper API to match BuildPipeline API but use the Scriptable Build Pipeline to build Asset Bundles.
-        /// <seealso cref="BuildPipeline.BuildAssetBundles(string, AssetBundleBuild[], BuildAssetBundleOptions, BuildTarget)"/>
+        /// <see cref="BuildPipeline.BuildAssetBundles(string, AssetBundleBuild[], BuildAssetBundleOptions, BuildTarget)"/>
         /// </summary>
         /// <remarks>
         /// Not all BuildAssetBundleOptions are supported in the Scriptable Build Pipeline.

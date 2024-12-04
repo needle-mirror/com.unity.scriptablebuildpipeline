@@ -49,7 +49,7 @@ namespace UnityEditor.Build.Utilities
                 if (!scenes.IsNullOrEmpty())
                     EditorSceneManager.RestoreSceneManagerSetup(scenes);
                 else
-                    EditorSceneManager.NewScene(NewSceneSetup.DefaultGameObjects);
+                    EditorSceneManager.NewScene(NewSceneSetup.EmptyScene);
             }
         }
     }

@@ -7,7 +7,7 @@ namespace UnityEditor.Build.Pipeline
 {
     /// <summary>
     /// Basic implementation of IBuildContext. Stores data generated during a build.
-    /// <seealso cref="IBuildContext"/>
+    /// <see cref="IBuildContext"/>
     /// </summary>
     public class BuildContext : IBuildContext
     {

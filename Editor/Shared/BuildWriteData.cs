@@ -7,7 +7,7 @@ namespace UnityEditor.Build.Pipeline
 {
     /// <summary>
     /// Basic implementation of IWriteData. Stores the write information calculated during a build.
-    /// <seealso cref="IWriteData"/>
+    /// <see cref="IWriteData"/>
     /// </summary>
     [Serializable]
     public class BuildWriteData : IWriteData
@@ -32,7 +32,7 @@ namespace UnityEditor.Build.Pipeline
 
     /// <summary>
     /// Basic implementation of IBundleWriteData. Stores the asset bundle write information calculated during a build.
-    /// <seealso cref="IBundleWriteData"/>
+    /// <see cref="IBundleWriteData"/>
     /// </summary>
     [Serializable]
     public class BundleWriteData : IBundleWriteData

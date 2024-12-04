@@ -1,6 +1,6 @@
-// Define this to cause the before and after serialization DumpToText output for objects being tested to be echoed to the console.  
+// Define this to cause the before and after serialization DumpToText output for objects being tested to be echoed to the console.
 // Slows down tests (some considerably) but allows visual inspection of the data which can be helpful for debugging issues
-// #define DUMP_DATA_TEXT_TO_CONSOLE   
+// #define DUMP_DATA_TEXT_TO_CONSOLE
 
 using System.IO;
 using System;
@@ -173,7 +173,7 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize.Tests
             TestSerializeData(new PrimitiveArray<string>() { m_ArrayElements = stringArray });
         }
 
-        // Test serializing a string array with more than 32,767 unique entries to ensure the standard 15bit string table index 
+        // Test serializing a string array with more than 32,767 unique entries to ensure the standard 15bit string table index
         // is insufficient and the fallback 31bit stringtable index encoding has to be used for some of the strings
         [Test]
         public void TestStringIndicesLargerThan15bit()
@@ -224,7 +224,7 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize.Tests
         [Test]
         public void TestLinearClassSerializes() => TestSerializeData(new PrimitiveValue<LinearClass>() { m_Value = new LinearClass(1) });
 
-        // Test the DeSerializer.ObjectVersion property returns the correct value after deserialization 
+        // Test the DeSerializer.ObjectVersion property returns the correct value after deserialization
         [Test]
         public void TestClientObjectVersionPropertyReturnedCorrectly()
         {

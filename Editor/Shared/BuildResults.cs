@@ -10,7 +10,7 @@ namespace UnityEditor.Build.Pipeline
 {
     /// <summary>
     /// Additional MetaData that is associated with a serialized file write result
-    /// <seealso cref="IBuildResults"/>
+    /// <see cref="IBuildResults"/>
     /// </summary>
     [Serializable]
     public class SerializedFileMetaData
@@ -28,7 +28,7 @@ namespace UnityEditor.Build.Pipeline
 
     /// <summary>
     /// Basic implementation of IBuildResults. Stores the results for script compilation and content building.
-    /// <seealso cref="IBuildResults"/>
+    /// <see cref="IBuildResults"/>
     /// </summary>
     [Serializable]
     public class BuildResults : IBuildResults
@@ -53,7 +53,7 @@ namespace UnityEditor.Build.Pipeline
 
     /// <summary>
     /// Basic implementation of IBundleBuildResults. Stores the results for script compilation and asset bundle building.
-    /// <seealso cref="IBundleBuildResults"/>
+    /// <see cref="IBundleBuildResults"/>
     /// </summary>
     [Serializable]
     public class BundleBuildResults : IBundleBuildResults

@@ -10,6 +10,9 @@ using static UnityEditor.Build.Pipeline.Utilities.TaskCachingUtility;
 
 namespace UnityEditor.Build.Pipeline.Tests
 {
+    /// <summary>
+    /// TaskCachingUtilityTests
+    /// </summary>
     public class TaskCachingUtilityTests
     {
         class ItemContext
@@ -92,6 +95,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             }
         }
 
+        /// <summary>
+        /// RunCachedOperation_WhenSomeItemsCached_UncachedItemsAreProcessed
+        /// </summary>
         [Test]
         public void RunCachedOperation_WhenSomeItemsCached_UncachedItemsAreProcessed()
         {
@@ -158,6 +164,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             }
         }
 
+        /// <summary>
+        /// RunCachedOperation_WhenCancelled_DoesNotContinueProcessing
+        /// </summary>
         [Test]
         public void RunCachedOperation_WhenCancelled_DoesNotContinueProcessing()
         {
@@ -173,6 +182,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreEqual(code, ReturnCode.Canceled);
         }
 
+        /// <summary>
+        /// RunCachedOperation_WhenNoCache_ProcessesAllItems
+        /// </summary>
         [Test]
         public void RunCachedOperation_WhenNoCache_ProcessesAllItems()
         {

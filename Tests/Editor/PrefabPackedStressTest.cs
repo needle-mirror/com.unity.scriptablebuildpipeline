@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -118,7 +118,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         public void SerializationIndexFromObjectIdentifier_GUID_CollisionFreeStressTest(IDeterministicIdentifiers packingMethod, bool useV2Hasher, int seed, int headerSize)
         {
             SetupSBP(out bool prevV2Hasher, out int prevSeed, out int prevHeader, useV2Hasher, seed, headerSize);
-            
+
             System.Random rand = new System.Random(RandomSeed);
             ObjectIdentifier objId = MakeObjectId(GuidRandom(rand), 3867712242362628071, FileType.MetaAssetType, "");
             Dictionary<long, ObjectIdentifier> consumedIds = new Dictionary<long, ObjectIdentifier>(GuidStressRunCount);
@@ -136,7 +136,7 @@ namespace UnityEditor.Build.Pipeline.Tests
 
                 consumedIds.Add(lfid, objId);
             }
-            
+
             ResetSBP(prevV2Hasher, prevSeed, prevHeader);
         }
 
@@ -157,10 +157,10 @@ namespace UnityEditor.Build.Pipeline.Tests
         void BatchingQualityStressTest(IDeterministicIdentifiers packingMethod, bool useV2Hasher, int seed, int headerSize, int runCount)
         {
             // This test is to check the quality of default clustering per source asset falls within certain guidelines
-            // For 10,000 unique assets and 100 unique assets, we want to ensure that at most we see <0.1% (10) 
+            // For 10,000 unique assets and 100 unique assets, we want to ensure that at most we see <0.1% (10)
             // assets generate the same cluster and <10% collision of all clusters.
             SetupSBP(out bool prevV2Hasher, out int prevSeed, out int prevHeader, useV2Hasher, seed, headerSize);
-            
+
             System.Random rand = new System.Random(RandomSeed);
             ObjectIdentifier objId = MakeObjectId(GuidRandom(rand), 3867712242362628071, FileType.MetaAssetType, "");
             Dictionary<int, int> clusters = new Dictionary<int, int>();
@@ -188,7 +188,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             Debug.Log($"Reused Clusters {collisions} ({(float)collisions/runCount*100:n2}%), Max {maxCollisions} ({(float)maxCollisions/runCount*100}%), Med {medCollisions} ({(float)medCollisions/runCount*100}%)");
             Assert.IsTrue(runCount * 0.1f > collisions, "Reused cluster count > 10%");
             Assert.IsTrue(runCount * 0.001f > maxCollisions, "Max per cluster reuse > 0.1%");
-            
+
             ResetSBP(prevV2Hasher, prevSeed, prevHeader);
         }
 
@@ -200,7 +200,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             List<ObjectIdentifier> objectIds = new List<ObjectIdentifier>();
             objectIds.Add(MakeObjectId(new GUID("066ce95d52fe15041854096a2145195e"), 3867712242362628071, FileType.MetaAssetType, ""));
             objectIds.Add(MakeObjectId(new GUID("066ce95d52fe15041854096a2145195e"), 7498449973661844796, FileType.MetaAssetType, ""));
-            
+
             Assert.Throws(typeof(BuildFailedException), () => GenerateBundleCommands.CreateWriteCommand("InternalName", objectIds, new PrefabPackedIdentifiers()));
 
             ResetSBP(prevV2Hasher, prevSeed, prevHeader);

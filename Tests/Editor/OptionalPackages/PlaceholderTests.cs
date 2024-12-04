@@ -2,8 +2,14 @@ using NUnit.Framework;
 
 namespace UnityEditor.Build.Pipeline.Editor.OptionalPackages.Tests
 {
+    /// <summary>
+    /// PlaceholderTests
+    /// </summary>
     public class PlaceholderTests
     {
+        /// <summary>
+        /// Test_Placeholder
+        /// </summary>
         [Test]
         public void Test_Placeholder()
         {

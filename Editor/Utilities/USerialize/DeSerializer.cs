@@ -11,9 +11,9 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize
 {
     /*
      * Main USerialize deserialzation class.  Used to read instances of types from a stream
-     * 
+     *
      * To DeSerialize an object from a stream use code such as
-     * 
+     *
      *    USerialize.DeSerializer deserializer = new USerialize.DeSerializer();
      *    CachedInfo info = deserializer.DeSerialize<CachedInfo>(new MemoryStream(File.ReadAllBytes(filepath), false));
      *
@@ -317,7 +317,7 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize
             // Get the TypeData for the type of this object
             TypeData typeData = GetTypeDataFromTypeNameIndex(ReadStringIndex());
 
-            // Give custom object factories a chance to create the instance first as this is faster than the generic Activator call.  
+            // Give custom object factories a chance to create the instance first as this is faster than the generic Activator call.
             // If no instance is created (either because no factory is registered for this type or the factory didn't produce an instance) then we call Activator as a fallback
             object objectRead = typeData.m_ObjectFactory?.Invoke();
             if (objectRead == null)

@@ -15,7 +15,7 @@ namespace UnityEditor.Build.Pipeline
     {
         /// <summary>
         /// Basic run implementation that takes a set of tasks, a context, and runs returning the build results.
-        /// <seealso cref="IBuildTask"/>, <seealso cref="IBuildContext"/>, and <seealso cref="ReturnCode"/>
+        /// <see cref="IBuildTask"/>, <see cref="IBuildContext"/>, and <see cref="ReturnCode"/>
         /// </summary>
         /// <param name="pipeline">The set of build tasks to run.</param>
         /// <param name="context">The build context to use for this run.</param>
@@ -74,7 +74,7 @@ namespace UnityEditor.Build.Pipeline
 
         /// <summary>
         /// Run implementation with task profiler that takes a set of tasks, a context, runs returning the build results and prints out the profiler details.
-        /// <seealso cref="IBuildTask"/>, <seealso cref="IBuildContext"/>, and <seealso cref="ReturnCode"/>
+        /// <see cref="IBuildTask"/>, <see cref="IBuildContext"/>, and <see cref="ReturnCode"/>
         /// </summary>
         /// <param name="pipeline">The set of build tasks to run.</param>
         /// <param name="context">The build context to use for this run.</param>
@@ -143,7 +143,7 @@ namespace UnityEditor.Build.Pipeline
 
         /// <summary>
         /// Basic validate implementation that takes a set of tasks, a context, and does checks to ensure the task requirements are all satisfied.
-        /// <seealso cref="IBuildTask"/>, <seealso cref="IBuildContext"/>, and <seealso cref="ReturnCode"/>
+        /// <see cref="IBuildTask"/>, <see cref="IBuildContext"/>, and <see cref="ReturnCode"/>
         /// </summary>
         /// <param name="pipeline">The set of build tasks to run.</param>
         /// <param name="context">The build context to use for this run.</param>

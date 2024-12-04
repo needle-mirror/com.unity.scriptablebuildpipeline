@@ -1,6 +1,6 @@
 using UnityEngine;
 using UnityEngine.Build.Pipeline;
-using Unity.ScriptableBuildPipelineTests;
+using Unity.ScriptableBuildPipelineTests.Runtime.Tests;
 using NUnit.Framework;
 using System.IO;
 using System.Linq;

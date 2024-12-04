@@ -12,6 +12,9 @@ using UnityEditor.Build.Pipeline.Tests;
 using UnityEditor.Build.Pipeline.Utilities;
 using UnityEngine;
 
+/// <summary>
+/// Test fixture for Archive and Compress Tests
+/// </summary>
 public class ArchiveAndCompressTestFixture
 {
     internal static void AssertDirectoriesEqual(string expectedDirectory, string directory, int expectedCount = -1)
@@ -65,6 +68,9 @@ public class ArchiveAndCompressTestFixture
     internal string m_TestTempDir;
     internal string m_FixtureTempDir;
 
+    /// <summary>
+    /// Test setup
+    /// </summary>
     [OneTimeSetUp]
     public void OneTimeSetup()
     {
@@ -73,12 +79,18 @@ public class ArchiveAndCompressTestFixture
         HashingMethods.CalculateStream(new MemoryStream(new byte[] { 1 }));
     }
 
+    /// <summary>
+    /// Test teardown
+    /// </summary>
     [OneTimeTearDown]
     public void OneTimeTeardown()
     {
         Directory.Delete(m_FixtureTempDir, true);
     }
 
+    /// <summary>
+    /// Individual test setup
+    /// </summary>
     [SetUp]
     public void Setup()
     {
@@ -88,6 +100,9 @@ public class ArchiveAndCompressTestFixture
         m_SizeCounts = new Dictionary<int, int>();
     }
 
+    /// <summary>
+    /// Individual test teardown
+    /// </summary>
     [TearDown]
     public void Teardown()
     {
@@ -184,6 +199,11 @@ public class ArchiveAndCompressTestFixture
 
 #endif
 
+    /// <summary>
+    /// Create a unique filename
+    /// </summary>
+    /// <param name="desiredFilename">Base filename</param>
+    /// <returns>A unique version of the desired filename</returns>
     public static string GetUniqueFilename(string desiredFilename)
     {
         string dir = Path.GetDirectoryName(desiredFilename);

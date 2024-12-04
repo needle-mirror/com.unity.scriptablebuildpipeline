@@ -30,7 +30,7 @@ namespace UnityEditor.Build.Pipeline.WriteTypes
 
         /// <summary>
         /// Processed scene path returned by the ProcessScene API.
-        /// <seealso cref="ContentBuildInterface.PrepareScene"/>
+        /// <see cref="ContentBuildInterface.PrepareScene"/>
         /// </summary>
 #if UNITY_2019_3_OR_NEWER
         [Obsolete("ProcessedScene has been deprecated.")]
@@ -39,7 +39,7 @@ namespace UnityEditor.Build.Pipeline.WriteTypes
 
         /// <summary>
         /// Information needed for scene preloadeding.
-        /// <seealso cref="PreloadInfo"/>
+        /// <see cref="PreloadInfo"/>
         /// </summary>
         public PreloadInfo PreloadInfo { get; set; }
 

@@ -16,6 +16,9 @@ using UnityEngine.SceneManagement;
 
 namespace UnityEditor.Build.Pipeline.Tests
 {
+    /// <summary>
+    /// CalculateSceneDependencyTests
+    /// </summary>
     public class CalculateSceneDependencyTests
     {
         class TestParams : TestBuildParametersBase
@@ -112,6 +115,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             return (ObjectIdentifier)boxed;
         }
 
+        /// <summary>
+        /// Setup
+        /// </summary>
         [OneTimeSetUp]
         public void Setup()
         {
@@ -129,6 +135,9 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
 
 #if UNITY_2021_1_OR_NEWER
+        /// <summary>
+        /// SetupSceneWithSpritesForTest
+        /// </summary>
         public void SetupSceneWithSpritesForTest(out Scene scene)
         {
             var spriteAtlasAsset = new SpriteAtlasAsset();
@@ -154,7 +163,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             EditorSceneManager.SaveScene(scene, k_ScenePath);
         }
 #endif
-
+        /// <summary>
+        /// Cleanup
+        /// </summary>
         [OneTimeTearDown]
         public void Cleanup()
         {
@@ -189,6 +200,11 @@ namespace UnityEditor.Build.Pipeline.Tests
             new object[] { false, (Action<object, object>)Assert.AreEqual },
         };
 
+        /// <summary>
+        /// CalculateSceneDependencyData_DependencyHashTests
+        /// </summary>
+        /// <param name="modifyPrefab">modifyPrefab</param>
+        /// <param name="assertType">assertType</param>
         [TestCaseSource("DependencyHashTestCases")]
         [Test]
         public void CalculateSceneDependencyData_DependencyHashTests(bool modifyPrefab, Action<object, object> assertType)
@@ -225,6 +241,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             assertType(dependencyData1.DependencyHash[sceneGuid], dependencyData2.DependencyHash[sceneGuid]);
         }
 
+        /// <summary>
+        /// CalculateSceneDependencyData_DependencyHash_IsZeroWhenNotUsingCashing
+        /// </summary>
         [Test]
         public void CalculateSceneDependencyData_DependencyHash_IsZeroWhenNotUsingCashing()
         {
@@ -242,6 +261,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreEqual(new Hash128(), dependencyData.DependencyHash[sceneGuid]);
         }
 
+        /// <summary>
+        /// CalcualteSceneDependencyData_ReturnsNonEmptyUsage_ForNonRecursiveDependencies
+        /// </summary>
         [Test]
         public void CalcualteSceneDependencyData_ReturnsNonEmptyUsage_ForNonRecursiveDependencies()
         {
@@ -264,6 +286,9 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
 
 #if UNITY_2022_3_OR_NEWER
+        /// <summary>
+        /// CalculateSceneDependencyData_WhenSpriteDependencyChanges_RecalculatesDependencies
+        /// </summary>
         [Test]
         public void CalculateSceneDependencyData_WhenSpriteDependencyChanges_RecalculatesDependencies()
         {

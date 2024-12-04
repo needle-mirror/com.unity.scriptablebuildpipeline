@@ -9,9 +9,16 @@ using UnityEditor.Build.Pipeline.Utilities;
 
 namespace UnityEditor.Build.Pipeline.Tests
 {
+    /// <summary>
+    /// ContextObjectSerializationTests
+    /// </summary>
     [TestFixture]
     public class ContextObjectSerializationTests
     {
+        /// <summary>
+        /// GetIContextObjectTypes
+        /// </summary>
+        /// <returns>Array of context objects to create</returns>
         public Type[] GetIContextObjectTypes()
         {
             var blacklist = new[]
@@ -28,6 +35,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             return assembly.GetTypes().Where(x => typeof(IContextObject).IsAssignableFrom(x) && !x.IsInterface && !x.IsAbstract).Where(x => !blacklist.Contains(x)).ToArray();
         }
 
+        /// <summary>
+        /// IContextObjects_SupportSerialization
+        /// </summary>
         [Test]
         public void IContextObjects_SupportSerialization()
         {

@@ -15,8 +15,14 @@ using UnityEngine.TestTools;
 
 namespace UnityEditor.Build.Pipeline.Tests
 {
+    /// <summary>
+    /// Tests for archive and compression
+    /// </summary>
     public class ArchiveAndCompressTests : ArchiveAndCompressTestFixture
     {
+        /// <summary>
+        /// WhenAssetInBundleHasDependencies_DependenciesAreInDetails
+        /// </summary>
         [Test]
         public void WhenAssetInBundleHasDependencies_DependenciesAreInDetails()
         {
@@ -35,6 +41,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreEqual("mybundle3", output.BundleDetails["mybundle"].Dependencies[1]);
         }
 
+        /// <summary>
+        /// WhenBundleDoesNotHaveDependencies_DependenciesAreNotInDetails
+        /// </summary>
         [Test]
         public void WhenBundleDoesNotHaveDependencies_DependenciesAreNotInDetails()
         {
@@ -44,6 +53,11 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreEqual(0, output.BundleDetails["mybundle"].Dependencies.Length);
         }
 
+        /// <summary>
+        /// WhenUsingLongPath_CopyFileWithTimestampIfDifferent_ThrowsPathTooLongException
+        /// </summary>
+        /// <param name="path1">filepath 1</param>
+        /// <param name="path2">filepath 2</param>
         [TestCase("01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_d", ".")]
         [TestCase("C:/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars", ".")]
         [TestCase(".", "01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_d")]
@@ -54,6 +68,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.Throws<PathTooLongException>(() => ArchiveAndCompressBundles.CopyFileWithTimestampIfDifferent(path1, path2, null));
         }
 
+        /// <summary>
+        /// PlatformCanHandle_LongPathReadingAndWriting
+        /// </summary>
         [Test]
         // Windows has Unicode path notation for long paths: \\?\
         // however this does not work on all unity editor versions or windows version.
@@ -95,12 +112,18 @@ namespace UnityEditor.Build.Pipeline.Tests
             Directory.Delete(root, true);
         }
 
+        /// <summary>
+        /// RebuildTestContext
+        /// </summary>
         public class RebuildTestContext
         {
             internal ArchiveAndCompressBundles.TaskInput input;
             internal ArchiveAndCompressTests _this;
         };
 
+        /// <summary>
+        /// RebuildTestCases
+        /// </summary>
         public static IEnumerable RebuildTestCases
         {
             get
@@ -123,6 +146,11 @@ namespace UnityEditor.Build.Pipeline.Tests
             }
         }
 
+        /// <summary>
+        /// WhenInputsChanges_AndRebuilt_CachedDataIsUsedAsExpected
+        /// </summary>
+        /// <param name="shouldRebuild">Should rebuild test cases?</param>
+        /// <param name="postFirstBuildAction">Callback after first build</param>
         [Test, TestCaseSource(typeof(ArchiveAndCompressTests), "RebuildTestCases")]
         public void WhenInputsChanges_AndRebuilt_CachedDataIsUsedAsExpected(bool shouldRebuild, Action<RebuildTestContext> postFirstBuildAction)
         {
@@ -152,6 +180,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             }
         }
 
+        /// <summary>
+        /// WhenArchiveIsAlreadyBuilt_CachedVersionIsUsed
+        /// </summary>
         [Test]
         public void WhenArchiveIsAlreadyBuilt_CachedVersionIsUsed()
         {
@@ -175,6 +206,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             AssertDirectoriesEqual(bundleOutDir1, bundleOutDir2, 1);
         }
 
+        /// <summary>
+        /// WhenArchiveIsCached_AndRebuildingArchive_HashIsAssignedToOutput
+        /// </summary>
         [Test]
         public void WhenArchiveIsCached_AndRebuildingArchive_HashIsAssignedToOutput()
         {
@@ -193,6 +227,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreEqual(hash, output2.BundleDetails[bundleName].Hash);
         }
 
+        /// <summary>
+        /// ContentHashTestContext
+        /// </summary>
         public class ContentHashTestContext
         {
             internal ArchiveAndCompressBundles.TaskInput input;
@@ -200,6 +237,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             internal ArchiveAndCompressTests _this;
         };
 
+        /// <summary>
+        /// ContentHashTestCases
+        /// </summary>
         public static IEnumerable ContentHashTestCases
         {
             get
@@ -219,6 +259,11 @@ namespace UnityEditor.Build.Pipeline.Tests
             }
         }
 
+        /// <summary>
+        /// WhenInputsChange_BundleOutputHashIsAffectedAsExpected
+        /// </summary>
+        /// <param name="hashShouldChange">Should the hash change?</param>
+        /// <param name="postFirstBuildAction">Callback invoked after first build</param>
         [Test, TestCaseSource(typeof(ArchiveAndCompressTests), "ContentHashTestCases")]
         public void WhenInputsChange_BundleOutputHashIsAffectedAsExpected(bool hashShouldChange, Action<ContentHashTestContext> postFirstBuildAction)
         {
@@ -245,6 +290,9 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
 
 #if UNITY_2019_3_OR_NEWER
+        /// <summary>
+        /// WhenBuildingManyArchives_ThreadedAndNonThreadedResultsAreIdentical
+        /// </summary>
         [Test]
         public void WhenBuildingManyArchives_ThreadedAndNonThreadedResultsAreIdentical()
         {
@@ -266,8 +314,9 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
 
 #endif
-
-        // Start is called before the first frame update
+        /// <summary>
+        /// ResourceFilesAreAddedToBundles
+        /// </summary>
         [Test]
         public void ResourceFilesAreAddedToBundles()
         {
@@ -286,6 +335,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             FileAssert.AreEqual(files[0], srcFile);
         }
 
+        /// <summary>
+        /// WhenBuildingArchive_BuildLogIsPopulated
+        /// </summary>
         [Test]
         public void WhenBuildingArchive_BuildLogIsPopulated()
         {
@@ -341,6 +393,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             bundleBuildDir = bDir;
         }
 
+        /// <summary>
+        /// WhenArchiveIsAlreadyBuilt_AndArchiveIsInOutputDirectory_ArchiveIsNotCopied
+        /// </summary>
         [Test]
         public void WhenArchiveIsAlreadyBuilt_AndArchiveIsInOutputDirectory_ArchiveIsNotCopied()
         {
@@ -355,6 +410,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.IsFalse(log2.ContainsScopeWithSubstring("Copying From Cache"));
         }
 
+        /// <summary>
+        /// WhenArchiveIsAlreadyBuilt_AndArchiveIsInOutputDirectoryButTimestampMismatch_ArchiveIsCopied
+        /// </summary>
         [Test]
         public void WhenArchiveIsAlreadyBuilt_AndArchiveIsInOutputDirectoryButTimestampMismatch_ArchiveIsCopied()
         {
@@ -376,6 +434,9 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
 
 #if UNITY_2019_3_OR_NEWER
+        /// <summary>
+        /// CanAddRawFilesToBundles
+        /// </summary>
         [Test]
         public void CanAddRawFilesToBundles()
         {
@@ -390,6 +451,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreNotEqual(output.BundleDetails["mybundle"].Hash, output2.BundleDetails["mybundle"].Hash);
         }
 
+        /// <summary>
+        /// SupportsMultiThreadedArchiving_WhenEditorIs20193OrLater_IsTrue
+        /// </summary>
         [Test]
         public void SupportsMultiThreadedArchiving_WhenEditorIs20193OrLater_IsTrue()
         {
@@ -397,6 +461,9 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
 
 #else
+        /// <summary>
+        /// SupportsMultiThreadedArchiving_WhenEditorIsBefore20193_IsFalse
+        /// </summary>
         [Test]
         public void SupportsMultiThreadedArchiving_WhenEditorIsBefore20193_IsFalse()
         {
@@ -405,6 +472,9 @@ namespace UnityEditor.Build.Pipeline.Tests
 
 #endif
 
+        /// <summary>
+        /// CalculateBundleDependencies_ReturnsRecursiveDependencies_ForNonRecursiveInputs
+        /// </summary>
         [Test]
         public void CalculateBundleDependencies_ReturnsRecursiveDependencies_ForNonRecursiveInputs()
         {
@@ -431,6 +501,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             CollectionAssert.AreEquivalent(new string[] { }, results["bundle3"]);
         }
 
+        /// <summary>
+        /// CalculateBundleDependencies_ReturnsRecursiveDependencies_ForRecursiveInputs
+        /// </summary>
         [Test]
         public void CalculateBundleDependencies_ReturnsRecursiveDependencies_ForRecursiveInputs()
         {

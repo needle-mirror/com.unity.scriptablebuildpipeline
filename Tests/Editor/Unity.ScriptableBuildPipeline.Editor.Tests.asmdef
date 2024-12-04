@@ -1,21 +1,31 @@
 {
     "name": "Unity.ScriptableBuildPipeline.Editor.Tests",
+    "rootNamespace": "",
     "references": [
         "Unity.ScriptableBuildPipeline.Editor",
         "Unity.ScriptableBuildPipeline",
         "Unity.PerformanceTesting",
         "Unity.PerformanceTesting.Editor",
-		"ScriptableBuildPipelineTests"
-    ],
-    "optionalUnityReferences": [
-        "TestAssemblies"
+        "ScriptableBuildPipelineTests",
+        "UnityEngine.TestRunner",
+        "UnityEditor.TestRunner",
+        "Unity.ScriptableBuildPipeline.Tests",
+        "Unity.ScriptableBuildPipelineTests.Runtime.Tests"
     ],
     "includePlatforms": [
         "Editor"
     ],
     "excludePlatforms": [],
     "allowUnsafeCode": true,
-	"defineConstraints": [
+    "overrideReferences": true,
+    "precompiledReferences": [
+        "nunit.framework.dll"
+    ],
+    "autoReferenced": false,
+    "defineConstraints": [
+        "UNITY_INCLUDE_TESTS",
         "UNITY_INCLUDE_TESTS"
-    ]
+    ],
+    "versionDefines": [],
+    "noEngineReferences": false
 }

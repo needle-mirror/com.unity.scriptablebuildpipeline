@@ -5,8 +5,8 @@ namespace UnityEditor.Build.Pipeline
 {
     /// <summary>
     /// Basic implementation of IDependencyCallback, IPackingCallback, IWritingCallback, and IScriptsCallback.
-    /// Uses Func implementation for callbacks. <seealso cref="IDependencyCallback"/>, <seealso cref="IPackingCallback"/>
-    /// <seealso cref="IWritingCallback"/>, and <seealso cref="IScriptsCallback"/>
+    /// Uses Func implementation for callbacks. <see cref="IDependencyCallback"/>, <see cref="IPackingCallback"/>
+    /// <see cref="IWritingCallback"/>, and <see cref="IScriptsCallback"/>
     /// </summary>
     public class BuildCallbacks : IDependencyCallback, IPackingCallback, IWritingCallback, IScriptsCallback
     {

@@ -34,7 +34,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
         /// <summary>
         /// Create the built-in bundle.
         /// </summary>
-        /// <param name="bundleName">The name of the bundle.</param>
+        /// <param name="builtinBundleName">The name of the bundle.</param>
         public CreateBuiltInBundle(string builtinBundleName)
         {
             BuiltInBundleName = builtinBundleName;

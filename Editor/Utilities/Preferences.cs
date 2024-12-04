@@ -179,7 +179,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             get => s_Settings.fileIDHashSeed;
             set => CompareAndSet(ref s_Settings.fileIDHashSeed, value);
         }
-        
+
         // Internal as we don't want to allow setting these via API. We want to ensure they are saved to json, and checked in to the project version control.
         internal static int prefabPackedHeaderSize
         {

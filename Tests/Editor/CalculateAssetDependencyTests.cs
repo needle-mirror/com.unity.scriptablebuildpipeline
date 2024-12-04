@@ -21,6 +21,9 @@ using UnityEngine.U2D;
 
 namespace UnityEditor.Build.Pipeline.Tests
 {
+    /// <summary>
+    /// CalculateAssetDependencyTests
+    /// </summary>
     public class CalculateAssetDependencyTests
     {
         const string kTestAssetFolder = "Assets/TestAssets";
@@ -121,6 +124,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             extendedAssetData = (TestExtendedAssetData)context.GetContextObject<IBuildExtendedAssetData>();
         }
 
+        /// <summary>
+        /// Setup
+        /// </summary>
         [SetUp]
         public void Setup()
         {
@@ -135,6 +141,9 @@ namespace UnityEditor.Build.Pipeline.Tests
 
         }
 
+        /// <summary>
+        /// OneTimeTeardown
+        /// </summary>
         [TearDown]
         public void OneTimeTeardown()
         {
@@ -217,6 +226,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             return guid;
         }
 
+        /// <summary>
+        /// WhenAssetHasNoDependencies
+        /// </summary>
         [Test]
         public void WhenAssetHasNoDependencies()
         {
@@ -238,6 +250,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.IsNull(output.AssetResults[0].extendedData);
         }
 
+        /// <summary>
+        /// WhenAssetDoesNotExist_AssetResultIsEmpty
+        /// </summary>
         [Test]
         public void WhenAssetDoesNotExist_AssetResultIsEmpty()
         {
@@ -251,6 +266,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreEqual(0, output.AssetResults[0].objectDependencyInfo.Count);
         }
 
+        /// <summary>
+        /// WhenSomeAssetDataIsCached_CachedVersionIsUsed
+        /// </summary>
         [Test]
         public void WhenSomeAssetDataIsCached_CachedVersionIsUsed()
         {
@@ -371,6 +389,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             }
         }
 
+        /// <summary>
+        /// WhenObjectInfluencesReferencedObjectBuildTags_BuildUsageTagsAreAdded
+        /// </summary>
         [Test]
         public void WhenObjectInfluencesReferencedObjectBuildTags_BuildUsageTagsAreAdded()
         {
@@ -421,7 +442,13 @@ namespace UnityEditor.Build.Pipeline.Tests
 #endif
         };
 
-
+        /// <summary>
+        /// WhenSpriteWithAtlas_SpriteImportDataCreated
+        /// </summary>
+        /// <param name="spriteMode">spriteMode</param>
+        /// <param name="spritePackingTag">spritePackingTag</param>
+        /// <param name="hasReferencingSpriteAtlas">hasReferencingSpriteAtlas</param>
+        /// <param name="expectedPacked">expectedPacked</param>
         [TestCaseSource("SpriteTestCases")]
         [Test]
         public void WhenSpriteWithAtlas_SpriteImportDataCreated(SpritePackerMode spriteMode, string spritePackingTag, bool hasReferencingSpriteAtlas, bool expectedPacked)
@@ -457,7 +484,10 @@ namespace UnityEditor.Build.Pipeline.Tests
             new object[] { SpritePackerMode.BuildTimeOnlyAtlas }
         };
 
-
+        /// <summary>
+        /// WhenSpriteWithAtlasUpdated_SpriteInfoUpdated
+        /// </summary>
+        /// <param name="spriteMode">spriteMode</param>
         [TestCaseSource("SpriteUtilityTestCases")]
         [Test]
         public void WhenSpriteWithAtlasUpdated_SpriteInfoUpdated(SpritePackerMode spriteMode)
@@ -504,6 +534,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             public override UnityEngine.Object[] LoadAllAssetRepresentationsAtPath(string assetPath) { return new UnityEngine.Object[] { null }; }
         }
 
+        /// <summary>
+        /// WhenAssetHasANullRepresentation_LogsWarning
+        /// </summary>
         [Test]
         public void WhenAssetHasANullRepresentation_LogsWarning()
         {
@@ -525,7 +558,9 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
 
 #endif
-
+        /// <summary>
+        /// WhenAssetHasMultipleRepresentations_ExtendedDataContainsAllButMainAsset
+        /// </summary>
         [Test]
         public void WhenAssetHasMultipleRepresentations_ExtendedDataContainsAllButMainAsset()
         {
@@ -556,6 +591,9 @@ namespace UnityEditor.Build.Pipeline.Tests
                 Assert.IsTrue(expectedReps.Contains(id));
         }
 
+        /// <summary>
+        /// WhenExplicitSpriteAndAtlas_AtlasOnlyReferencesSprites
+        /// </summary>
         [Test]
         public void WhenExplicitSpriteAndAtlas_AtlasOnlyReferencesSprites()
         {
@@ -605,6 +643,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.IsFalse(refsTexture2, "Atlas should not reference the second source texture.");
         }
 
+        /// <summary>
+        /// WhenExplicitSpritesAndImplicitAtlas_SpritesOnlyReferenceSprites
+        /// </summary>
         [Test]
         public void WhenExplicitSpritesAndImplicitAtlas_SpritesOnlyReferenceSprites()
         {
@@ -659,6 +700,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.IsFalse(refsTexture1, "Sprite should not reference the first source texture.");
         }
 
+        /// <summary>
+        /// WhenAssetRefsExplicitPackedSprite_AssetOnlyRefsSprite
+        /// </summary>
         [Test]
         public void WhenAssetRefsExplicitPackedSprite_AssetOnlyRefsSprite()
         {
@@ -702,6 +746,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.IsFalse(refsTexture, "Prefab should not reference the source texture.");
         }
 
+        /// <summary>
+        /// WhenAssetRefsExplicitPackedSprite_CachedAssetOnlyRefsSprite
+        /// </summary>
         [Test]
         public void WhenAssetRefsExplicitPackedSprite_CachedAssetOnlyRefsSprite()
         {
@@ -754,6 +801,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             }
         }
 
+        /// <summary>
+        /// WhenAssetRefsExplicitSprite_AssetRefsSpriteAndTexture
+        /// </summary>
         [Test]
         public void WhenAssetRefsExplicitSprite_AssetRefsSpriteAndTexture()
         {
@@ -810,6 +860,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             public bool UpdateTask(string taskTitle) { throw new NotImplementedException(); }
         }
 
+        /// <summary>
+        /// WhenCanceledThroughProgressTracker_ReturnsCanceled
+        /// </summary>
         [Test]
         public void WhenCanceledThroughProgressTracker_ReturnsCanceled()
         {
@@ -824,6 +877,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreEqual(ReturnCode.Canceled, code);
         }
 
+        /// <summary>
+        /// TaskIsRun_WhenAssetHasNoMultipleRepresentations_ExtendedDataIsEmpty
+        /// </summary>
         [Test]
         public void TaskIsRun_WhenAssetHasNoMultipleRepresentations_ExtendedDataIsEmpty()
         {
@@ -838,6 +894,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreEqual(0, extendedAssetData.ExtendedData.Count);
         }
 
+        /// <summary>
+        /// TaskIsRun_WhenAssetHasMultipleRepresentations_ExtendedDataContainsEntryForAsset
+        /// </summary>
         [Test]
         public void TaskIsRun_WhenAssetHasMultipleRepresentations_ExtendedDataContainsEntryForAsset()
         {
@@ -859,6 +918,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.IsTrue(extendedAssetData.ExtendedData.ContainsKey(guid));
         }
 
+        /// <summary>
+        /// TaskIsRun_WhenAssetHasMultipleRepresentations_AndDisableVisibleSubAssetRepresentations_ExtendedDataIsEmpty
+        /// </summary>
         [Test]
         public void TaskIsRun_WhenAssetHasMultipleRepresentations_AndDisableVisibleSubAssetRepresentations_ExtendedDataIsEmpty()
         {

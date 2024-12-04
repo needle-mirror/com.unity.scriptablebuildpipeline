@@ -4,7 +4,7 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
-## [2.2.4] - 2024-12-04
+## [2.2.11] - 2024-12-04
 - Added a Log Asset Warnings setting that optionally disables logging of asset warnings during build process.
 
 ## [2.1.5] - 2024-09-24
@@ -27,7 +27,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 - Fixing compile issue with custom build script in ECS package.
 
 ## [2.0.1] - 2023-08-30
-- Fix issue where source textures aren't stripped when assets reference explicit packed sprites. 
+- Fix issue where source textures aren't stripped when assets reference explicit packed sprites.
 
 ## [1.21.9] - 2023-08-16
 - Removed Cache ServerV1 support
@@ -100,18 +100,18 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## [1.19.0] - 2021-05-20
 - Replaced our use of BinaryFormatter with new "USerialize"
-	- USerializer performance in synthetic tests is about 40x faster than BinaryFormatter
-	- Real world project tests have seen about 1.8x improvement of cold cache build times, and about 6x improvement of warm cache build times.
+    - USerializer performance in synthetic tests is about 40x faster than BinaryFormatter
+    - Real world project tests have seen about 1.8x improvement of cold cache build times, and about 6x improvement of warm cache build times.
 - Fixed a case where internal type hash was not being cached correctly causing constant cold cache hits.
 - Fixed a case where previous build results could influence a new build incorrectly by including the wrong dlls.
 - Fixed a case where multiple scenes in the same asset bundle could generate invalid or incorrect dependencies and not load all necessary data.
 - Minor fix for native tep profiling results to separate the event name from the event context and to properly string escape the context.
-- Added the DisableVisibleSubAssetRepresentations build parameter. 
+- Added the DisableVisibleSubAssetRepresentations build parameter.
 
 ## [1.18.0] - 2021-04-08
 - Added an option to build MonoScripts into their own bundle reducing duplication and potential loading errors on certain project setups.
 - Added a type remap in Link.xml generation for UnityEditor.MonoScript to the correct runtime type.
-- Added an option to build bundles using Non-Recursive Dependency calculation methods. 
+- Added an option to build bundles using Non-Recursive Dependency calculation methods.
   - This approach helps reduce asset bundle rebuilds and runtime memory consumption.
 
 ## [1.17.0] - 2021-03-03

@@ -11,7 +11,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 {
     /// <summary>
     /// Build Task that calculates teh included objects and references objects for custom assets not tracked by the AssetDatabase.
-    /// <seealso cref="IBuildTask"/>
+    /// <see cref="IBuildTask"/>
     /// </summary>
     public class CalculateCustomDependencyData : IBuildTask
     {

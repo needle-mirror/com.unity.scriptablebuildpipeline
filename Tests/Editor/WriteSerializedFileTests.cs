@@ -18,6 +18,9 @@ using static UnityEditor.Build.Pipeline.Utilities.BuildLog;
 
 namespace UnityEditor.Build.Pipeline.Tests
 {
+    /// <summary>
+    /// WriteSerializedFileTests
+    /// </summary>
     public class WriteSerializedFileTests
     {
         class TestBuildParameters : TestBundleBuildParameters
@@ -195,6 +198,9 @@ namespace UnityEditor.Build.Pipeline.Tests
         GraphicsDeviceType[] m_PlatformAPIsAfter = { GraphicsDeviceType.Vulkan };
 #endif
 
+        /// <summary>
+        /// Setup
+        /// </summary>
         [SetUp]
         public void Setup()
         {
@@ -235,6 +241,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             ContextInjector.Inject(m_Context, m_Task);
         }
 
+        /// <summary>
+        /// Teardown
+        /// </summary>
         [TearDown]
         public void Teardown()
         {
@@ -332,6 +341,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             return op;
         }
 
+        /// <summary>
+        /// RebuildTestCases
+        /// </summary>
         public static IEnumerable RebuildTestCases
         {
             get
@@ -350,6 +362,11 @@ namespace UnityEditor.Build.Pipeline.Tests
             }
         }
 
+        /// <summary>
+        /// WhenInputsChanges_OnlyChangedDependenciesTriggersRebuild
+        /// </summary>
+        /// <param name="shouldRebuild">shouldRebuild</param>
+        /// <param name="postFirstBuildAction">postFirstBuildAction</param>
         [Test, TestCaseSource(typeof(WriteSerializedFileTests), "RebuildTestCases")]
         public void WhenInputsChanges_OnlyChangedDependenciesTriggersRebuild(bool shouldRebuild, Action<WriteSerializedFileTests> postFirstBuildAction)
         {
@@ -364,6 +381,10 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreEqual(shouldRebuild ? 2 : 1, op.TestWriteCount);
         }
 
+        /// <summary>
+        /// WhenFileHasSerializedObjects_AndSlimMode_OnlyFirstObjectInWriteResults
+        /// </summary>
+        /// <param name="slimEnabled">slimEnabled</param>
         [Test]
         public void WhenFileHasSerializedObjects_AndSlimMode_OnlyFirstObjectInWriteResults([Values] bool slimEnabled)
         {
@@ -384,6 +405,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             }
         }
 
+        /// <summary>
+        /// WhenResourceFileIsNotASerializedFile_ContentHashIsFullFileHash
+        /// </summary>
         [Test]
         public void WhenResourceFileIsNotASerializedFile_ContentHashIsFullFileHash()
         {
@@ -396,6 +420,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreEqual(md.RawFileHash, md.ContentHash);
         }
 
+        /// <summary>
+        /// WhenResourceFileIsASerializedFile_ContentHashBeginsAtFirstObject
+        /// </summary>
         [Test]
         public void WhenResourceFileIsASerializedFile_ContentHashBeginsAtFirstObject()
         {
@@ -420,6 +447,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreNotEqual(md.RawFileHash, md.ContentHash);
         }
 
+        /// <summary>
+        /// WhenWriteResultsContainsMultipleSerializedFiles_ContentHashBeginsAtFirstObjectOfEachFile
+        /// </summary>
         [Test]
         public void WhenWriteResultsContainsMultipleSerializedFiles_ContentHashBeginsAtFirstObjectOfEachFile()
         {
@@ -476,6 +506,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreNotEqual(data1.ContentHash, data2.ContentHash);
         }
 
+        /// <summary>
+        /// Run_CallsWriteOnOperationAndOutputsWriteResult
+        /// </summary>
         [Test]
         public void Run_CallsWriteOnOperationAndOutputsWriteResult()
         {
@@ -486,6 +519,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             FileAssert.Exists(reportedResult.resourceFiles[0].fileName);
         }
 
+        /// <summary>
+        /// Run_WithoutCache_Succeeds
+        /// </summary>
         [Test]
         public void Run_WithoutCache_Succeeds()
         {
@@ -500,6 +536,9 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
 
 #if UNITY_2020_2_OR_NEWER || ENABLE_DETAILED_PROFILE_CAPTURING
+        /// <summary>
+        /// WhenWritingSerializedFilesAndUsingDetailedBuildLog_ProfileCaptureScope_CreatesLogEventsWithinTaskThreshold
+        /// </summary>
         [Test]
         public void WhenWritingSerializedFilesAndUsingDetailedBuildLog_ProfileCaptureScope_CreatesLogEventsWithinTaskThreshold()
         {

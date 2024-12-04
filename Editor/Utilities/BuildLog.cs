@@ -10,7 +10,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
 {
     /// <summary>
     /// Basic implementation of IBuildLogger. Stores events in memory and can dump them to the trace event format.
-    /// <seealso cref="IBuildLogger"/>
+    /// <see cref="IBuildLogger"/>
     /// </summary>
     [Serializable]
     public class BuildLog : IBuildLogger, IDeferredBuildLogger
@@ -192,7 +192,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
         /// <summary>
         /// Internal use only.
-        /// <seealso cref="IBuildLogger"/>
+        /// <see cref="IBuildLogger"/>
         /// </summary>
         /// <param name="events">Event collection to handle</param>
         void IDeferredBuildLogger.HandleDeferredEventStream(IEnumerable<DeferredEvent> events)

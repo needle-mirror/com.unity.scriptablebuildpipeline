@@ -100,14 +100,14 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 if (consumedIds.TryGetValue(serializationInfo.serializationIndex, out var priorObject))
                 {
                     string msg = string.Format(@"File '{0}' contains a file identifier collision between {1} ({2}) and {3} ({4}) at id {5}. Objects will be missing from the bundle!
-You can work around this issue by changing the 'FileID Generator Seed' found in the Scriptable Build Pipeline Preferences window.", 
+You can work around this issue by changing the 'FileID Generator Seed' found in the Scriptable Build Pipeline Preferences window.",
                         internalName, obj, BuildCacheUtility.GetMainTypeForObject(obj), priorObject, BuildCacheUtility.GetMainTypeForObject(priorObject), serializationInfo.serializationIndex);
                     throw new BuildFailedException(msg);
                 }
                 consumedIds.Add(serializationInfo.serializationIndex, obj);
                 command.serializeObjects.Add(serializationInfo);
             }
-                
+
             return command;
         }
 
