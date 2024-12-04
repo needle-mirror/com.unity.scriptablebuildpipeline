@@ -421,7 +421,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
         /// <summary>
         /// Send bytes from an array to a stream as a sequence of blocks
         /// Not all hash algorithms behave the same passing data as one large block instead of multiple smaller ones so produce different hashes if
-        /// we pass a GUID or Hash128 as a single 16 byte block for example instead of the 4x4 byte blocks the generic hashing code produces for these types 
+        /// we pass a GUID or Hash128 as a single 16 byte block for example instead of the 4x4 byte blocks the generic hashing code produces for these types
         /// This function passes bytes from a buffer in chunks of a specified size to ensure we get the same hash from the same data in such cases
         /// Our SpookyHash implementation suffers from this for example (see SpookyHash::Short()) while MD5 does not
         /// </summary>
@@ -477,12 +477,45 @@ namespace UnityEditor.Build.Pipeline.Utilities
             return rawHash;
         }
 
+        static Dictionary<string, RawHash> fileHashCache = null;
+        static int requests, hits;
+        internal static void CreateNewFileHashCache(int capacity)
+        {
+            requests = hits = 0;
+            fileHashCache = new Dictionary<string, RawHash>(capacity);
+        }
+
+        internal static void ClearFileHashCache(out int requestCount, out int requestCacheHits)
+        {
+            fileHashCache = null;
+            requestCount = requests;
+            requestCacheHits = hits;
+        }
+
         /// <summary>
         /// Creates the hash for a file.
         /// </summary>
-        /// <param name="filePath">The file path.</param>
+        /// <param name="filename">The file path.</param>
         /// <returns>Returns the hash of the file.</returns>
-        public static RawHash CalculateFile(string filePath)
+        public static RawHash CalculateFile(string filename)
+        {
+            requests++;
+            if (fileHashCache == null)
+                return CalculateFileInternal(filename);
+
+            if (fileHashCache.TryGetValue(filename, out var hash))
+            {
+                hits++;
+            }
+            else
+            {
+                fileHashCache.Add(filename, hash = CalculateFileInternal(filename));
+            }
+
+            return hash;
+        }
+
+        static RawHash CalculateFileInternal(string filePath)
         {
             RawHash rawHash;
             using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read))

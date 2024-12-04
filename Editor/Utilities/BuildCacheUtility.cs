@@ -15,11 +15,14 @@ internal class AutoBuildCacheUtility : IDisposable
     public AutoBuildCacheUtility()
     {
         BuildCacheUtility.ClearCacheHashes();
+        HashingMethods.CreateNewFileHashCache(1024);
     }
 
     public void Dispose()
     {
         BuildCacheUtility.ClearCacheHashes();
+        HashingMethods.ClearFileHashCache(out var requestCount, out var requestCacheHits);
+    //    Debug.Log($"File Hash Cache: {requestCacheHits}/{requestCount} - {(float)requestCacheHits / requestCount * 100}% hit rate.");
     }
 }
 
@@ -44,7 +47,7 @@ internal static class BuildCacheUtility
         foreach (GUID scene in content.Scenes)
             m_ExplicitAssets.Add(scene);
     }
-    
+
     public static CacheEntry GetCacheEntry(GUID asset, int version = 1)
     {
         CacheEntry entry;
@@ -71,7 +74,7 @@ internal static class BuildCacheUtility
             entry.Hash = HashingMethods.Calculate(entry.Hash, entry.Version).ToHash128();
 
         entry.Inclusion = m_ExplicitAssets.Contains(asset) ? CacheEntry.InclusionType.Explicit : CacheEntry.InclusionType.Implicit;
-        
+
         m_GuidToHash[key] = entry;
         return entry;
     }

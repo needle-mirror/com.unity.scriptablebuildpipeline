@@ -11,7 +11,7 @@ namespace UnityEditor.Build.Pipeline
 #if UNITY_2019_3_OR_NEWER
     /// <summary>
     /// Basic implementation of ICustomAssets. Stores the list of Custom Assets generated during the Scriptable Build Pipeline.
-    /// <seealso cref="ICustomAssets"/>
+    /// <see cref="ICustomAssets"/>
     /// </summary>
     [Serializable]
     public class CustomAssets : ICustomAssets
@@ -31,7 +31,7 @@ namespace UnityEditor.Build.Pipeline
 
     /// <summary>
     /// Basic implementation of IBuildContent. Stores the list of Assets to feed the Scriptable Build Pipeline.
-    /// <seealso cref="IBuildContent"/>
+    /// <see cref="IBuildContent"/>
     /// </summary>
     [Serializable]
     public class BuildContent : IBuildContent
@@ -82,7 +82,7 @@ namespace UnityEditor.Build.Pipeline
 
     /// <summary>
     /// Basic implementation of IBundleBuildContent. Stores the list of Assets with explicit Asset Bundle layout to feed the Scriptable Build Pipeline.
-    /// <seealso cref="IBundleBuildContent"/>
+    /// <see cref="IBundleBuildContent"/>
     /// </summary>
     [Serializable]
     public class BundleBuildContent : IBundleBuildContent

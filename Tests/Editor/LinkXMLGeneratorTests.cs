@@ -8,11 +8,17 @@ using UnityEditor.Build.Pipeline.Utilities;
 
 namespace UnityEditor.Build.Pipeline.Tests
 {
+    /// <summary>
+    /// LinkXMLGeneratorTests
+    /// </summary>
     [TestFixture]
     public class LinkXMLGeneratorTests
     {
         const string k_LinkFile = "link.xml";
 
+        /// <summary>
+        /// Teardown
+        /// </summary>
         [TearDown]
         public void OnTearDown()
         {
@@ -20,6 +26,13 @@ namespace UnityEditor.Build.Pipeline.Tests
                 File.Delete(k_LinkFile);
         }
 
+        /// <summary>
+        /// Read the LinkXML file
+        /// </summary>
+        /// <param name="linkFile">linkFile</param>
+        /// <param name="assemblyCount">assemblyCount</param>
+        /// <param name="typeCount">typeCount</param>
+        /// <returns>The contents of the LinkXML file</returns>
         public static string ReadLinkXML(string linkFile, out int assemblyCount, out int typeCount)
         {
             FileAssert.Exists(linkFile);
@@ -29,26 +42,49 @@ namespace UnityEditor.Build.Pipeline.Tests
             return fileText;
         }
 
+        /// <summary>
+        /// AssertTypePreserved
+        /// </summary>
+        /// <param name="input">input</param>
+        /// <param name="t">type</param>
         public static void AssertTypePreserved(string input, Type t)
         {
             StringAssert.IsMatch($"type.*?{t.FullName}.*?preserve=\"all\"", input);
         }
 
+        /// <summary>
+        /// AssertTypeWithAttributePreserved
+        /// </summary>
+        /// <param name="input">input</param>
+        /// <param name="fullName">fullName</param>
         public static void AssertTypeWithAttributePreserved(string input, string fullName)
         {
             StringAssert.IsMatch($"type.*?{fullName}.*? preserve=\"nothing\" serialized=\"true\"", input);
         }
 
+        /// <summary>
+        /// AssertAssemblyPreserved
+        /// </summary>
+        /// <param name="input">input</param>
+        /// <param name="a">assemlby</param>
         public static void AssertAssemblyPreserved(string input, Assembly a)
         {
             StringAssert.IsMatch($"assembly.*?{a.FullName}.*?preserve=\"all\"", input);
         }
 
+        /// <summary>
+        /// AssertAssemblyFullName
+        /// </summary>
+        /// <param name="input">input</param>
+        /// <param name="assemblyName">assemblyName</param>
         public static void AssertAssemblyFullName(string input, string assemblyName)
         {
             StringAssert.IsMatch($"assembly.*?{assemblyName}", input);
         }
 
+        /// <summary>
+        /// CreateDefault_Converts_ExpectedUnityEditorTypes
+        /// </summary>
         [Test]
         public void CreateDefault_Converts_ExpectedUnityEditorTypes()
         {
@@ -68,6 +104,9 @@ namespace UnityEditor.Build.Pipeline.Tests
                 AssertTypePreserved(xml, t);
         }
 
+        /// <summary>
+        /// CreateDefault_DoesNotConvert_UnexpectedUnityEditorTypes
+        /// </summary>
         [Test]
         public void CreateDefault_DoesNotConvert_UnexpectedUnityEditorTypes()
         {
@@ -83,6 +122,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             AssertTypePreserved(xml, unexpectedType);
         }
 
+        /// <summary>
+        /// LinkXML_Preserves_MultipleTypes_FromMultipleAssemblies
+        /// </summary>
         [Test]
         public void LinkXML_Preserves_MultipleTypes_FromMultipleAssemblies()
         {
@@ -99,6 +141,9 @@ namespace UnityEditor.Build.Pipeline.Tests
                 AssertTypePreserved(xml, t);
         }
 
+        /// <summary>
+        /// LinkXML_Preserves_Assemblies
+        /// </summary>
         [Test]
         public void LinkXML_Preserves_Assemblies()
         {
@@ -115,7 +160,9 @@ namespace UnityEditor.Build.Pipeline.Tests
                 AssertAssemblyPreserved(xml, a);
         }
 
-
+        /// <summary>
+        /// LinkXML_Preserves_SerializeClasses
+        /// </summary>
         [Test]
         public void LinkXML_Preserves_SerializeClasses()
         {
@@ -134,7 +181,11 @@ namespace UnityEditor.Build.Pipeline.Tests
             AssertTypeWithAttributePreserved(xml, "AwesomeNS.Bar");
             AssertTypeWithAttributePreserved(xml, "SuperAwesomeNS.Bar");
         }
-        
+
+
+        /// <summary>
+        /// LinkXML_Is_Sorted
+        /// </summary>
         [Test]
         public void LinkXML_Is_Sorted()
         {
@@ -146,7 +197,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             // added via AddType/AddAssembly, regardless of alphabetical order.
             var serializedRefClasses = new[]
             {
-                "AssemblyC:NamespaceA.ClassA", 
+                "AssemblyC:NamespaceA.ClassA",
                 "AssemblyB:NamespaceC.ClassB",
                 "AssemblyA:NamespaceB.ClassC",
                 "AssemblyC:NamespaceC.ClassC",
@@ -196,6 +247,6 @@ namespace UnityEditor.Build.Pipeline.Tests
 ".Replace(" ", "").Replace("\n", "").Replace("\r", "");
             Assert.AreEqual(sorted, xml);
 
-        }        
+        }
     }
 }

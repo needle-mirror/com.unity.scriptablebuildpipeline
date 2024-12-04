@@ -8,8 +8,14 @@ using static UnityEditor.Build.Pipeline.Utilities.BuildLog;
 
 namespace UnityEditor.Build.Pipeline.Tests
 {
+    /// <summary>
+    /// BuildLogTests
+    /// </summary>
     public class BuildLogTests
     {
+        /// <summary>
+        /// WhenBeginAndEndScope_DurationIsCorrect
+        /// </summary>
         [Test]
         public void WhenBeginAndEndScope_DurationIsCorrect()
         {
@@ -20,6 +26,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.Greater(log.Root.Children[0].DurationMS, 4);
         }
 
+        /// <summary>
+        /// WhenAddMessage_EntryIsCreated
+        /// </summary>
         [Test]
         public void WhenAddMessage_EntryIsCreated()
         {
@@ -29,6 +38,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreEqual("TestEntry", log.Root.Children[0].Entries[0].Message);
         }
 
+        /// <summary>
+        /// WhenMessageAddedWithScope_EntryIsCreated
+        /// </summary>
         [Test]
         public void WhenMessageAddedWithScope_EntryIsCreated()
         {
@@ -37,6 +49,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreEqual("TestEntry", log.Root.Children[0].Entries[0].Message);
         }
 
+        /// <summary>
+        /// WhenScopeIsThreaded_AndThreadAddsNode_NodeEnteredInThreadedScope
+        /// </summary>
         [Test]
         public void WhenScopeIsThreaded_AndThreadAddsNode_NodeEnteredInThreadedScope()
         {
@@ -62,6 +77,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreNotEqual(Thread.CurrentThread.ManagedThreadId, log.Root.Children[0].Children[0].Entries[0].ThreadId);
         }
 
+        /// <summary>
+        /// WhenBeginAndEndScopeOnThread_StartAndEndTimeAreWithinMainThreadScope
+        /// </summary>
         [Test]
         public void WhenBeginAndEndScopeOnThread_StartAndEndTimeAreWithinMainThreadScope()
         {
@@ -99,6 +117,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.Less(threadedScopeEnd, testStepEnd);
         }
 
+        /// <summary>
+        /// WhenConvertingToTraceEventFormat_BackslashesAreEscaped
+        /// </summary>
         [Test]
         public void WhenConvertingToTraceEventFormat_BackslashesAreEscaped()
         {
@@ -110,6 +131,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             StringAssert.Contains("TestEntry\\\\AfterSlash", text);
         }
 
+        /// <summary>
+        /// WhenConvertingToTraceEventFormat_MetaDataIsAdded
+        /// </summary>
         [Test]
         public void WhenConvertingToTraceEventFormat_MetaDataIsAdded()
         {
@@ -121,6 +145,9 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
 
 #if UNITY_2020_2_OR_NEWER || ENABLE_DETAILED_PROFILE_CAPTURING
+        /// <summary>
+        /// WhenBeginAndEndDeferredEventsDontMatchUp_HandleDeferredEventsStream_ThrowsException
+        /// </summary>
         [Test]
         public void WhenBeginAndEndDeferredEventsDontMatchUp_HandleDeferredEventsStream_ThrowsException()
         {
@@ -131,6 +158,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.Throws<Exception>(() => log.HandleDeferredEventStreamInternal(events));
         }
 
+        /// <summary>
+        /// WhenBeginAndEndDeferredEventsMatchUp_HandleDeferredEventsStream_CreatesLogEvents
+        /// </summary>
         [Test]
         public void WhenBeginAndEndDeferredEventsMatchUp_HandleDeferredEventsStream_CreatesLogEvents()
         {
@@ -143,6 +173,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreEqual(startEvent.Name, log.Root.Children[0].Name);
         }
 
+        /// <summary>
+        /// WhenDeferredEventsAreOnlyInfoTypes_HandleDeferredEventsStream_CreatesLogEntry
+        /// </summary>
         [Test]
         public void WhenDeferredEventsAreOnlyInfoTypes_HandleDeferredEventsStream_CreatesLogEntry()
         {

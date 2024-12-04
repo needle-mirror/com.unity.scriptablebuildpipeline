@@ -121,7 +121,7 @@ namespace UnityEditor.Build.Pipeline
 
             return buildTasks;
         }
-        
+
 #if UNITY_2022_2_OR_NEWER
         public static IList<IBuildTask> ContentFileCompatible()
         {

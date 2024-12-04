@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+using NUnit.Framework;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Utilities;
@@ -40,7 +40,7 @@ namespace UnityEditor.Build.Pipeline.Tests
                 WriteOperations[i].ReferenceMap = referenceMap;
             }
         }
-        
+
         [OneTimeTearDown]
         public void OnetimeTearDown()
         {

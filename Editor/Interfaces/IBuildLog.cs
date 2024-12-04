@@ -112,7 +112,7 @@ namespace UnityEditor.Build.Pipeline.Interfaces
         public void Dispose()
         {
             ContentBuildProfileEvent[] events = ContentBuildInterface.StopProfileCapture();
-            
+
             if (m_Logger == null)
                 return;
 

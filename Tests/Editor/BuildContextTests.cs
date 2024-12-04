@@ -15,15 +15,25 @@ namespace UnityEditor.Build.Pipeline.Tests
     class TestITestInterfaceWithContextDerivationImplementation : ITestInterfaceWithContextDerivation
     {}
 
+    /// <summary>
+    /// BuildContextTests
+    /// </summary>
     public class BuildContextTests
     {
         BuildContext m_Ctx;
+
+        /// <summary>
+        /// Setup
+        /// </summary>
         [SetUp]
         public void Setup()
         {
             m_Ctx = new BuildContext();
         }
 
+        /// <summary>
+        /// SetContextObject_WhenTypeDoesNotExist_AddsContextObject
+        /// </summary>
         [Test]
         public void SetContextObject_WhenTypeDoesNotExist_AddsContextObject()
         {
@@ -31,6 +41,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.NotNull(m_Ctx.GetContextObject<MyContextObjectClass>());
         }
 
+        /// <summary>
+        /// SetContextObject_WhenTypeHasInterfaceAssignableToContextObject_InterfaceAndObjectTypeUsedAsKey
+        /// </summary>
         [Test]
         public void SetContextObject_WhenTypeHasInterfaceAssignableToContextObject_InterfaceAndObjectTypeUsedAsKey()
         {
@@ -39,6 +52,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.NotNull(m_Ctx.GetContextObject<TestITestInterfaceWithContextDerivationImplementation>());
         }
 
+        /// <summary>
+        /// GetContextObject_WhenTypeDoesNotExist_Throws
+        /// </summary>
         [Test]
         public void GetContextObject_WhenTypeDoesNotExist_Throws()
         {

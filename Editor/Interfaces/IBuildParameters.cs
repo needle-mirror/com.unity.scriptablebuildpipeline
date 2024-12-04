@@ -16,12 +16,12 @@ namespace UnityEditor.Build.Pipeline.Interfaces
     public interface IBuildParameters : IContextObject
     {
         /// <summary>
-        /// Target build platform. <seealso cref="BuildTarget"/>
+        /// Target build platform. <see cref="BuildTarget"/>
         /// </summary>
         BuildTarget Target { get; set; }
 
         /// <summary>
-        /// Target build platform group. <seealso cref="BuildTargetGroup"/>
+        /// Target build platform group. <see cref="BuildTargetGroup"/>
         /// </summary>
         BuildTargetGroup Group { get; set; }
 

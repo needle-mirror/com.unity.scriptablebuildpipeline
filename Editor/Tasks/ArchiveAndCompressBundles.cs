@@ -66,7 +66,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
             if (srcPath.Length > MaxPath)
                 throw new PathTooLongException(srcPath);
-            
+
             if (destPath.Length > MaxPath)
                 throw new PathTooLongException(destPath);
 #endif
@@ -375,7 +375,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
                 Directory.CreateDirectory(Path.GetDirectoryName(writePath));
                 item.ResultDetails.FileName = item.OutputFilePath;
-                item.ResultDetails.Crc = ContentBuildInterface.ArchiveAndCompress(item.ResourceFiles.ToArray(), writePath, item.Compression, stripUnityVersion); 
+                item.ResultDetails.Crc = ContentBuildInterface.ArchiveAndCompress(item.ResourceFiles.ToArray(), writePath, item.Compression, stripUnityVersion);
 
                 CopyFileWithTimestampIfDifferent(writePath, item.ResultDetails.FileName, log);
             }

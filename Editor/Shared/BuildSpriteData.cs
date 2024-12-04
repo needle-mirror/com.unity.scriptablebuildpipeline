@@ -6,7 +6,7 @@ namespace UnityEditor.Build.Pipeline
 {
     /// <summary>
     /// Basic implementation of IBuildSpriteData. Stores the sprite importer data for a sprite asset in the build.
-    /// <seealso cref="IBuildSpriteData"/>
+    /// <see cref="IBuildSpriteData"/>
     /// </summary>
     [Serializable]
     public class BuildSpriteData : IBuildSpriteData

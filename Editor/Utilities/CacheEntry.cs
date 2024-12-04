@@ -80,8 +80,8 @@ namespace UnityEditor.Build.Pipeline.Utilities
         /// Stores the entry type.
         /// </summary>
         public EntryType Type { get; internal set; }
-        
-        internal InclusionType Inclusion { get; set; } 
+
+        internal InclusionType Inclusion { get; set; }
 
         /// <summary>
         /// Stores the entry file name.

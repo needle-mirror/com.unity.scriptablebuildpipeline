@@ -7,12 +7,34 @@ using UnityEngine.Build.Pipeline;
 
 namespace UnityEditor.Build.Pipeline.Interfaces
 {
+    /// <summary>
+    /// Container for Asset data calculated by the build
+    /// </summary>
     public struct AssetResultData
     {
+        /// <summary>
+        /// Asset GUID
+        /// </summary>
         public GUID Guid;
+
+        /// <summary>
+        /// Asest hash
+        /// </summary>
         public Hash128 Hash;
+
+        /// <summary>
+        /// Objects included in the asset
+        /// </summary>
         public List<ObjectIdentifier> IncludedObjects;
+
+        /// <summary>
+        /// External objects referenced by the asset
+        /// </summary>
         public List<ObjectIdentifier> ReferencedObjects;
+
+        /// <summary>
+        /// Object ID to type map
+        /// </summary>
         public Dictionary<ObjectIdentifier, Type[]> ObjectTypes;
     }
 
@@ -44,7 +66,7 @@ namespace UnityEditor.Build.Pipeline.Interfaces
 
     /// <summary>
     /// Extended interface for Asset Bundle build results container.
-    /// <seealso cref="IBuildResults"/>
+    /// <see cref="IBuildResults"/>
     /// </summary>
     public interface IBundleBuildResults : IBuildResults
     {

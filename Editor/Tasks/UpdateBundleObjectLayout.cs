@@ -64,7 +64,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                             PopulateReferencesMap(dependencyPair.Key, dependencyPair.Value.referencedObjects, ObjectToAssetReferences);
                     }
                 });
-                
+
                 using (m_Log.ScopedStep(LogLevel.Info, "Populate Files Map", $"Count={m_WriteData.FileToObjects.Count}"))
                 {
                     foreach (KeyValuePair<string, List<ObjectIdentifier>> filePair in m_WriteData.FileToObjects)
@@ -128,7 +128,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             if (!FileToBundle.ContainsKey(file))
             {
                 FileToBundle.Add(file, bundleName);
-                // NOTE: We want the output result to know about the new bundle, but since we are only 
+                // NOTE: We want the output result to know about the new bundle, but since we are only
                 // assigning individual objects to this bundle and not full assets, the asset list will be empty
                 BundleLayout.Add(bundleName, new List<GUID>());
             }

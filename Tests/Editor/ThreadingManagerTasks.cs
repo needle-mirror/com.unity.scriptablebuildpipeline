@@ -4,9 +4,16 @@ using NUnit.Framework;
 
 namespace UnityEditor.Build.Pipeline.Tests
 {
+    /// <summary>
+    /// ThreadingManagerTasks
+    /// </summary>
     [TestFixture]
     public class ThreadingManagerTasks
     {
+        /// <summary>
+        /// ThreadingTasks_SameQueues_ExecuteSequentially
+        /// </summary>
+        /// <param name="queue">queue</param>
         [TestCase(ThreadingManager.ThreadQueues.SaveQueue)]
         [TestCase(ThreadingManager.ThreadQueues.UploadQueue)]
         [TestCase(ThreadingManager.ThreadQueues.PruneQueue)]
@@ -39,6 +46,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             CollectionAssert.AreEqual(new[] { 1, 2, 3 }, callOrder.ToArray());
         }
 
+        /// <summary>
+        /// ThreadingTasks_SaveQueue_RunsInParallelWith_UploadQueue
+        /// </summary>
         [Test]
         public void ThreadingTasks_SaveQueue_RunsInParallelWith_UploadQueue()
         {
@@ -71,6 +81,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             CollectionAssert.AreEqual(new[] { 1, 3, 2 }, callOrder.ToArray());
         }
 
+        /// <summary>
+        /// ThreadingTasks_PruneQueue_RunsAfter_SaveAndUploadQueue
+        /// </summary>
         [Test]
         public void ThreadingTasks_PruneQueue_RunsAfter_SaveAndUploadQueue()
         {
@@ -108,6 +121,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             CollectionAssert.AreEqual(new[] { 1, 3, 2, 4 }, callOrder.ToArray());
         }
 
+        /// <summary>
+        /// WhenPruneTaskActive_SaveAndUploadTasksWaitForPruneCompletion
+        /// </summary>
         [Test]
         public void WhenPruneTaskActive_SaveAndUploadTasksWaitForPruneCompletion()
         {

@@ -15,7 +15,7 @@ namespace UnityEditor.Build.Pipeline
 
     /// <summary>
     /// Basic implementation of IBuildParameters. Stores the set of parameters passed into the Scriptable Build Pipeline.
-    /// <seealso cref="IBuildParameters"/>
+    /// <see cref="IBuildParameters"/>
     /// </summary>
     [Serializable]
     public class BuildParameters : IBuildParameters

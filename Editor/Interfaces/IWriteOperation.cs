@@ -11,19 +11,19 @@ namespace UnityEditor.Build.Pipeline.Interfaces
     {
         /// <summary>
         /// The specific write command containing the details about what to write to disk.
-        /// <seealso cref="WriteCommand"/>
+        /// <see cref="WriteCommand"/>
         /// </summary>
         WriteCommand Command { get; set; }
 
         /// <summary>
         /// The specific usage data for objects in the write command.
-        /// <seealso cref="BuildUsageTagSet"/>
+        /// <see cref="BuildUsageTagSet"/>
         /// </summary>
         BuildUsageTagSet UsageSet { get; set; }
 
         /// <summary>
         /// The specific reference data for objects in the write command.
-        /// <seealso cref="BuildReferenceMap"/>
+        /// <see cref="BuildReferenceMap"/>
         /// </summary>
         BuildReferenceMap ReferenceMap { get; set; }
 

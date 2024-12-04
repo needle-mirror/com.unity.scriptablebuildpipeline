@@ -9,7 +9,7 @@ namespace UnityEditor.Build.Pipeline
 {
     /// <summary>
     /// Basic implementation of IDependencyData. Stores the dependency and usage data calculated during a build.
-    /// <seealso cref="IDependencyData"/>
+    /// <see cref="IDependencyData"/>
     /// </summary>
     [Serializable]
     public class BuildDependencyData : IDependencyData

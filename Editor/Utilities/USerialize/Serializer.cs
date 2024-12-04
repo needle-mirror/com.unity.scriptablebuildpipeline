@@ -11,9 +11,9 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize
 {
     /*
      * Main USerialize serialzation class.  Used to write instances of types to a stream
-     * 
+     *
      * To Serialize an object to a stream use code such as
-     * 
+     *
      *   MemoryStream stream = new MemoryStream();
      *   USerialize.Serializer serializer = new USerialize.Serializer();
      *   serializer.Serialize(stream, myClassInstance, 1);   // '1' is the version of our object, we can read this value back at deserialization time if we want to determine the version of our data
@@ -97,7 +97,7 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize
         // Client code can pass an array of custom serializers and their associated types to the Serializer constructor or can call AddCustomSerializer() to add individual custom serializers at any time prior to serialization taking place
         Dictionary<Type, ICustomSerializer> m_CustomSerializers = new Dictionary<Type, ICustomSerializer>();
 
-        // Cache of TypeData instances for all the types we've been asked to serialize so far.  Only type specific data is stored here not instance specific data and this cache *is not* cleared between calls to Serialize() so using the same 
+        // Cache of TypeData instances for all the types we've been asked to serialize so far.  Only type specific data is stored here not instance specific data and this cache *is not* cleared between calls to Serialize() so using the same
         // Serializer instance to write multiple instances of the same types achieves a significant performance benefit by being able to re-use type information without having to call slow reflection APIs again.
         Dictionary<Type, TypeData> m_TypeDataCache = new Dictionary<Type, TypeData>();
 
@@ -382,7 +382,7 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize
                                 ulong[] ulongArray = (ulong[])array;
                                 m_Writer.Write((byte)DataType.ULong);
                                 for (int elementIndex = 0; elementIndex < array.Length; elementIndex++)
-                                { 
+                                {
                                     m_Writer.Write(ulongArray[elementIndex]);
                                 }
                             }
@@ -422,7 +422,7 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize
                             {
                                 object elementToWrite = array.GetValue(elementIndex);
 
-                                // If the element isn't null see if we have a custom serializer for the type of this instance.  
+                                // If the element isn't null see if we have a custom serializer for the type of this instance.
                                 // The array type might be a base class for the actual instances which may not all be the same derived type so we use the runtime type of each instance individually to check for custom serializers rather than using the type of the array itself
                                 if (elementToWrite != null)
                                 {

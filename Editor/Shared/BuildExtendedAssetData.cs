@@ -6,7 +6,7 @@ namespace UnityEditor.Build.Pipeline
 {
     /// <summary>
     /// Basic implementation of IBuildExtendedAssetData. Stores the extended data about an asset in the build.
-    /// <seealso cref="IBuildExtendedAssetData"/>
+    /// <see cref="IBuildExtendedAssetData"/>
     /// </summary>
     [Serializable]
     public class BuildExtendedAssetData : IBuildExtendedAssetData

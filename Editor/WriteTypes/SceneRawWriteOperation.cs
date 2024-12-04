@@ -31,7 +31,7 @@ namespace UnityEditor.Build.Pipeline.WriteTypes
 
         /// <summary>
         /// Processed scene path returned by the ProcessScene API.
-        /// <seealso cref="ContentBuildInterface.PrepareScene"/>
+        /// <see cref="ContentBuildInterface.PrepareScene"/>
         /// </summary>
 #if UNITY_2019_3_OR_NEWER
         [Obsolete("ProcessedScene has been deprecated.")]

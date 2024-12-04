@@ -8,7 +8,7 @@ The Unity Accelerator can speed up the Asset Import process when the same projec
 
 # Installation
 
-To install this package, follow the instructions in the [Package Manager documentation](https://docs.unity3d.com/Packages/com.unity.package-manager-ui@latest/index.html). 
+To install this package, follow the instructions in the [Package Manager documentation](https://docs.unity3d.com/Packages/com.unity.package-manager-ui@latest/index.html).
 
 # Usage
 ## API Examples
@@ -16,7 +16,7 @@ To install this package, follow the instructions in the [Package Manager documen
 This following example shows how to share build artifacts between team members or multiple machines to achieve faster build times.
 
 Requirements:
-1. A Cache Server instance dedicated to build artifacts. In addition you may run an Accelerator to speed up Asset Imports. 
+1. A Cache Server instance dedicated to build artifacts. In addition you may run an Accelerator to speed up Asset Imports.
 2. High Reliability mode turned off on the Build Cache Server instance. The build cache uses dynamic dependencies which is incompatible with high reliability mode.
 3. The build code must use the `ContentPipeline.BuildAssetBundles` method.
 4. `BundleBuildParameters.UseCache` is set to true.

@@ -148,7 +148,7 @@ public static class BuildAssetBundlesExample
 ## Building Archives that Contain ContentFiles
 The following example shows how to build Archive files that contain ContentFiles by using the `DefaultBuildTasks.ContentFileCompatible` as the tasks for building
 
-Using `ContentFileIdentifiers` is required, otherwise the resulting AssetBundles will not be able to load. 
+Using `ContentFileIdentifiers` is required, otherwise the resulting AssetBundles will not be able to load.
 
 Requires Unity 2022.2 or later.
 ```csharp

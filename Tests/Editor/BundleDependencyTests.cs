@@ -1,9 +1,9 @@
 using UnityEngine;
 using UnityEngine.Build.Pipeline;
-using Unity.ScriptableBuildPipelineTests;
 using NUnit.Framework;
 using System.IO;
 using System.Linq;
+using Unity.ScriptableBuildPipeline.Runtime.Tests;
 
 namespace UnityEditor.Build.Pipeline.Tests
 {
