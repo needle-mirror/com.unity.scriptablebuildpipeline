@@ -477,12 +477,45 @@ namespace UnityEditor.Build.Pipeline.Utilities
             return rawHash;
         }
 
+        static Dictionary<string, RawHash> fileHashCache = null;
+        static int requests, hits;
+        internal static void CreateNewFileHashCache(int capacity)
+        {
+            requests = hits = 0;
+            fileHashCache = new Dictionary<string, RawHash>(capacity);
+        }
+
+        internal static void ClearFileHashCache(out int requestCount, out int requestCacheHits)
+        {
+            fileHashCache = null;
+            requestCount = requests;
+            requestCacheHits = hits;
+        }
+
         /// <summary>
         /// Creates the hash for a file.
         /// </summary>
         /// <param name="filePath">The file path.</param>
         /// <returns>Returns the hash of the file.</returns>
-        public static RawHash CalculateFile(string filePath)
+        public static RawHash CalculateFile(string filename)
+        {
+            requests++;
+            if (fileHashCache == null)
+                return CalculateFileInternal(filename);
+
+            if (fileHashCache.TryGetValue(filename, out var hash))
+            {
+                hits++;
+            }
+            else
+            {
+                fileHashCache.Add(filename, hash = CalculateFileInternal(filename));
+            }
+
+            return hash;
+        }
+
+        static RawHash CalculateFileInternal(string filePath)
         {
             RawHash rawHash;
             using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read))

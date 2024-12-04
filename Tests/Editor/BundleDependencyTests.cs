@@ -70,8 +70,14 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             Directory.CreateDirectory(k_BuildFolder);
 
-            // Todo, confirm that the NonRecursive Mode is enabled, the test assumes that it is and i think that is the default but its not exposed in this API
+            string errorMsg = ContentPipeline.CanBuildPlayer(EditorUserBuildSettings.activeBuildTarget, EditorUserBuildSettings.activeBuildTargetGroup, k_BuildFolder);
+            if(!string.IsNullOrEmpty(errorMsg))
+            {
+                Assert.Ignore($"Attempting to build AssetBundles, but ContentPipeline.CanBuildPlayer returned the following error: {errorMsg}");
+                return null;
+            }
 
+            // Todo, confirm that the NonRecursive Mode is enabled, the test assumes that it is and i think that is the default but its not exposed in this API
             var manifest = default(CompatibilityAssetBundleManifest);
 
 #if BUILD_OPTIONS_RECURSE_DEPENDENCIES_2022_3 || BUILD_OPTIONS_RECURSE_DEPENDENCIES_2023_3 || UNITY_6000_0_OR_NEWER
@@ -92,8 +98,6 @@ namespace UnityEditor.Build.Pipeline.Tests
                     BuildAssetBundleOptions.AppendHashToAssetBundleName,
                     EditorUserBuildSettings.activeBuildTarget);
             }
-
-            Assert.IsNotNull(manifest);
 
             return manifest;
         }

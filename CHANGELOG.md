@@ -4,6 +4,9 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.2.4] - 2024-12-04
+- Added a Log Asset Warnings setting that optionally disables logging of asset warnings during build process.
+
 ## [2.1.5] - 2024-09-24
 - Fixed issue where total size of all bundles changes when updating the same Addressable Groups build.
 - Fixed issue where more than 2 Scriptable Objects are nested and Compatability Pipeline is used to build.

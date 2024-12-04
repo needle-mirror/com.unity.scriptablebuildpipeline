@@ -41,6 +41,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             public static readonly GUIContent generalSettings = EditorGUIUtility.TrTextContent("General Settings");
             public static readonly GUIContent threadedArchiving = EditorGUIUtility.TrTextContent("Threaded Archiving", "Thread the archiving and compress build stage.");
             public static readonly GUIContent logCacheMiss = EditorGUIUtility.TrTextContent("Log Cache Miss", "Log a warning on build cache misses. Warning will contain which asset and dependency caused the miss.");
+            public static readonly GUIContent logAssetWarnings = EditorGUIUtility.TrTextContent("Log Asset Warnings", "Log a warning on invalid asset references.");
             public static readonly GUIContent slimWriteResults = EditorGUIUtility.TrTextContent("Slim Write Results", "Reduces the caching of WriteResults data down to the bare minimum for improved cache performance.");
             public static readonly GUIContent v2Hasher = EditorGUIUtility.TrTextContent("Use V2 Hasher", "Use the same hasher as Asset Database V2. This hasher improves build cache performance, but invalidates the existing build cache.");
             public static readonly GUIContent hashSeed = EditorGUIUtility.TrTextContent("FileID Generator Seed", "Allows you to specify an additional seed to avoid file identifier collisions during build. This changes the layout of all objects in all bundles and we suggest not changing this value after release.");
@@ -65,6 +66,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             public int cacheServerPort = 8126;
             public bool threadedArchiving = true;
             public bool logCacheMiss = false;
+            public bool logAssetWarnings = true;
             public bool slimWriteResults = true;
             public int maximumCacheSize = 20;
             public bool useDetailedBuildLog = false;
@@ -122,6 +124,15 @@ namespace UnityEditor.Build.Pipeline.Utilities
         {
             get => s_Settings.logCacheMiss;
             set => CompareAndSet(ref s_Settings.logCacheMiss, value);
+        }
+
+        /// <summary>
+        /// Log a warning on invalid asset references.
+        /// </summary>
+        public static bool logAssetWarnings
+        {
+            get => s_Settings.logAssetWarnings;
+            set => CompareAndSet(ref s_Settings.logAssetWarnings, value);
         }
 
         /// <summary>
@@ -186,6 +197,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
         }
 
         internal const string kSettingPath = "ProjectSettings/ScriptableBuildPipeline.json";
+        internal const string kLogAssetWarningsKey = "ScriptableBuildPipeline.LogAssetWarnings";
 
         internal static void LoadSettings()
         {
@@ -197,6 +209,8 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
                 var json = File.ReadAllText(kSettingPath);
                 EditorJsonUtility.FromJsonOverwrite(json, s_Settings);
+
+                ApplyLogAssetWarningsSetting();
             }
         }
 
@@ -204,6 +218,14 @@ namespace UnityEditor.Build.Pipeline.Utilities
         {
             var json = EditorJsonUtility.ToJson(s_Settings, true);
             File.WriteAllText(kSettingPath, json);
+
+            ApplyLogAssetWarningsSetting();
+        }
+
+        internal static void ApplyLogAssetWarningsSetting()
+        {
+            // Save setting in EditorPrefs so that it can be accessed from engine code
+            EditorPrefs.SetBool(kLogAssetWarningsKey, s_Settings.logAssetWarnings);
         }
 
         static ScriptableBuildPipeline()
@@ -244,6 +266,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 s_Settings.threadedArchiving = EditorGUILayout.Toggle(Properties.threadedArchiving, s_Settings.threadedArchiving);
 
             s_Settings.logCacheMiss = EditorGUILayout.Toggle(Properties.logCacheMiss, s_Settings.logCacheMiss);
+            s_Settings.logAssetWarnings = EditorGUILayout.Toggle(Properties.logAssetWarnings, s_Settings.logAssetWarnings);
             s_Settings.slimWriteResults = EditorGUILayout.Toggle(Properties.slimWriteResults, s_Settings.slimWriteResults);
             s_Settings.useDetailedBuildLog = EditorGUILayout.Toggle(Properties.useDetailedBuildLog, s_Settings.useDetailedBuildLog);
 #if UNITY_2020_1_OR_NEWER

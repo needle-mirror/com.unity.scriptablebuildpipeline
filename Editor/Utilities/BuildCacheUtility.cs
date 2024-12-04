@@ -15,11 +15,14 @@ internal class AutoBuildCacheUtility : IDisposable
     public AutoBuildCacheUtility()
     {
         BuildCacheUtility.ClearCacheHashes();
+        HashingMethods.CreateNewFileHashCache(1024);
     }
 
     public void Dispose()
     {
         BuildCacheUtility.ClearCacheHashes();
+        HashingMethods.ClearFileHashCache(out var requestCount, out var requestCacheHits);
+    //    Debug.Log($"File Hash Cache: {requestCacheHits}/{requestCount} - {(float)requestCacheHits / requestCount * 100}% hit rate.");
     }
 }
 

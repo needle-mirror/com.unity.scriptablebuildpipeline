@@ -89,6 +89,13 @@ namespace UnityEditor.Build.Pipeline.Tests
             Directory.CreateDirectory(k_FolderPath);
             Directory.CreateDirectory(k_TmpPath);
 
+            string errorMsg = ContentPipeline.CanBuildPlayer(EditorUserBuildSettings.activeBuildTarget, EditorUserBuildSettings.activeBuildTargetGroup, k_TmpPath);
+            if(!string.IsNullOrEmpty(errorMsg))
+            {
+                Assert.Ignore($"Attempting to build AssetBundles, but {EditorUserBuildSettings.activeBuildTarget} is not installed. Ignoring this test.");
+                return null;
+            }
+
             IBundleBuildParameters buildParams = new BundleBuildParameters(EditorUserBuildSettings.activeBuildTarget, EditorUserBuildSettings.selectedBuildTargetGroup, k_FolderPath);
             buildParams.TempOutputFolder = k_TmpPath;
             return buildParams;
