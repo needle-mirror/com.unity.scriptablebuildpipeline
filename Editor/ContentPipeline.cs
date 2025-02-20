@@ -5,7 +5,6 @@ using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Utilities;
 using UnityEditor.Build.Utilities;
 using UnityEditor.Modules;
-using UnityEngine;
 
 namespace UnityEditor.Build.Pipeline
 {
@@ -53,8 +52,7 @@ namespace UnityEditor.Build.Pipeline
         /// <param name="contextObjects">Additional context objects to make available to the build.</param>
         /// <returns>Return code with status information about success or failure causes.</returns>
         /// <remarks>The target platform must be installed. Otherwise AssetBundles will be built based on the editor version of the Assemblies and may have incorrect content.</remarks>
-        public static ReturnCode BuildAssetBundles(IBundleBuildParameters parameters, IBundleBuildContent content, out IBundleBuildResults result, IList<IBuildTask> taskList,
-            params IContextObject[] contextObjects)
+        public static ReturnCode BuildAssetBundles(IBundleBuildParameters parameters, IBundleBuildContent content, out IBundleBuildResults result, IList<IBuildTask> taskList, params IContextObject[] contextObjects)
         {
             if (BuildPipeline.isBuildingPlayer)
             {
@@ -80,11 +78,10 @@ namespace UnityEditor.Build.Pipeline
             }
 
             var contentBuildSettings = parameters.GetContentBuildSettings();
-            var buildSetupError = CanBuildPlayer(contentBuildSettings.target, contentBuildSettings.group, parameters.TempOutputFolder);
-            if (buildSetupError != null)
+            if (!CanBuildPlayer(contentBuildSettings.target, contentBuildSettings.group))
             {
                 result = null;
-                BuildLogger.LogException(new InvalidOperationException($"{buildSetupError} Unable to build with the current configuration. Please check the Build Settings."));
+                BuildLogger.LogException(new InvalidOperationException("Unable to build with the current configuration, please check the Build Settings."));
                 return ReturnCode.Exception;
             }
 
@@ -176,30 +173,38 @@ namespace UnityEditor.Build.Pipeline
             return exitCode;
         }
 
-        internal static string CanBuildPlayer(BuildTarget target, BuildTargetGroup targetGroup, string tempOutputFolder)
+        internal static bool CanBuildPlayer(BuildTarget target, BuildTargetGroup targetGroup)
         {
-#if UNITY_2021_3_OR_NEWER
             // The Editor APIs we need only exist in 2021.3 and later. For earlier versions, assume we can build.
-            var options = new BuildPlayerOptions();
-            options.options = BuildOptions.None;
-            options.locationPathName = tempOutputFolder;
-            options.targetGroup = targetGroup;
-            options.target = target;
-
-#if UNITY_2023_3_OR_NEWER
-            var postprocessor = ModuleManager.GetBuildPostProcessor(target);
+#if UNITY_2021_3_OR_NEWER
+            return CanBuildPlayer(target, targetGroup, GetBuildWindowExtension(target, targetGroup));
 #else
-            var postprocessor = ModuleManager.GetBuildPostProcessor(targetGroup, target);
-#endif
-            if (postprocessor == null)
-            {
-                return $"Module {target} is not installed.";
-            }
-            return postprocessor.PrepareForBuild(options);
-#else
-            return null;
+            return true;
 #endif
         }
-    }
 
+#if UNITY_2021_3_OR_NEWER
+        private static IBuildWindowExtension GetBuildWindowExtension(BuildTarget target, BuildTargetGroup targetGroup)
+        {
+#if UNITY_2023_3_OR_NEWER
+            var module = ModuleManager.GetTargetStringFrom(target);
+#else
+            var module = ModuleManager.GetTargetStringFrom(targetGroup, target);
+#endif
+            return ModuleManager.GetBuildWindowExtension(module);
+        }
+
+        internal static bool CanBuildPlayer(BuildTarget target, BuildTargetGroup targetGroup, IBuildWindowExtension buildWindowExtension)
+        {
+            // we expect this to mainly happen within yamato when no build target modules are installed
+            if (!BuildPipeline.IsBuildTargetSupported(targetGroup, target))
+            {
+                BuildLogger.LogWarning("The currently selected build target is not supported. If the build fails please check the Build Settings.");
+                return true;
+            }
+
+            return buildWindowExtension != null ? buildWindowExtension.EnabledBuildButton() : false;
+        }
+#endif
+        }
 }

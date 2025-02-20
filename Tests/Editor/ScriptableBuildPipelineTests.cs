@@ -36,9 +36,6 @@ namespace UnityEditor.Build.Pipeline.Tests
         [OneTimeSetUp]
         public void Setup()
         {
-            if (!BuildPipeline.IsBuildTargetSupported(EditorUserBuildSettings.activeBuildTargetGroup, EditorUserBuildSettings.activeBuildTarget))
-                Assert.Ignore("Build target was not installed. Unable to run test");
-
             EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo();
             Directory.CreateDirectory(k_TestAssetsPath);
 #if UNITY_2018_3_OR_NEWER
@@ -91,13 +88,6 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             Directory.CreateDirectory(k_FolderPath);
             Directory.CreateDirectory(k_TmpPath);
-
-            string errorMsg = ContentPipeline.CanBuildPlayer(EditorUserBuildSettings.activeBuildTarget, EditorUserBuildSettings.activeBuildTargetGroup, k_TmpPath);
-            if(!string.IsNullOrEmpty(errorMsg))
-            {
-                Assert.Ignore($"Attempting to build AssetBundles, but {EditorUserBuildSettings.activeBuildTarget} is not installed. Ignoring this test.");
-                return null;
-            }
 
             IBundleBuildParameters buildParams = new BundleBuildParameters(EditorUserBuildSettings.activeBuildTarget, EditorUserBuildSettings.selectedBuildTargetGroup, k_FolderPath);
             buildParams.TempOutputFolder = k_TmpPath;

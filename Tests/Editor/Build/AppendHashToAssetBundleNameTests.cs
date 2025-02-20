@@ -28,9 +28,6 @@ public abstract class AppendHashToAssetBundleNameTests
     [SetUp]
     public void Setup()
     {
-        if (ModuleManager.platformSupportModules.Count == 0)
-            Assert.Ignore("No supported modules installed. This is an invalid test environment");
-
         if (!File.Exists(k_scenePath))
         {
             Scene newScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene);

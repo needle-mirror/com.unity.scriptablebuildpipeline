@@ -18,9 +18,6 @@ namespace UnityEditor.Build.Pipeline.Tests
         [OneTimeSetUp]
         public void Setup()
         {
-            if (!BuildPipeline.IsBuildTargetSupported(EditorUserBuildSettings.activeBuildTargetGroup, EditorUserBuildSettings.activeBuildTarget))
-                Assert.Ignore("Build target was not installed. Unable to run test");
-
             Directory.CreateDirectory(k_TmpAssetPath);
 
             // Create scenario similar to BPSBP-740
@@ -76,13 +73,6 @@ namespace UnityEditor.Build.Pipeline.Tests
                 Directory.Delete(k_BuildFolder, true);
 
             Directory.CreateDirectory(k_BuildFolder);
-
-            string errorMsg = ContentPipeline.CanBuildPlayer(EditorUserBuildSettings.activeBuildTarget, EditorUserBuildSettings.activeBuildTargetGroup, k_BuildFolder);
-            if(!string.IsNullOrEmpty(errorMsg))
-            {
-                Assert.Ignore($"Attempting to build AssetBundles, but ContentPipeline.CanBuildPlayer returned the following error: {errorMsg}");
-                return null;
-            }
 
             // Todo, confirm that the NonRecursive Mode is enabled, the test assumes that it is and i think that is the default but its not exposed in this API
             var manifest = default(CompatibilityAssetBundleManifest);
