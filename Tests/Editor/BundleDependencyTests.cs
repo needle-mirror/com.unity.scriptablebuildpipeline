@@ -4,11 +4,12 @@ using Unity.ScriptableBuildPipelineTests.Runtime.Tests;
 using NUnit.Framework;
 using System.IO;
 using System.Linq;
+using UnityEditor.TestTools;
 
 namespace UnityEditor.Build.Pipeline.Tests
 {
     [TestFixture]
-    class BundleDependencyTests
+    abstract class BundleDependencyTests
     {
         const string k_TmpAssetPath = "Assets/TempAssets";
         const string k_BuildFolder = "TestBuild";
@@ -261,5 +262,17 @@ namespace UnityEditor.Build.Pipeline.Tests
                     bundles[i].Unload(true);
             }
         }
+    }
+
+    namespace BuildDependencyPerPlatformTests
+    {
+        [RequirePlatformSupport(BuildTarget.StandaloneWindows, BuildTarget.StandaloneWindows64)]
+        class BundleDependencyTestsWindows : BundleDependencyTests { }
+
+        [RequirePlatformSupport(BuildTarget.StandaloneOSX)]
+        class BundleDependencyTestsOSX : BundleDependencyTests { }
+
+        [RequirePlatformSupport(BuildTarget.StandaloneLinux64)]
+        class BundleDependencyTestsLinux : BundleDependencyTests { }
     }
 }

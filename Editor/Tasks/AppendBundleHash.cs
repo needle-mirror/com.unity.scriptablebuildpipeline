@@ -32,7 +32,10 @@ namespace UnityEditor.Build.Pipeline.Tasks
             {
                 var details = m_Results.BundleInfos[bundle];
                 var oldFileName = details.FileName;
-                var newFileName = string.Format("{0}_{1}", details.FileName, details.Hash.ToString());
+                var dot = oldFileName.LastIndexOf('.');
+                var slash = oldFileName.LastIndexOf('/');
+                details.FileName = (dot != -1 || dot > slash) ? oldFileName.Substring(0, dot) : oldFileName;
+                var newFileName = string.Format("{0}_{1}{2}", details.FileName, details.Hash.ToString(), Path.GetExtension(oldFileName));
                 details.FileName = newFileName;
                 m_Results.BundleInfos[bundle] = details;
 
