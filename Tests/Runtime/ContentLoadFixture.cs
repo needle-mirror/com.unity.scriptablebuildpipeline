@@ -206,6 +206,9 @@ namespace UnityEditor.Build.Pipeline.Tests.ContentLoad
         public void Setup()
         {
 #if UNITY_EDITOR
+            if (!string.IsNullOrEmpty(ContentPipeline.CanBuildPlayer(EditorUserBuildSettings.activeBuildTarget, EditorUserBuildSettings.selectedBuildTargetGroup, "tempFolder")))
+                Assert.Ignore("Standalone support is required to build AssetBundles. Ignoring test suite.");
+
             DefaultBuild();
 #endif
         }
