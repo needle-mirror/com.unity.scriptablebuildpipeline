@@ -206,9 +206,8 @@ namespace UnityEditor.Build.Pipeline.Tests.ContentLoad
         public void Setup()
         {
 #if UNITY_EDITOR
-            //return here if the platform isn't installed. There appears to be an issue where the Setup runs for a test suite, even if all the tests would otherwise be ignored
             if (!string.IsNullOrEmpty(ContentPipeline.CanBuildPlayer(EditorUserBuildSettings.activeBuildTarget, EditorUserBuildSettings.selectedBuildTargetGroup, "tempFolder")))
-                return;
+                Assert.Ignore("Standalone support is required to build AssetBundles. Ignoring test suite.");
 
             DefaultBuild();
 #endif
