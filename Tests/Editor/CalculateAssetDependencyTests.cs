@@ -389,6 +389,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             }
         }
 
+#if UNITY_2023_3_OR_NEWER || !UNITY_EDITOR_LINUX
         /// <summary>
         /// WhenObjectInfluencesReferencedObjectBuildTags_BuildUsageTagsAreAdded
         /// </summary>
@@ -423,6 +424,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.IsTrue(ids.Count((x) => x.guid == shaderGUID) == 1, "Shader is not in build usage tags");
             Assert.AreNotEqual(output.AssetResults[0].usageTags.GetHashCode(), output2.AssetResults[0].usageTags.GetHashCode(), "Build usage tags were not affected by material keywords");
         }
+#endif
 
         static object[] SpriteTestCases =
         {
