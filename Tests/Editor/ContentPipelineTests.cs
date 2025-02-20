@@ -21,6 +21,9 @@ namespace UnityEditor.Build.Pipeline.Tests
         [SetUp]
         public void Setup()
         {
+            if (ModuleManager.platformSupportModules.Count == 0)
+                Assert.Ignore("No supported modules installed. This is an invalid test environment");
+
             Directory.CreateDirectory(k_TempBuildFolder);
         }
 
@@ -30,7 +33,8 @@ namespace UnityEditor.Build.Pipeline.Tests
         [TearDown]
         public void TearDown()
         {
-            Directory.Delete(k_TempBuildFolder, true);
+            if(Directory.Exists(k_TempBuildFolder))
+                Directory.Delete(k_TempBuildFolder, true);
         }
 
         /// <summary>

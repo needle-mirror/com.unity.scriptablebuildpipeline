@@ -8,6 +8,9 @@ using UnityEditor.Build.Pipeline;
 using System.Linq;
 using System.Text.RegularExpressions;
 using UnityEditor.TestTools;
+using UnityEngine;
+using System;
+using UnityEditor.Modules;
 
 /// <summary>
 /// Test fixutre for testing bundle naming and hashing
@@ -25,6 +28,9 @@ public abstract class AppendHashToAssetBundleNameTests
     [SetUp]
     public void Setup()
     {
+        if (ModuleManager.platformSupportModules.Count == 0)
+            Assert.Ignore("No supported modules installed. This is an invalid test environment");
+
         if (!File.Exists(k_scenePath))
         {
             Scene newScene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene);
@@ -53,6 +59,7 @@ public abstract class AppendHashToAssetBundleNameTests
         var buildTarget = EditorUserBuildSettings.activeBuildTarget;
         CompatibilityBuildPipeline.BuildAssetBundles(k_outputBundleDirectory, assetBundleDefinitionList.ToArray(),
               BuildAssetBundleOptions.AppendHashToAssetBundleName, buildTarget);
+
 
         string getBundleNameWithExtension = Directory.GetFiles(k_outputBundleDirectory)
             .Select(Path.GetFileName)

@@ -18,6 +18,9 @@ namespace UnityEditor.Build.Pipeline.Tests
         [OneTimeSetUp]
         public void Setup()
         {
+            if (!BuildPipeline.IsBuildTargetSupported(EditorUserBuildSettings.activeBuildTargetGroup, EditorUserBuildSettings.activeBuildTarget))
+                Assert.Ignore("Build target was not installed. Unable to run test");
+
             Directory.CreateDirectory(k_TmpAssetPath);
 
             // Create scenario similar to BPSBP-740
@@ -58,6 +61,9 @@ namespace UnityEditor.Build.Pipeline.Tests
 
         static CompatibilityAssetBundleManifest BuildPrefabBundles(bool recurseDeps)
         {
+            if (!BuildPipeline.IsBuildTargetSupported(EditorUserBuildSettings.activeBuildTargetGroup, EditorUserBuildSettings.activeBuildTarget))
+                Assert.Ignore("Build target was not installed. Unable to run test");
+
             // Put each prefab into its own AssetBundle
             var bundleDefinitions = new AssetBundleBuild[k_CntPrefabChain];
             for (int i = 0; i < bundleDefinitions.Length; i++)

@@ -12,6 +12,7 @@ using UnityEditor.Build.Pipeline.Tasks;
 using UnityEditor.Build.Pipeline.Utilities;
 using UnityEditor.Build.Pipeline.WriteTypes;
 using UnityEditor.SceneManagement;
+using UnityEditor.TestTools;
 using UnityEngine;
 using UnityEngine.Build.Pipeline;
 using UnityEngine.SceneManagement;
@@ -20,7 +21,6 @@ using UnityEngine.TestTools;
 namespace UnityEditor.Build.Pipeline.Tests
 {
     [TestFixture]
-
     class ScriptableBuildPipelineTests
     {
         const string k_FolderPath = "Test";
@@ -36,6 +36,9 @@ namespace UnityEditor.Build.Pipeline.Tests
         [OneTimeSetUp]
         public void Setup()
         {
+            if (!BuildPipeline.IsBuildTargetSupported(EditorUserBuildSettings.activeBuildTargetGroup, EditorUserBuildSettings.activeBuildTarget))
+                Assert.Ignore("Build target was not installed. Unable to run test");
+
             EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo();
             Directory.CreateDirectory(k_TestAssetsPath);
 #if UNITY_2018_3_OR_NEWER
