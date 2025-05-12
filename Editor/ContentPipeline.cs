@@ -77,6 +77,18 @@ namespace UnityEditor.Build.Pipeline
                 return ReturnCode.Exception;
             }
 
+            var uniqueAddresses = new HashSet<string>();
+            foreach ((var guid, var address) in content.Addresses)
+            {
+                if (uniqueAddresses.Contains(address))
+                {
+                    result = null;
+                    BuildLogger.LogException(new InvalidOperationException($"Duplicate address '{address}' found in Addresses. Each address must be unique."));
+                    return ReturnCode.Exception;
+                }
+                uniqueAddresses.Add(address);
+            }
+
             var contentBuildSettings = parameters.GetContentBuildSettings();
             if (!CanBuildPlayer(contentBuildSettings.target, contentBuildSettings.group))
             {

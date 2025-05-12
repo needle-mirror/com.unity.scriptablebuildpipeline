@@ -427,18 +427,19 @@ namespace UnityEditor.Build.Pipeline.Tests
         static object[] SpriteTestCases =
         {
 #if UNITY_2020_1_OR_NEWER
-            new object[] { SpritePackerMode.Disabled, "", false, false },
-            new object[] { SpritePackerMode.BuildTimeOnlyAtlas, "", true, true },
-            new object[] { SpritePackerMode.BuildTimeOnlyAtlas, "", false, false },
+            new object[] { SpritePackerMode.Disabled, "", false, false, false },
+            new object[] { SpritePackerMode.BuildTimeOnlyAtlas, "", true, true, true },
+            new object[] { SpritePackerMode.BuildTimeOnlyAtlas, "", true, true, false },
+            new object[] { SpritePackerMode.BuildTimeOnlyAtlas, "", false, false, false },
 #else
-            new object[] { SpritePackerMode.BuildTimeOnly, "SomeTag", true, true },
-            new object[] { SpritePackerMode.BuildTimeOnly, "", true, false },
-            new object[] { SpritePackerMode.AlwaysOn, "SomeTag", true, true },
-            new object[] { SpritePackerMode.AlwaysOn, "", true, false },
-            new object[] { SpritePackerMode.Disabled, "", true, false },
-            new object[] { SpritePackerMode.BuildTimeOnlyAtlas, "", true, true },
-            new object[] { SpritePackerMode.AlwaysOnAtlas, "", true, true },
-            new object[] { SpritePackerMode.AlwaysOnAtlas, "", false, false }
+            new object[] { SpritePackerMode.BuildTimeOnly, "SomeTag", true, true, false },
+            new object[] { SpritePackerMode.BuildTimeOnly, "", true, false, false },
+            new object[] { SpritePackerMode.AlwaysOn, "SomeTag", true, true, false },
+            new object[] { SpritePackerMode.AlwaysOn, "", true, false, false },
+            new object[] { SpritePackerMode.Disabled, "", true, false, false },
+            new object[] { SpritePackerMode.BuildTimeOnlyAtlas, "", true, true, false },
+            new object[] { SpritePackerMode.AlwaysOnAtlas, "", true, true, false },
+            new object[] { SpritePackerMode.AlwaysOnAtlas, "", false, false, false }
 #endif
         };
 
@@ -449,9 +450,10 @@ namespace UnityEditor.Build.Pipeline.Tests
         /// <param name="spritePackingTag">spritePackingTag</param>
         /// <param name="hasReferencingSpriteAtlas">hasReferencingSpriteAtlas</param>
         /// <param name="expectedPacked">expectedPacked</param>
+        /// <param name="lateBinding">lateBinding</param>
         [TestCaseSource("SpriteTestCases")]
         [Test]
-        public void WhenSpriteWithAtlas_SpriteImportDataCreated(SpritePackerMode spriteMode, string spritePackingTag, bool hasReferencingSpriteAtlas, bool expectedPacked)
+        public void WhenSpriteWithAtlas_SpriteImportDataCreated(SpritePackerMode spriteMode, string spritePackingTag, bool hasReferencingSpriteAtlas, bool expectedPacked, bool lateBinding)
         {
             TextureImporter importer = AssetImporter.GetAtPath(kTestAsset) as TextureImporter;
             importer.spritePackingTag = spritePackingTag;
@@ -462,6 +464,7 @@ namespace UnityEditor.Build.Pipeline.Tests
                 var sa = new SpriteAtlas();
                 var targetObjects = new UnityEngine.Object[] { AssetDatabase.LoadAssetAtPath<Texture>(kTestAsset) };
                 sa.Add(targetObjects);
+                sa.SetIncludeInBuild(!lateBinding);
                 string saPath = Path.Combine(kTestAssetFolder, "sa.spriteAtlas");
                 AssetDatabase.CreateAsset(sa, saPath);
                 AssetDatabase.Refresh();

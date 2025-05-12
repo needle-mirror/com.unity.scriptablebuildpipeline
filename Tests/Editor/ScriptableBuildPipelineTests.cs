@@ -502,6 +502,40 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
 
         [Test]
+        public void BuildAssetBundles_WithDuplicateAddresses_LogsErrorMessage()
+        {
+            IBundleBuildParameters buildParameters = GetBuildParameters();
+            List<AssetBundleBuild> buildData = new List<AssetBundleBuild>();
+            var bundle1 = new AssetBundleBuild()
+            {
+                addressableNames = new[] { k_CubePath },
+                assetBundleName = k_CubePath,
+                assetBundleVariant = "",
+                assetNames = new[] { k_CubePath }
+            };
+            var bundle2 = new AssetBundleBuild()
+            {
+                addressableNames = new[] { k_CubePath },
+                assetBundleName = k_CubePath2,
+                assetBundleVariant = "",
+                assetNames = new[] { k_CubePath2 }
+            };
+            buildData.Add(bundle1);
+            buildData.Add(bundle2);
+            // different asset, same addressable name.
+
+            IBundleBuildContent buildContent = new BundleBuildContent(buildData);
+            IBundleBuildResults results;
+
+            LogAssert.Expect(LogType.Exception, $"InvalidOperationException: Duplicate address '{k_CubePath}' found in Addresses. Each address must be unique.");
+
+            var taskList = DefaultBuildTasks.Create(DefaultBuildTasks.Preset.AssetBundleCompatible);
+            ReturnCode exitCode = ContentPipeline.BuildAssetBundles(buildParameters, buildContent, out results, taskList, new BuildLog());
+
+            Assert.AreEqual(ReturnCode.Exception, exitCode);
+        }
+
+        [Test]
         public void BuildParameters_SetsBuildCacheServerParameters_WhenUseBuildCacheServerEnabled()
         {
             int port = 9999;

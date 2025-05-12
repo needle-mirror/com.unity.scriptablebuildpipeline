@@ -215,6 +215,11 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 }
 
                 updatedEntry = GetUpdatedCacheEntry(dependency);
+#if VALIDATE_CACHED_DEPENDENCIES
+                     if (!updatedEntry.IsValid())
+                         return result;
+#endif
+
                 if (dependency != GetUpdatedCacheEntry(updatedEntry))
                 {
                     if (!LogCacheMiss($"[Cache Miss]: Dependency changed. Asset: {info.Asset} Old: {dependency} New: {updatedEntry}"))
