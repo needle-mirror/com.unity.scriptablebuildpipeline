@@ -657,7 +657,24 @@ namespace UnityEditor.Build.Pipeline.Tasks
             {
                 // For each dependency, add just the main representation as a reference
                 var representations = ContentBuildInterface.GetPlayerAssetRepresentations(dependency, input.Target);
-                collectedImmediateReferences.Add(representations[0]);
+                if (!encounteredExplicitAssetDependencies.Contains(representations[0]))
+                {
+                    encounteredExplicitAssetDependencies.Add(representations[0]);
+
+                    // Ensure we have somewhere to add this dependency
+                    if (assetResult.objectDependencyInfo == null)
+                        assetResult.objectDependencyInfo = new List<ObjectDependencyInfo>();
+                    if (assetResult.objectDependencyInfo.Count == 0)
+                    {
+                        assetResult.objectDependencyInfo.Add(new ObjectDependencyInfo()
+                        {
+                            Object = includedObjects[0],
+                            Dependencies = new List<ObjectIdentifier>()
+                        });
+                    }
+
+                    assetResult.objectDependencyInfo[0].Dependencies.Add(representations[0]);
+                }
             }
             collectedImmediateReferences.UnionWith(encounteredExplicitAssetDependencies);
             return collectedImmediateReferences.ToArray();
