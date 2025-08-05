@@ -7,4 +7,4 @@ using System.Runtime.CompilerServices;
 [assembly: InternalsVisibleTo("SBPDebug.Editor.Tests")]
 [assembly: InternalsVisibleTo("Unity.Addressables.Editor")]
 [assembly: InternalsVisibleTo("Unity.Addressables.Runtime.Tests")]
-[assembly: InternalsVisibleTo("Unity.ScriptableBuildPipeline.Tests")]
+[assembly: InternalsVisibleTo("Unity.ScriptableBuildPipeline.Runtime.Tests")]

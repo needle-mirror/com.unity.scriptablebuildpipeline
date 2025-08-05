@@ -16,7 +16,7 @@ using UnityEngine.TestTools;
 namespace UnityEditor.Build.Pipeline.Tests
 {
     /// <summary>
-    /// Tests for archive and compression
+    /// ArchiveAndCompressTests
     /// </summary>
     public class ArchiveAndCompressTests : ArchiveAndCompressTestFixture
     {
@@ -56,8 +56,8 @@ namespace UnityEditor.Build.Pipeline.Tests
         /// <summary>
         /// WhenUsingLongPath_CopyFileWithTimestampIfDifferent_ThrowsPathTooLongException
         /// </summary>
-        /// <param name="path1">filepath 1</param>
-        /// <param name="path2">filepath 2</param>
+        /// <param name="path1">path1</param>
+        /// <param name="path2">path2</param>
         [TestCase("01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_d", ".")]
         [TestCase("C:/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars", ".")]
         [TestCase(".", "01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_directory_path_for_35chars/01_long_d")]
@@ -149,8 +149,8 @@ namespace UnityEditor.Build.Pipeline.Tests
         /// <summary>
         /// WhenInputsChanges_AndRebuilt_CachedDataIsUsedAsExpected
         /// </summary>
-        /// <param name="shouldRebuild">Should rebuild test cases?</param>
-        /// <param name="postFirstBuildAction">Callback after first build</param>
+        /// <param name="shouldRebuild">shouldRebuild</param>
+        /// <param name="postFirstBuildAction">postFirstBuildAction</param>
         [Test, TestCaseSource(typeof(ArchiveAndCompressTests), "RebuildTestCases")]
         public void WhenInputsChanges_AndRebuilt_CachedDataIsUsedAsExpected(bool shouldRebuild, Action<RebuildTestContext> postFirstBuildAction)
         {
@@ -244,7 +244,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         {
             get
             {
-                yield return new TestCaseData(false, new Action<ContentHashTestContext>((ctx) =>
+                yield return new TestCaseData(true, new Action<ContentHashTestContext>((ctx) =>
                 {
                     ctx.input.AssetToFilesDependencies[ctx.assetGUID] = new List<string>() { "internalName", "internalName3" };
                 })).SetName("DependencyChanges");
@@ -262,8 +262,8 @@ namespace UnityEditor.Build.Pipeline.Tests
         /// <summary>
         /// WhenInputsChange_BundleOutputHashIsAffectedAsExpected
         /// </summary>
-        /// <param name="hashShouldChange">Should the hash change?</param>
-        /// <param name="postFirstBuildAction">Callback invoked after first build</param>
+        /// <param name="hashShouldChange">hashShouldChange</param>
+        /// <param name="postFirstBuildAction">postFirstBuildAction</param>
         [Test, TestCaseSource(typeof(ArchiveAndCompressTests), "ContentHashTestCases")]
         public void WhenInputsChange_BundleOutputHashIsAffectedAsExpected(bool hashShouldChange, Action<ContentHashTestContext> postFirstBuildAction)
         {
@@ -317,6 +317,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         /// <summary>
         /// ResourceFilesAreAddedToBundles
         /// </summary>
+        // Start is called before the first frame update
         [Test]
         public void ResourceFilesAreAddedToBundles()
         {
@@ -471,7 +472,6 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
 
 #endif
-
         /// <summary>
         /// CalculateBundleDependencies_ReturnsRecursiveDependencies_ForNonRecursiveInputs
         /// </summary>
@@ -494,7 +494,6 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             Dictionary<string, string[]> results = ArchiveAndCompressBundles.CalculateBundleDependencies(assetFileList, filenameToBundleName);
 
-            //Check full dependency list
             CollectionAssert.AreEquivalent(new string[] { "bundle1", "bundle2", "bundle3" }, results.Keys);
             CollectionAssert.AreEquivalent(new string[] { "bundle2", "bundle3" }, results["bundle1"]);
             CollectionAssert.AreEquivalent(new string[] { "bundle3" }, results["bundle2"]);

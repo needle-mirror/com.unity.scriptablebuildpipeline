@@ -1,16 +1,14 @@
 {
     "name": "Unity.ScriptableBuildPipeline.Editor.Tests",
-    "rootNamespace": "",
     "references": [
         "Unity.ScriptableBuildPipeline.Editor",
         "Unity.ScriptableBuildPipeline",
         "Unity.PerformanceTesting",
         "Unity.PerformanceTesting.Editor",
-        "ScriptableBuildPipelineTests",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
-        "Unity.ScriptableBuildPipeline.Tests",
-        "Unity.ScriptableBuildPipelineTests.Runtime.Tests"
+        "ScriptableBuildPipelineTests",
+        "Unity.ScriptableBuildPipeline.Runtime.Tests"
     ],
     "includePlatforms": [
         "Editor"

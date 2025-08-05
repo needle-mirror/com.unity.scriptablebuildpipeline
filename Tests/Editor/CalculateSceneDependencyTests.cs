@@ -134,7 +134,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             AssetDatabase.ImportAsset(k_CubePath2);
         }
 
-#if UNITY_2021_1_OR_NEWER
+#if UNITY_2021_3_OR_NEWER
         /// <summary>
         /// SetupSceneWithSpritesForTest
         /// </summary>
@@ -327,6 +327,5 @@ namespace UnityEditor.Build.Pipeline.Tests
             EditorSettings.spritePackerMode = prevSpritePackerModeMode;
         }
 #endif
-
     }
 }

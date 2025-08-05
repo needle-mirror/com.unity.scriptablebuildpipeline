@@ -65,7 +65,7 @@ namespace UnityEditor.Build.Pipeline
 
     /// <summary>
     /// Basic implementation of IObjectDependencyData. Stores the dependencies between objects calculated during a build.
-    /// <see cref="IObjectDependencyData"/>
+    /// <seealso cref="IObjectDependencyData"/>
     /// </summary>
     [Serializable]
     internal class ObjectDependencyData : IObjectDependencyData

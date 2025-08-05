@@ -182,6 +182,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             AssertTypeWithAttributePreserved(xml, "SuperAwesomeNS.Bar");
         }
 
+
         /// <summary>
         /// LinkXML_Is_Sorted
         /// </summary>

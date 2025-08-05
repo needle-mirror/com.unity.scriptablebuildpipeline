@@ -42,18 +42,10 @@ namespace UnityEditor.Build.Pipeline.Tests.ContentLoad
             yield return UnloadAllScenesExceptInitTestSceneAsync();
         }
 
-        // IPostBuildCleanup
-        public override void Cleanup()
+        [TearDown]
+        public void Teardown()
         {
-            base.Cleanup();
-#if UNITY_EDITOR
-            if (Directory.Exists("Assets/Temp"))
-            {
-                Directory.Delete("Assets/Temp", true);
-                File.Delete("Assets/Temp.meta");
-                AssetDatabase.Refresh();
-            }
-#endif
+
         }
 
         public ContentSceneFile LoadSceneHelper(string path, string sceneName, LoadSceneMode mode, ContentFile[] deps,
@@ -97,54 +89,23 @@ namespace UnityEditor.Build.Pipeline.Tests.ContentLoad
             Assert.AreEqual(sceneFile, ContentLoadInterface.GetSceneFiles(m_NS)[0]);
         }
 
-        private ArchiveHandle MountDependentContentArchive(Catalog.ContentFileInfo location)
-        {
-            ArchiveHandle aHandle = ArchiveFileInterface.MountAsync(ContentNamespace.Default, GetVFSFilename(location.Filename), "b:");
-            aHandle.JobHandle.Complete();
-            Assert.True(aHandle.JobHandle.IsCompleted);
-            Assert.True(aHandle.Status == ArchiveStatus.Complete);
-            return aHandle;
-        }
-        private ContentFile GetDependentContentArchive(Catalog.ContentFileInfo location, ArchiveHandle aHandle) {
-
-            var mountPath = aHandle.GetMountPath();
-            var vfsPath = Path.Combine(mountPath, location.Filename);
-            ContentFile fileHandle = ContentLoadInterface.LoadContentFileAsync(m_NS, vfsPath, new NativeArray<ContentFile>(){});
-            fileHandle.WaitForCompletion(5000);
-            return fileHandle;
-        }
-
-        // This used to test loading a scene with no dependencies. Scenes, however, depend on unity builtin extras by default, so this
-        // test has been changed to be more explicit about what it's testing. The scene has visual elements with a shaded material so
-        // you can verify it is actually working. The name has stayed the same for instability tracking.
+    [Ignore("Unstable: https://jira.unity3d.com/browse/ADDR-3515")]
         [UnityTest]
         public IEnumerator CanLoadSceneWithNoDependencies()
         {
             LoadCatalog("nodepscene");
             Catalog.AddressableLocation p1Loc = m_Catalog.GetLocation("nodepscene");
+
             ArchiveHandle aHandle = ArchiveFileInterface.MountAsync(ContentNamespace.Default, GetVFSFilename(p1Loc.Filename), "a:");
             aHandle.JobHandle.Complete();
             Assert.True(aHandle.JobHandle.IsCompleted);
             Assert.True(aHandle.Status == ArchiveStatus.Complete);
-
-            Assert.AreEqual(2, m_Catalog.ContentFiles.Count);
-            Catalog.ContentFileInfo dependentContentFilePath = null;
-            foreach (var file in m_Catalog.ContentFiles)
-            {
-                if (file.Filename != p1Loc.Filename)
-                    dependentContentFilePath = file;
-            }
-            Assert.IsNotNull(dependentContentFilePath);
-            var depHandle = MountDependentContentArchive(dependentContentFilePath);
             try
             {
                 var mountPath = aHandle.GetMountPath();
                 var vfsPath = Path.Combine(mountPath, p1Loc.Filename);
-                var fileHandle = GetDependentContentArchive(dependentContentFilePath, depHandle);
-
                 var sceneFile = LoadSceneHelper(vfsPath, "testscene", LoadSceneMode.Additive,
-                    new ContentFile[] {fileHandle, ContentFile.GlobalTableDependency});
-
+                    new ContentFile[] {ContentFile.GlobalTableDependency});
 
                 while (sceneFile.Status == SceneLoadingStatus.InProgress)
                     yield return null;
@@ -155,12 +116,9 @@ namespace UnityEditor.Build.Pipeline.Tests.ContentLoad
                 AssertNoDepSceneLoaded(sceneFile);
                 sceneFile.UnloadAtEndOfFrame();
                 yield return null;
-
-                fileHandle.UnloadAsync().WaitForCompletion(0);
             }
             finally
             {
-                depHandle.Unmount();
                 aHandle.Unmount();
             }
         }
@@ -176,14 +134,7 @@ namespace UnityEditor.Build.Pipeline.Tests.ContentLoad
                 Scene scene1 = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
                 RenderSettings.skybox = null;
                 SceneManager.SetActiveScene(scene1);
-                var go = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                go.name = "testobject";
-                go.transform.position = new Vector3(0, 0, 0);
-                var renderer = go.GetComponent<Renderer>();
-                renderer.material = new Material(Shader.Find("Standard"));
-                var camera = new GameObject("Camera", typeof(Camera));
-                camera.transform.position = new Vector3(0, 1, -10);
-                var light = new GameObject("Light", typeof(Light));
+                var go = new GameObject("testobject");
                 EditorSceneManager.SaveScene(scene1, "Assets/Temp/nodepscene.unity");
                 EditorSceneManager.CloseScene(scene1, true);
                 c.Add(

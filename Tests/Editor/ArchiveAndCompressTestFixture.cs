@@ -13,7 +13,7 @@ using UnityEditor.Build.Pipeline.Utilities;
 using UnityEngine;
 
 /// <summary>
-/// Test fixture for Archive and Compress Tests
+/// ArchiveAndCompressTestFixture
 /// </summary>
 public class ArchiveAndCompressTestFixture
 {
@@ -69,7 +69,7 @@ public class ArchiveAndCompressTestFixture
     internal string m_FixtureTempDir;
 
     /// <summary>
-    /// Test setup
+    /// OneTimeSetup
     /// </summary>
     [OneTimeSetUp]
     public void OneTimeSetup()
@@ -80,7 +80,7 @@ public class ArchiveAndCompressTestFixture
     }
 
     /// <summary>
-    /// Test teardown
+    /// OneTimeTeardown
     /// </summary>
     [OneTimeTearDown]
     public void OneTimeTeardown()
@@ -89,7 +89,7 @@ public class ArchiveAndCompressTestFixture
     }
 
     /// <summary>
-    /// Individual test setup
+    /// Setup
     /// </summary>
     [SetUp]
     public void Setup()
@@ -101,7 +101,7 @@ public class ArchiveAndCompressTestFixture
     }
 
     /// <summary>
-    /// Individual test teardown
+    /// Teardown
     /// </summary>
     [TearDown]
     public void Teardown()
@@ -200,10 +200,10 @@ public class ArchiveAndCompressTestFixture
 #endif
 
     /// <summary>
-    /// Create a unique filename
+    /// Create a unique version of a filename
     /// </summary>
-    /// <param name="desiredFilename">Base filename</param>
-    /// <returns>A unique version of the desired filename</returns>
+    /// <param name="desiredFilename">The desired filename</param>
+    /// <returns>A unique version of the desired filename (we append a number)</returns>
     public static string GetUniqueFilename(string desiredFilename)
     {
         string dir = Path.GetDirectoryName(desiredFilename);

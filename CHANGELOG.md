@@ -3,40 +3,36 @@ All notable changes to this package will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
-## [2.4.1] - 2025-05-12
-- Fixed issue where sprite Atlas using late binding had incorrect dependencies.
-- Clearer error message when calling SBP with duplicate addresses.
+## [1.23.0] - 2025-08-05
+- Clearer error message when calling SBP with duplicate addresses
 
-## [2.4.0] - 2025-05-12
-- Avoid recursive dependencies in ContentFiles
+## [1.22.6] - 2024-06-02
+- Avoid recursive dependencies in ContentFiles.
 
-## [2.3.8] - 2025-02-20
-- Fixed serialization tests
-
-## [2.2.11] - 2024-12-04
+## [1.22.4] - 2024-12-04
 - Added a Log Asset Warnings setting that optionally disables logging of asset warnings during build process.
 
-## [2.1.5] - 2024-09-24
-- Fixed issue where total size of all bundles changes when updating the same Addressable Groups build.
+## [1.21.25] - 2024-10-18
 - Fixed issue where more than 2 Scriptable Objects are nested and Compatability Pipeline is used to build.
 
-## [2.1.3] - 2024-04-09
-- Fixed error where key was already in a dictionary and we try to add it again
+## [1.21.24] - 2024-06-26
+- Fix issue where build fails when not installed server platform is selected in the Build Settings Window
+- Fixed issue where total size of all bundles changes when updating the same Addressable Groups build.
+
+## [1.21.23] - 2024-05-03
 - Fixed issue where SpriteAtlas addressable bundle size is doubled if previous build cache is not cleared
 
-## [2.1.2] - 2024-01-19
+## [1.21.22] - 2024-02-08
 - Fixed a bug where calculating scene dependency data could throw an error
 - Fixed a bug that lead to builds being much slower than they should be
 - Fixed issue where "Build Task CalculateSceneDependencyData failed with exception: Object reference not set to an instance of an object" is thrown when building.
 
-## [2.1.1] - 2023-12-11
-- Fixing error in GeBuildWindowExtension in newer versions of the Editor
+## [1.21.21] - 2023-10-17
+- Fix CalculateSceneDependencyData given changed sprite atlas
 
-## [2.1.0] - 2023-10-30
-- Fixing compile issue with custom build script in ECS package.
-
-## [2.0.1] - 2023-08-30
+## [1.21.20] - 2023-09-20
 - Fix issue where source textures aren't stripped when assets reference explicit packed sprites.
+- Fixed large memory usage when using BuildLayoutGenerationTask
 
 ## [1.21.9] - 2023-08-16
 - Removed Cache ServerV1 support

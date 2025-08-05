@@ -35,7 +35,6 @@ namespace UnityEditor.Build.Pipeline
         /// <param name="content">Set of content and explicit asset bundle layout to build.</param>
         /// <param name="result">Results from building the content and explicit asset bundle layout.</param>
         /// <returns>Return code with status information about success or failure causes.</returns>
-        /// <remarks>The target platform must be installed. Otherwise AssetBundles will be built based on the editor version of the Assemblies and may have incorrect content.</remarks>
         public static ReturnCode BuildAssetBundles(IBundleBuildParameters parameters, IBundleBuildContent content, out IBundleBuildResults result)
         {
             var taskList = DefaultBuildTasks.Create(DefaultBuildTasks.Preset.AssetBundleCompatible);
@@ -51,7 +50,6 @@ namespace UnityEditor.Build.Pipeline
         /// <param name="taskList">Custom task list for building asset bundles.</param>
         /// <param name="contextObjects">Additional context objects to make available to the build.</param>
         /// <returns>Return code with status information about success or failure causes.</returns>
-        /// <remarks>The target platform must be installed. Otherwise AssetBundles will be built based on the editor version of the Assemblies and may have incorrect content.</remarks>
         public static ReturnCode BuildAssetBundles(IBundleBuildParameters parameters, IBundleBuildContent content, out IBundleBuildResults result, IList<IBuildTask> taskList, params IContextObject[] contextObjects)
         {
             if (BuildPipeline.isBuildingPlayer)
@@ -75,18 +73,6 @@ namespace UnityEditor.Build.Pipeline
                 result = null;
                 BuildLogger.LogException(new ArgumentException("Argument cannot be null or empty.", "taskList"));
                 return ReturnCode.Exception;
-            }
-
-            var uniqueAddresses = new HashSet<string>();
-            foreach ((var guid, var address) in content.Addresses)
-            {
-                if (uniqueAddresses.Contains(address))
-                {
-                    result = null;
-                    BuildLogger.LogException(new InvalidOperationException($"Duplicate address '{address}' found in Addresses. Each address must be unique."));
-                    return ReturnCode.Exception;
-                }
-                uniqueAddresses.Add(address);
             }
 
             var contentBuildSettings = parameters.GetContentBuildSettings();
@@ -160,6 +146,7 @@ namespace UnityEditor.Build.Pipeline
                         BuildLogger.LogException(e);
                         return ReturnCode.Exception;
                     }
+
                     exitCode = BuildTasksRunner.Validate(taskList, buildContext);
                     if (exitCode >= ReturnCode.Success)
 #if SBP_PROFILER_ENABLE
@@ -215,8 +202,27 @@ namespace UnityEditor.Build.Pipeline
                 return true;
             }
 
-            return buildWindowExtension != null ? buildWindowExtension.EnabledBuildButton() : false;
+            if (buildWindowExtension == null)
+                return false;
+
+#if STANDALONE_BUILD_ERROR_CHECK_2022_3 || STANDALONE_BUILD_ERROR_CHECK_2021_3
+            // Special case. DesktopStandaloneBuildWindowExtension.EnabledBuildButton() checks for the currently selected (not active) build target in the window.
+            if (buildWindowExtension is DesktopStandaloneBuildWindowExtension standaloneExtension)
+            {
+                var namedBuildTarget = NamedBuildTarget.FromActiveSettings(target);
+                string errorMsg = standaloneExtension.GetBuildPlayerError(namedBuildTarget);
+
+                if (!string.IsNullOrEmpty(errorMsg))
+                {
+                    BuildLogger.LogError(errorMsg);
+                    return false;
+                }
+                return true;
+            }
+#endif
+            return buildWindowExtension.EnabledBuildButton();
         }
 #endif
-        }
+    }
+
 }

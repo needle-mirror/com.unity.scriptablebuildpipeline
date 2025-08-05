@@ -192,7 +192,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
         /// <summary>
         /// Internal use only.
-        /// <see cref="IBuildLogger"/>
+        /// <seealso cref="IBuildLogger"/>
         /// </summary>
         /// <param name="events">Event collection to handle</param>
         void IDeferredBuildLogger.HandleDeferredEventStream(IEnumerable<DeferredEvent> events)

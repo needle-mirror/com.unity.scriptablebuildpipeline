@@ -98,7 +98,7 @@ namespace UnityEditor.Build.Pipeline
             buildTasks.Add(new CalculateAssetDependencyData());
             buildTasks.Add(new StripUnusedSpriteSources());
             if (shaderTask)
-                buildTasks.Add(new CreateBuiltInBundle("UnityBuiltIn.bundle"));
+                buildTasks.Add(new CreateBuiltInShadersBundle("UnityBuiltIn.bundle"));
             if (monoscriptTask)
                 buildTasks.Add(new CreateMonoScriptBundle("UnityMonoScripts.bundle"));
             buildTasks.Add(new PostDependencyCallback());

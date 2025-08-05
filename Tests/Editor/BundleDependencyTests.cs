@@ -1,15 +1,14 @@
 using UnityEngine;
 using UnityEngine.Build.Pipeline;
-using Unity.ScriptableBuildPipelineTests.Runtime.Tests;
 using NUnit.Framework;
 using System.IO;
 using System.Linq;
-using UnityEditor.TestTools;
+using Unity.ScriptableBuildPipeline.Runtime.Tests;
 
 namespace UnityEditor.Build.Pipeline.Tests
 {
     [TestFixture]
-    abstract class BundleDependencyTests
+    class BundleDependencyTests
     {
         const string k_TmpAssetPath = "Assets/TempAssets";
         const string k_BuildFolder = "TestBuild";
@@ -58,9 +57,6 @@ namespace UnityEditor.Build.Pipeline.Tests
 
         static CompatibilityAssetBundleManifest BuildPrefabBundles(bool recurseDeps)
         {
-            if (!BuildPipeline.IsBuildTargetSupported(EditorUserBuildSettings.activeBuildTargetGroup, EditorUserBuildSettings.activeBuildTarget))
-                Assert.Ignore("Build target was not installed. Unable to run test");
-
             // Put each prefab into its own AssetBundle
             var bundleDefinitions = new AssetBundleBuild[k_CntPrefabChain];
             for (int i = 0; i < bundleDefinitions.Length; i++)
@@ -75,6 +71,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             Directory.CreateDirectory(k_BuildFolder);
 
             // Todo, confirm that the NonRecursive Mode is enabled, the test assumes that it is and i think that is the default but its not exposed in this API
+
             var manifest = default(CompatibilityAssetBundleManifest);
 
 #if BUILD_OPTIONS_RECURSE_DEPENDENCIES_2022_3 || BUILD_OPTIONS_RECURSE_DEPENDENCIES_2023_3 || UNITY_6000_0_OR_NEWER
@@ -96,120 +93,10 @@ namespace UnityEditor.Build.Pipeline.Tests
                     EditorUserBuildSettings.activeBuildTarget);
             }
 
+            Assert.IsNotNull(manifest);
+
             return manifest;
         }
-
-#if UNITY_2023_2_OR_NEWER
-        [Test, Description("BPSBP-736")]
-        public void BundeHashChanges_WhenDirectDependencyChanges()
-        {
-            CompatibilityAssetBundleManifest manifest = BuildPrefabBundles(false);
-
-            //var outputFiles = Directory.EnumerateFiles(k_BuildFolder, "*", SearchOption.TopDirectoryOnly);
-            //Debug.Log("Output of the build:\n\t" + string.Join("\n\t", outputFiles));
-
-            var outputPaths = new string[k_CntPrefabChain];
-
-            for (int i = 0; i < k_CntPrefabChain; i++)
-            {
-                //e.g. a path like "TestBuild\0_135e9091b30805539e5f5f349375cd11"
-                outputPaths[i] = Directory.EnumerateFiles(k_BuildFolder, $"{i}_*", SearchOption.TopDirectoryOnly).ToArray()[0];
-            }
-
-            // Change bundle 3, e.g. remove its dependency on bundle 4
-            SetPrefabReferenceToNull(3);
-
-            CompatibilityAssetBundleManifest manifest2 = BuildPrefabBundles(false);
-
-            var rebuildPaths = new string[k_CntPrefabChain];
-            for (int i = 0; i < k_CntPrefabChain; i++)
-            {
-                rebuildPaths[i] = Directory.EnumerateFiles(k_BuildFolder, $"{i}_*", SearchOption.TopDirectoryOnly).ToArray()[0];
-            }
-
-            Assert.AreEqual(outputPaths[0], rebuildPaths[0], "Bundle hash changed");
-            Assert.AreEqual(outputPaths[1], rebuildPaths[1], "Bundle hash changed");
-
-            Assert.AreNotEqual(outputPaths[2], rebuildPaths[2]); //Direct dependency changed
-            Assert.AreNotEqual(outputPaths[3], rebuildPaths[3]); // We changed this bundle
-
-            Assert.AreEqual(outputPaths[4], rebuildPaths[4], "Bundle hash changed");
-
-            ResetPrefabReference(3);
-        }
-
-        [Test, Description("BPSBP-736")]
-        public void BundleHashDoesNotChange_IfListOfReferencedBundlesDoesNotChange()
-        {
-            CompatibilityAssetBundleManifest manifest = BuildPrefabBundles(false);
-
-            //var outputFiles = Directory.EnumerateFiles(k_BuildFolder, "*", SearchOption.TopDirectoryOnly);
-            //Debug.Log("Output of the build:\n\t" + string.Join("\n\t", outputFiles));
-
-            var outputPaths = new string[k_CntPrefabChain];
-
-            for (int i = 0; i < k_CntPrefabChain; i++)
-            {
-                //e.g. a path like "TestBuild\0_135e9091b30805539e5f5f349375cd11"
-                outputPaths[i] = Directory.EnumerateFiles(k_BuildFolder, $"{i}_*", SearchOption.TopDirectoryOnly).ToArray()[0];
-            }
-
-            // Change bundle 3, e.g. remove its dependency on bundle 4
-            AddToTransformValues(3);
-
-            CompatibilityAssetBundleManifest manifest2 = BuildPrefabBundles(false);
-
-            var rebuildPaths = new string[k_CntPrefabChain];
-            for (int i = 0; i < k_CntPrefabChain; i++)
-            {
-                rebuildPaths[i] = Directory.EnumerateFiles(k_BuildFolder, $"{i}_*", SearchOption.TopDirectoryOnly).ToArray()[0];
-            }
-
-            Assert.AreEqual(outputPaths[0], rebuildPaths[0], "Bundle hash changed");
-            Assert.AreEqual(outputPaths[1], rebuildPaths[1], "Bundle hash changed");
-            Assert.AreEqual(outputPaths[2], rebuildPaths[2], "Bundle hash changed");
-
-            Assert.AreNotEqual(outputPaths[3], rebuildPaths[3]); // We changed this bundle
-
-            Assert.AreEqual(outputPaths[4], rebuildPaths[4], "Bundle hash changed");
-        }
-
-        static void SetPrefabReferenceToNull(int prefabIndex)
-        {
-            string prefabPath = $"{k_TmpAssetPath}/prefab{prefabIndex}.prefab";
-            GameObject prefabRoot = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
-
-            var monoBehaviour = prefabRoot.GetComponent<MonoBehaviourWithReference>();
-            monoBehaviour.Reference = null;
-
-            PrefabUtility.SavePrefabAsset(prefabRoot);
-            AssetDatabase.ImportAsset(prefabPath, ImportAssetOptions.ForceSynchronousImport & ImportAssetOptions.ForceUpdate);
-        }
-
-        static void ResetPrefabReference(int prefabIndex)
-        {
-            string prefabPath = $"{k_TmpAssetPath}/prefab{prefabIndex}.prefab";
-            GameObject prefabRoot = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
-
-            var monoBehaviour = prefabRoot.GetComponent<MonoBehaviourWithReference>();
-            monoBehaviour.Reference = prefabRoot;
-
-            PrefabUtility.SavePrefabAsset(prefabRoot);
-            AssetDatabase.ImportAsset(prefabPath, ImportAssetOptions.ForceSynchronousImport & ImportAssetOptions.ForceUpdate);
-        }
-
-        static void AddToTransformValues(int prefabIndex)
-        {
-            string prefabPath = $"{k_TmpAssetPath}/prefab{prefabIndex}.prefab";
-            GameObject prefabRoot = AssetDatabase.LoadAssetAtPath<GameObject>(prefabPath);
-
-            var transform = prefabRoot.GetComponent<Transform>();
-            transform.position += new Vector3(1, 1, 1);
-
-            PrefabUtility.SavePrefabAsset(prefabRoot);
-            AssetDatabase.ImportAsset(prefabPath, ImportAssetOptions.ForceSynchronousImport & ImportAssetOptions.ForceUpdate);
-        }
-#endif
 
 #if BUILD_OPTIONS_RECURSE_DEPENDENCIES_2022_3 || BUILD_OPTIONS_RECURSE_DEPENDENCIES_2023_3 || UNITY_6000_0_OR_NEWER
         [Test, Description("BPSBP-737 / ADDR-3262")]
@@ -258,17 +145,5 @@ namespace UnityEditor.Build.Pipeline.Tests
                     bundles[i].Unload(true);
             }
         }
-    }
-
-    namespace BuildDependencyPerPlatformTests
-    {
-        [RequirePlatformSupport(BuildTarget.StandaloneWindows, BuildTarget.StandaloneWindows64)]
-        class BundleDependencyTestsWindows : BundleDependencyTests { }
-
-        [RequirePlatformSupport(BuildTarget.StandaloneOSX)]
-        class BundleDependencyTestsOSX : BundleDependencyTests { }
-
-        [RequirePlatformSupport(BuildTarget.StandaloneLinux64)]
-        class BundleDependencyTestsLinux : BundleDependencyTests { }
     }
 }

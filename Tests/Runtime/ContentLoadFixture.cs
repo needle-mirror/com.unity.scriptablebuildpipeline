@@ -19,7 +19,7 @@ using UnityEditor.Build.Pipeline.Utilities;
 
 namespace UnityEditor.Build.Pipeline.Tests.ContentLoad
 {
-    public abstract class ContentFileFixture : IPrebuildSetup, IPostBuildCleanup
+    public abstract class ContentFileFixture : IPrebuildSetup
     {
         protected string m_ContentRoot;
 
@@ -64,19 +64,6 @@ namespace UnityEditor.Build.Pipeline.Tests.ContentLoad
             }
 
             m_NS.Delete();
-        }
-
-        // IPostBuildCleanup
-        public virtual void Cleanup()
-        {
-#if UNITY_EDITOR
-            if (Directory.Exists(ContentDir))
-            {
-                Directory.Delete(ContentDir, true);
-                File.Delete(ContentDir + ".meta");
-            }
-            AssetDatabase.Refresh();
-#endif
         }
 
         public void LoadCatalog(string name, bool mountAllArchives = true)

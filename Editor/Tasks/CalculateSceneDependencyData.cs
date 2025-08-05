@@ -163,11 +163,10 @@ namespace UnityEditor.Build.Pipeline.Tasks
                                         filteredReferencesNew = sceneInfoNew.referencedObjects.ToArray();
                                     }
 
-                                    if (Enumerable.SequenceEqual(filteredReferences, filteredReferencesNew) == false)
+                                    if (Enumerable.SequenceEqual(filteredReferences,filteredReferencesNew) == false)
                                     {
                                         useCachedScene = false;
                                     }
-
                                     // ADDR-3596: break must be here to prevent CalculatePlayerDependenciesForScene from being called unnecessarily.
                                     break;
                                 }
@@ -192,7 +191,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
 #if UNITY_2019_3_OR_NEWER
 #if NONRECURSIVE_DEPENDENCY_DATA
-                        if (m_Parameters.NonRecursiveDependencies)
+                        if ( m_Parameters.NonRecursiveDependencies)
                         {
                             sceneInfo = ContentBuildInterface.CalculatePlayerDependenciesForScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache, DependencyType.ValidReferences);
                             ObjectIdentifier[] filteredReferences = sceneInfo.referencedObjects.ToArray();
@@ -242,12 +241,8 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 {
                     Dictionary<ObjectIdentifier, System.Type[]> objectTypes = new Dictionary<ObjectIdentifier, System.Type[]>();
                     List<ObjectTypes> types = sceneFileInfo.Data[3] as List<ObjectTypes>;
-
                     foreach (var objectType in types)
-                    {
-                        if (!objectTypes.ContainsKey(objectType.ObjectID))
-                            objectTypes.Add(objectType.ObjectID, objectType.Types);
-                    }
+                        objectTypes.Add(objectType.ObjectID, objectType.Types);
 
                     AssetResultData resultData = new AssetResultData
                     {
@@ -257,9 +252,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                         ReferencedObjects = null,
                         ObjectTypes = objectTypes
                     };
-
-                    if(!m_Results.AssetResults.ContainsKey(resultData.Guid))
-                        m_Results.AssetResults.Add(resultData.Guid, resultData);
+                    m_Results.AssetResults.Add(resultData.Guid, resultData);
                 }
             }
 

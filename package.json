@@ -1,8 +1,8 @@
 {
   "name": "com.unity.scriptablebuildpipeline",
   "displayName": "Scriptable Build Pipeline",
-  "version": "2.4.1",
-  "unity": "2023.1",
+  "version": "1.23.0",
+  "unity": "2021.3",
   "description": "The Scriptable Build Pipeline moves the asset bundle build pipeline to C#.  Use the pre-defined build flows, or create your own using the divided up APIs.  This system improves build time, fixes incremental build, and provides greater flexibility.",
   "keywords": [
     "build",
@@ -13,19 +13,19 @@
     "server"
   ],
   "dependencies": {
-    "com.unity.test-framework": "1.4.5",
+    "com.unity.test-framework": "1.1.33",
     "com.unity.modules.assetbundle": "1.0.0"
   },
   "_upm": {
-    "changelog": "- Fixed issue where sprite Atlas using late binding had incorrect dependencies.\n- Clearer error message when calling SBP with duplicate addresses."
+    "changelog": "- Clearer error message when calling SBP with duplicate addresses"
   },
   "upmCi": {
-    "footprint": "4dea00379e0af9c8bbc6123e591249a41c8be9bf"
+    "footprint": "4c337e7b76f9ac632ce72444e67b21d4db3c908e"
   },
-  "documentationUrl": "https://docs.unity3d.com/Packages/com.unity.scriptablebuildpipeline@2.4/manual/index.html",
+  "documentationUrl": "https://docs.unity3d.com/Packages/com.unity.scriptablebuildpipeline@1.23/manual/index.html",
   "repository": {
     "url": "https://github.cds.internal.unity3d.com/unity/Addressables.git",
     "type": "git",
-    "revision": "55af73f5199366815860539425454db98bb80d35"
+    "revision": "067568991b01260da3303b0178bcc50397a4c82b"
   }
 }

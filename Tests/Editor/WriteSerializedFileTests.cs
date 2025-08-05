@@ -247,6 +247,9 @@ namespace UnityEditor.Build.Pipeline.Tests
         [TearDown]
         public void Teardown()
         {
+            if (string.IsNullOrEmpty(m_TestTempDir) || !Directory.Exists(m_TestTempDir))
+                return;
+
             Directory.Delete(m_TestTempDir, true);
             ScriptableBuildPipeline.s_Settings.slimWriteResults = m_PreviousSlimSettings;
             PlayerSettings.stripUnusedMeshComponents = m_PreviousStripUnusedMeshComponents;
@@ -273,10 +276,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             var count = QualitySettings.names.Length;
             for (int i = 0; i < count; i++)
             {
-#if UNITY_2022_2_OR_NEWER
-                m_PreviousMasterTextureLimits.Add(QualitySettings.globalTextureMipmapLimit);
-                QualitySettings.globalTextureMipmapLimit = 0;
-#elif UNITY_2020_1_OR_NEWER
+#if UNITY_2020_1_OR_NEWER
                 m_PreviousMasterTextureLimits.Add(QualitySettings.masterTextureLimit);
                 QualitySettings.masterTextureLimit = 0;
 #endif
@@ -293,17 +293,13 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             for (int i = 0; i < m_PreviousMasterTextureLimits.Count; i++)
             {
-#if UNITY_2022_2_OR_NEWER
-                QualitySettings.globalTextureMipmapLimit = limit;
-#else
                 QualitySettings.masterTextureLimit = limit;
-#endif
                 QualitySettings.IncreaseLevel();
             }
         }
 
 #endif
-                void SetQualitySettings_MaximumLODLevel(int level)
+        void SetQualitySettings_MaximumLODLevel(int level)
         {
             QualitySettings.SetQualityLevel(0);
 
@@ -321,9 +317,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             var count = QualitySettings.names.Length;
             for (int i = 0; i < count; i++)
             {
-#if UNITY_2022_2_OR_NEWER
-                QualitySettings.globalTextureMipmapLimit = m_PreviousMasterTextureLimits[i];
-#elif UNITY_2020_1_OR_NEWER
+#if UNITY_2020_1_OR_NEWER
                 QualitySettings.masterTextureLimit = m_PreviousMasterTextureLimits[i];
 #endif
                 QualitySettings.maximumLODLevel = m_PreviousMaximumLODLeve[i];

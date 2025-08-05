@@ -7,15 +7,13 @@ using UnityEngine.SceneManagement;
 using UnityEditor.Build.Pipeline;
 using System.Linq;
 using System.Text.RegularExpressions;
-using UnityEditor.TestTools;
-using UnityEngine;
-using System;
-using UnityEditor.Modules;
+using UnityEngine.TestTools;
+using UnityEditor.Build.Pipeline.Tests;
 
 /// <summary>
-/// Test fixutre for testing bundle naming and hashing
+/// Tests to ensure we are creating the correct file name
 /// </summary>
-public abstract class AppendHashToAssetBundleNameTests
+public class AppendHashToAssetBundleNameTests
 {
     const string k_outputBundleDirectory = "Assets/MyBundle";
     const string k_scenePath = "Assets/TestScenes.unity";
@@ -23,7 +21,7 @@ public abstract class AppendHashToAssetBundleNameTests
     const string k_bundleNamewithoutExtension = "Scenes";
 
     /// <summary>
-    /// Setup before each test
+    /// Test setup
     /// </summary>
     [SetUp]
     public void Setup()
@@ -38,9 +36,8 @@ public abstract class AppendHashToAssetBundleNameTests
             Directory.CreateDirectory(k_outputBundleDirectory);
     }
 
-    // ADDR-3852 - BuildAssetBundleOptions.AppendHashToAssetBundleName returns correct format when using CompatibilityBuildPipeline.BuildOptions
     /// <summary>
-    /// AppendHashToAssetBundleName_Sets_Bundle_Extension_After_HashNumber
+    /// ADDR-3852 - BuildAssetBundleOptions.AppendHashToAssetBundleName returns correct format when using CompatibilityBuildPipeline.BuildOptions
     /// </summary>
     [Test]
     public void AppendHashToAssetBundleName_Sets_Bundle_Extension_After_HashNumber()
@@ -57,7 +54,6 @@ public abstract class AppendHashToAssetBundleNameTests
         CompatibilityBuildPipeline.BuildAssetBundles(k_outputBundleDirectory, assetBundleDefinitionList.ToArray(),
               BuildAssetBundleOptions.AppendHashToAssetBundleName, buildTarget);
 
-
         string getBundleNameWithExtension = Directory.GetFiles(k_outputBundleDirectory)
             .Select(Path.GetFileName)
             .FirstOrDefault(name => name.StartsWith(k_bundleNamewithoutExtension));
@@ -70,7 +66,7 @@ public abstract class AppendHashToAssetBundleNameTests
     }
 
     /// <summary>
-    /// Cleanup after each test
+    /// Test tear down
     /// </summary>
     [TearDown]
     public void Cleanup()
@@ -84,26 +80,4 @@ public abstract class AppendHashToAssetBundleNameTests
 
         AssetDatabase.DeleteAsset(k_scenePath);
     }
-}
-
-namespace AppendHashToAssetBundleNamePerPlatformTests
-{
-
-    /// <summary>
-    /// Windows specific tests
-    /// </summary>
-    [RequirePlatformSupport(BuildTarget.StandaloneWindows, BuildTarget.StandaloneWindows64)]
-    public class AppendHashToAssetBundleNameTestsWindows : AppendHashToAssetBundleNameTests { }
-
-    /// <summary>
-    /// OSX Specific tests
-    /// </summary>
-    [RequirePlatformSupport(BuildTarget.StandaloneOSX)]
-    public class AppendHashToAssetBundleNameTestsTestsOSX : AppendHashToAssetBundleNameTests { }
-
-    /// <summary>
-    /// Linux specific tests
-    /// </summary>
-    [RequirePlatformSupport(BuildTarget.StandaloneLinux64)]
-    public class AppendHashToAssetBundleNameTestsLinux : AppendHashToAssetBundleNameTests { }
 }

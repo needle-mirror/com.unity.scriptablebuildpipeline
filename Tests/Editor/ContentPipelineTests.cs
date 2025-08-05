@@ -5,11 +5,12 @@ using UnityEngine;
 namespace UnityEditor.Build.Pipeline.Tests
 {
     /// <summary>
-    /// ContentPipelineTests
+    /// Tests for the Content Pipeline
     /// </summary>
     [TestFixture]
     public class ContentPipelineTests
     {
+
         /// <summary>
         /// TestCanBuildPlayer
         /// </summary>
@@ -27,6 +28,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             }
             else
             {
+                Assert.AreEqual(false, ContentPipeline.CanBuildPlayer(BuildTarget.StandaloneWindows, BuildTargetGroup.Standalone, null)); // null check BuildWindowExtension
                 Assert.AreEqual(false, ContentPipeline.CanBuildPlayer(BuildTarget.StandaloneWindows, BuildTargetGroup.Standalone, new TestBuildWindowExtension(false)));
                 Assert.AreEqual(true, ContentPipeline.CanBuildPlayer(BuildTarget.StandaloneWindows, BuildTargetGroup.Standalone, new TestBuildWindowExtension(true)));
             }

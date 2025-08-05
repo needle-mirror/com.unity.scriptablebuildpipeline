@@ -79,20 +79,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             public int prefabPackedHeaderSize = 2;
         }
 
-        internal static Settings s_SettingsInstance;
-        internal static Settings s_Settings
-        {
-            get
-            {
-                if(s_SettingsInstance == null)
-                    s_SettingsInstance = new Settings();
-                return s_SettingsInstance;
-            }
-            set
-            {
-                s_SettingsInstance = value;
-            }
-        }
+        internal static Settings s_Settings = new Settings();
 
         /// <summary>
         /// Flag to determine if the Build Cache Server is to be used.

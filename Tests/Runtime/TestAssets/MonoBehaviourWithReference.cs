@@ -2,7 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Unity.ScriptableBuildPipelineTests.Runtime.Tests
+namespace Unity.ScriptableBuildPipeline.Runtime.Tests
 {
     /// <summary>
     /// A monobehavior with a reference to a Unity Object
