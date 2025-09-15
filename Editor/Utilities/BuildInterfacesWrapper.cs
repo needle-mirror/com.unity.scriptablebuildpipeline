@@ -71,12 +71,9 @@ namespace UnityEditor.Build.Pipeline.Utilities
             init.Invoke(null, new object[] { 18 }); // 18 = BuildCallbacks.SceneProcessors | BuildCallbacks.ShaderProcessors
 #endif
 
-#if UNITY_2019_4_OR_NEWER
             GatherCallbackVersions();
-#endif
         }
 
-#if UNITY_2019_4_OR_NEWER
         internal void GatherCallbackVersions()
         {
             var versionedType = typeof(VersionedCallbackAttribute);
@@ -116,7 +113,6 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 ShaderCallbackVersionHash = HashingMethods.Calculate(shaderInputs).ToHash128();
             }
         }
-#endif
 
         /// <summary>
         /// Cleanup Unity Editor IPreprocessShaders, IProcessScene, &amp; IProcessSceneWithReport build callbacks.

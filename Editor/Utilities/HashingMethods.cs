@@ -309,10 +309,9 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
             if (type == typeof(MD4))
                 return MD4.Create();
-#if UNITY_2019_3_OR_NEWER
+
             if (type == typeof(SpookyHash))
                 return SpookyHash.Create();
-#endif
 
             // TODO: allow user created HashAlgorithms?
             var alggorithm = HashAlgorithm.Create(type.FullName);

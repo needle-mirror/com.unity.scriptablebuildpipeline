@@ -127,11 +127,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
         static Hash128 CalculateGlobalArtifactVersionHash()
         {
-#if UNITY_2019_3_OR_NEWER
             return HashingMethods.Calculate(Application.unityVersion, k_Version).ToHash128();
-#else
-            return HashingMethods.Calculate(PlayerSettings.scriptingRuntimeVersion, Application.unityVersion, k_Version).ToHash128();
-#endif
         }
 
         internal void ClearCacheEntryMaps()

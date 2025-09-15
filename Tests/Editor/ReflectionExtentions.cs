@@ -6,38 +6,17 @@ namespace UnityEditor.Build.Pipeline.Tests
     {
         public static void SetFileName(this ref ResourceFile file, string filename)
         {
-#if UNITY_2019_3_OR_NEWER
             file.fileName = filename;
-#else
-            var fieldInfo = typeof(ResourceFile).GetField("m_FileName", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            object boxed = file;
-            fieldInfo.SetValue(boxed, filename);
-            file = (ResourceFile)boxed;
-#endif
         }
 
         public static void SetFileAlias(this ref ResourceFile file, string fileAlias)
         {
-#if UNITY_2019_3_OR_NEWER
             file.fileAlias = fileAlias;
-#else
-            var fieldInfo = typeof(ResourceFile).GetField("m_FileAlias", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            object boxed = file;
-            fieldInfo.SetValue(boxed, fileAlias);
-            file = (ResourceFile)boxed;
-#endif
         }
 
         public static void SetSerializedFile(this ref ResourceFile file, bool serializedFile)
         {
-#if UNITY_2019_3_OR_NEWER
             file.serializedFile = serializedFile;
-#else
-            var fieldInfo = typeof(ResourceFile).GetField("m_SerializedFile", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            object boxed = file;
-            fieldInfo.SetValue(boxed, serializedFile);
-            file = (ResourceFile)boxed;
-#endif
         }
 
         public static void SetHeader(this ref ObjectSerializedInfo osi, SerializedLocation serializedLocation)

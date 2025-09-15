@@ -1,4 +1,3 @@
-#if UNITY_2019_3_OR_NEWER
 using NUnit.Framework;
 using System.Collections.Generic;
 using System.Reflection;
@@ -12,6 +11,9 @@ using UnityEngine;
 
 namespace UnityEditor.Build.Pipeline.Tests
 {
+    /// <summary>
+    /// CalculateCustomDependencyTests
+    /// </summary>
     public class CalculateCustomDependencyTests
     {
         class TestBuildParameters : TestBuildParametersBase
@@ -102,6 +104,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             return (ObjectIdentifier)boxed;
         }
 
+        /// <summary>
+        /// CreateAssetEntryForObjectIdentifiers_ThrowsExceptionOnAssetGUIDCollision
+        /// </summary>
         [Test]
         public void CreateAssetEntryForObjectIdentifiers_ThrowsExceptionOnAssetGUIDCollision()
         {
@@ -131,6 +136,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             buildTask.Run();
         }
 
+        /// <summary>
+        /// GetObjectIdentifiersAndTypesForSerializedFile_ReturnsAllObjectIdentifiersAndTypes
+        /// </summary>
         [Test]
         public void GetObjectIdentifiersAndTypesForSerializedFile_ReturnsAllObjectIdentifiersAndTypes()
         {
@@ -159,6 +167,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             buildTask.Run();
         }
 
+        /// <summary>
+        /// CreateAssetEntryForObjectIdentifiers_AddsNewBundleAndAssetDataForCustomAsset
+        /// </summary>
         [Test]
         public void CreateAssetEntryForObjectIdentifiers_AddsNewBundleAndAssetDataForCustomAsset()
         {
@@ -211,4 +222,3 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
     }
 }
-#endif

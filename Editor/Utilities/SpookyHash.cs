@@ -1,10 +1,12 @@
-#if UNITY_2019_3_OR_NEWER
 using System.Security.Cryptography;
 using Unity.Collections.LowLevel.Unsafe;
 using UnityEngine;
 
 namespace UnityEditor.Build.Pipeline.Utilities
 {
+    /// <summary>
+    /// SpookyHash
+    /// </summary>
     public unsafe sealed class SpookyHash : HashAlgorithm
     {
         Hash128 m_Hash;
@@ -14,11 +16,18 @@ namespace UnityEditor.Build.Pipeline.Utilities
             Initialize();
         }
 
+        /// <summary>
+        /// Create a new instance of SpookyHash
+        /// </summary>
+        /// <returns>The SpookyHash instance</returns>
         public new static SpookyHash Create()
         {
             return new SpookyHash();
         }
 
+        /// <summary>
+        /// Initialize the hash state.
+        /// </summary>
         public override void Initialize() {}
 
         protected override void HashCore(byte[] inputBuffer, int inputOffset, int inputCount)
@@ -47,4 +56,3 @@ namespace UnityEditor.Build.Pipeline.Utilities
         }
     }
 }
-#endif

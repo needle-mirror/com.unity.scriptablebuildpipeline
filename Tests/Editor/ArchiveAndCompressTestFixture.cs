@@ -146,9 +146,7 @@ public class ArchiveAndCompressTestFixture
         ArchiveAndCompressBundles.TaskInput input = new ArchiveAndCompressBundles.TaskInput();
 
         input.InternalFilenameToWriteResults = new Dictionary<string, WriteResult>();
-#if UNITY_2019_3_OR_NEWER
         input.BundleNameToAdditionalFiles = new Dictionary<string, List<ResourceFile>>();
-#endif
         input.InternalFilenameToBundleName = new Dictionary<string, string>();
         input.AssetToFilesDependencies = new Dictionary<UnityEditor.GUID, List<string>>();
         input.InternalFilenameToWriteMetaData = new Dictionary<string, SerializedFileMetaData>();
@@ -180,7 +178,6 @@ public class ArchiveAndCompressTestFixture
         return writeResult;
     }
 
-#if UNITY_2019_3_OR_NEWER
     internal void AddRawFileThatTargetsBundle(ArchiveAndCompressBundles.TaskInput input, string targetBundleName, string rawFileInternalName, string filePath)
     {
         ResourceFile file = new ResourceFile();
@@ -197,7 +194,6 @@ public class ArchiveAndCompressTestFixture
         AddRawFileThatTargetsBundle(input, targetBundleName, rawFileInternalName, tempFilename);
     }
 
-#endif
 
     /// <summary>
     /// Create a unique filename

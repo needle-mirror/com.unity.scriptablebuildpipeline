@@ -30,10 +30,8 @@ namespace UnityEditor.Build.Pipeline.Tasks
         [InjectContext(ContextUsage.In)]
         IDeterministicIdentifiers m_PackingMethod;
 
-#if UNITY_2019_3_OR_NEWER
         [InjectContext(ContextUsage.In, true)]
         ICustomAssets m_CustomAssets;
-#endif
 #pragma warning restore 649
 
         static bool ValidAssetBundle(List<GUID> assets, HashSet<GUID> customAssets)
@@ -47,10 +45,8 @@ namespace UnityEditor.Build.Pipeline.Tasks
         {
             Dictionary<GUID, List<GUID>> assetToReferences = new Dictionary<GUID, List<GUID>>();
             HashSet<GUID> customAssets = new HashSet<GUID>();
-#if UNITY_2019_3_OR_NEWER
             if (m_CustomAssets != null)
                 customAssets.UnionWith(m_CustomAssets.Assets);
-#endif
 
             // Pack each asset bundle
             foreach (var bundle in m_BuildContent.BundleLayout)

@@ -1,14 +1,11 @@
 using System;
 using System.Collections.Generic;
-#if UNITY_2019_3_OR_NEWER
 using UnityEditor.Build.Content;
-#endif
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Utilities;
 
 namespace UnityEditor.Build.Pipeline
 {
-#if UNITY_2019_3_OR_NEWER
     /// <summary>
     /// Basic implementation of ICustomAssets. Stores the list of Custom Assets generated during the Scriptable Build Pipeline.
     /// <see cref="ICustomAssets"/>
@@ -27,7 +24,6 @@ namespace UnityEditor.Build.Pipeline
             Assets = new List<GUID>();
         }
     }
-#endif
 
     /// <summary>
     /// Basic implementation of IBuildContent. Stores the list of Assets to feed the Scriptable Build Pipeline.
@@ -42,10 +38,8 @@ namespace UnityEditor.Build.Pipeline
         /// <inheritdoc />
         public List<GUID> Scenes { get; private set; }
 
-#if UNITY_2019_3_OR_NEWER
         /// <inheritdoc />
         public List<CustomContent> CustomAssets { get; private set; }
-#endif
 
         /// <summary>
         /// Default constructor, creates an empty BuildContent.
@@ -63,9 +57,7 @@ namespace UnityEditor.Build.Pipeline
 
             Assets = new List<GUID>();
             Scenes = new List<GUID>();
-#if UNITY_2019_3_OR_NEWER
             CustomAssets = new List<CustomContent>();
-#endif
 
             foreach (var asset in assets)
             {
@@ -93,13 +85,11 @@ namespace UnityEditor.Build.Pipeline
         /// <inheritdoc />
         public List<GUID> Scenes { get; private set; }
 
-#if UNITY_2019_3_OR_NEWER
         /// <inheritdoc />
         public List<CustomContent> CustomAssets { get; private set; }
 
         /// <inheritdoc />
         public Dictionary<string, List<ResourceFile>> AdditionalFiles { get; private set; }
-#endif
 
         /// <inheritdoc />
         public Dictionary<GUID, string> Addresses { get; private set; }
@@ -125,10 +115,8 @@ namespace UnityEditor.Build.Pipeline
             Scenes = new List<GUID>();
             Addresses = new Dictionary<GUID, string>();
             BundleLayout = new Dictionary<string, List<GUID>>();
-#if UNITY_2019_3_OR_NEWER
             CustomAssets = new List<CustomContent>();
             AdditionalFiles = new Dictionary<string, List<ResourceFile>>();
-#endif
 
             foreach (var bundleBuild in bundleBuilds)
             {

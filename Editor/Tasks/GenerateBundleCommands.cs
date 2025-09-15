@@ -35,10 +35,8 @@ namespace UnityEditor.Build.Pipeline.Tasks
         [InjectContext(ContextUsage.In)]
         IDeterministicIdentifiers m_PackingMethod;
 
-#if UNITY_2019_3_OR_NEWER
         [InjectContext(ContextUsage.In, true)]
         ICustomAssets m_CustomAssets;
-#endif
 #pragma warning restore 649
 
         static bool ValidAssetBundle(List<GUID> assets, HashSet<GUID> customAssets)
@@ -51,10 +49,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
         public ReturnCode Run()
         {
             HashSet<GUID> customAssets = new HashSet<GUID>();
-#if UNITY_2019_3_OR_NEWER
             if (m_CustomAssets != null)
                 customAssets.UnionWith(m_CustomAssets.Assets);
-#endif
+
             Dictionary<GUID, string> assetToMainFile = new Dictionary<GUID, string>();
             foreach (var pair in m_WriteData.AssetToFiles)
                 assetToMainFile.Add(pair.Key, pair.Value[0]);
@@ -78,6 +75,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                     }
                 }
             }
+
             return ReturnCode.Success;
         }
 
@@ -260,9 +258,6 @@ You can work around this issue by changing the 'FileID Generator Seed' found in 
             operation.ReferenceMap = referenceMap;
             operation.DependencyHash = m_DependencyData.DependencyHash.TryGetValue(scene, out var hash) ? hash : new Hash128();
             operation.Scene = dependencyInfo.scene;
-#if !UNITY_2019_3_OR_NEWER
-            operation.ProcessedScene = dependencyInfo.processedScene;
-#endif
             operation.PreloadInfo = new PreloadInfo();
             operation.PreloadInfo.preloadObjects = preloadObjects;
             operation.Info = new SceneBundleInfo();
@@ -302,9 +297,6 @@ You can work around this issue by changing the 'FileID Generator Seed' found in 
             operation.ReferenceMap = referenceMap;
             operation.DependencyHash = m_DependencyData.DependencyHash.TryGetValue(scene, out var hash) ? hash : new Hash128();
             operation.Scene = dependencyInfo.scene;
-#if !UNITY_2019_3_OR_NEWER
-            operation.ProcessedScene = dependencyInfo.processedScene;
-#endif
             operation.PreloadInfo = new PreloadInfo();
             operation.PreloadInfo.preloadObjects = preloadObjects;
 

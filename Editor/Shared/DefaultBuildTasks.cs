@@ -92,9 +92,7 @@ namespace UnityEditor.Build.Pipeline
 
             // Dependency
             buildTasks.Add(new CalculateSceneDependencyData());
-#if UNITY_2019_3_OR_NEWER
             buildTasks.Add(new CalculateCustomDependencyData());
-#endif
             buildTasks.Add(new CalculateAssetDependencyData());
             buildTasks.Add(new StripUnusedSpriteSources());
             if (shaderTask)

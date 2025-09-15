@@ -31,10 +31,6 @@ namespace UnityEditor.Build.Pipeline.Tests
             public override ContentBuildFlags ContentBuildFlags { get => ContentBuildFlags.None; }
             public override bool NonRecursiveDependencies { get; set; }
 
-#if !UNITY_2019_3_OR_NEWER
-            public override string TempOutputFolder => ContentPipeline.kTempBuildPath;
-#endif
-
             public override BuildSettings GetContentBuildSettings()
             {
                 return new BuildSettings

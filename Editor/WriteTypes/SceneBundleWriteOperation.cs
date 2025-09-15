@@ -32,8 +32,8 @@ namespace UnityEditor.Build.Pipeline.WriteTypes
         /// Processed scene path returned by the ProcessScene API.
         /// <see cref="ContentBuildInterface.PrepareScene"/>
         /// </summary>
-#if UNITY_2019_3_OR_NEWER
-        [Obsolete("ProcessedScene has been deprecated.")]
+#if UNITY_2023_2_OR_NEWER
+        [Obsolete("ProcessedScene has been deprecated.", true)]
 #endif
         public string ProcessedScene { get; set; }
 
@@ -52,7 +52,6 @@ namespace UnityEditor.Build.Pipeline.WriteTypes
         /// <inheritdoc />
         public WriteResult Write(string outputFolder, BuildSettings settings, BuildUsageTagGlobal globalUsage)
         {
-#if UNITY_2019_3_OR_NEWER
             return ContentBuildInterface.WriteSceneSerializedFile(outputFolder, new WriteSceneParameters
             {
                 scenePath = Scene,
@@ -64,19 +63,12 @@ namespace UnityEditor.Build.Pipeline.WriteTypes
                 preloadInfo = PreloadInfo,
                 sceneBundleInfo = Info
             });
-#else
-            return ContentBuildInterface.WriteSceneSerializedFile(outputFolder, Scene, ProcessedScene, Command, settings, globalUsage, UsageSet, ReferenceMap, PreloadInfo, Info);
-#endif
         }
 
         /// <inheritdoc />
         public Hash128 GetHash128(IBuildLogger log)
         {
-#if UNITY_2019_3_OR_NEWER
             CacheEntry entry = BuildCacheUtility.GetCacheEntry(Scene);
-#else
-            CacheEntry entry = BuildCacheUtility.GetCacheEntry(ProcessedScene);
-#endif
             HashSet<CacheEntry> hashObjects = new HashSet<CacheEntry>();
             using (log.ScopedStep(LogLevel.Verbose, $"Gather Objects", Command.fileName))
                 Command.GatherSerializedObjectCacheEntries(hashObjects);

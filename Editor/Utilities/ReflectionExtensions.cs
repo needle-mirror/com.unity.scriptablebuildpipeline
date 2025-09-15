@@ -1,7 +1,3 @@
-#if !UNITY_2019_3_OR_NEWER
-#define NOT_UNITY_2019_3_OR_NEWER
-#endif
-
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
@@ -63,15 +59,6 @@ namespace UnityEditor.Build.Pipeline.Utilities
         {
             object boxed = dependencyInfo;
             SceneDependencyInfo_Scene.SetValue(boxed, scene);
-            dependencyInfo = (SceneDependencyInfo)boxed;
-        }
-
-        // Use conditionals to remove api from callsite
-        [Conditional("NOT_UNITY_2019_3_OR_NEWER")]
-        public static void SetProcessedScene(this ref SceneDependencyInfo dependencyInfo, string processedScene)
-        {
-            object boxed = dependencyInfo;
-            SceneDependencyInfo_ProcessedScene.SetValue(boxed, processedScene);
             dependencyInfo = (SceneDependencyInfo)boxed;
         }
 

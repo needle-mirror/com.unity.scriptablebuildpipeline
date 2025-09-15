@@ -7,10 +7,6 @@ using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Utilities;
 using UnityEngine;
 
-#if !UNITY_2019_3_OR_NEWER
-using System.IO;
-#endif
-
 namespace UnityEditor.Build.Pipeline.Tasks
 {
     /// <summary>
@@ -190,7 +186,6 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
                         usageTags = new BuildUsageTagSet();
 
-#if UNITY_2019_3_OR_NEWER
 #if NONRECURSIVE_DEPENDENCY_DATA
                         if (m_Parameters.NonRecursiveDependencies)
                         {
@@ -205,14 +200,6 @@ namespace UnityEditor.Build.Pipeline.Tasks
                         {
                             sceneInfo = ContentBuildInterface.CalculatePlayerDependenciesForScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache);
                         }
-#else
-                        string outputFolder = m_Parameters.TempOutputFolder;
-                        if (m_Parameters.UseCache && m_Cache != null)
-                            outputFolder = m_Cache.GetCachedArtifactsDirectory(GetSceneCacheEntry(scene, Version));
-                        System.IO.Directory.CreateDirectory(outputFolder);
-
-                        sceneInfo = ContentBuildInterface.PrepareScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache, outputFolder);
-#endif
                         if (uncachedInfo != null)
                         {
                             // We only need to gather prefab dependencies and calculate the hash if we are using caching, otherwise we can skip it

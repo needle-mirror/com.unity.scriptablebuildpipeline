@@ -5,7 +5,6 @@ using UnityEditor.Build.Pipeline.Tasks;
 
 namespace UnityEditor.Build.Pipeline.Interfaces
 {
-#if UNITY_2019_3_OR_NEWER
     /// <summary>
     /// Custom Content struct mapping a source asset to a processor to generate custom data for that asset.
     /// </summary>
@@ -23,10 +22,10 @@ namespace UnityEditor.Build.Pipeline.Interfaces
         public Action<GUID, CalculateCustomDependencyData> Processor;
 
         /// <summary>
-        /// IEquatable<CustomContent> Equals operator to handle generic collections
+        /// CustomContent Equals operator to handle generic collections
         /// </summary>
         /// <param name="other">Other CustomContent object to compare against.</param>
-        /// <returns></returns>
+        /// <returns>True if the custom content is the same asset and has the same dependencies</returns>
         public bool Equals(CustomContent other)
         {
             return Asset == other.Asset && Processor == other.Processor;
@@ -43,7 +42,6 @@ namespace UnityEditor.Build.Pipeline.Interfaces
         /// </summary>
         List<GUID> Assets { get; }
     }
-#endif
 
     /// <summary>
     /// Base interface for feeding Assets to the Scriptable Build Pipeline.
@@ -60,12 +58,10 @@ namespace UnityEditor.Build.Pipeline.Interfaces
         /// </summary>
         List<GUID> Scenes { get; }
 
-#if UNITY_2019_3_OR_NEWER
         /// <summary>
         /// List of custom content to be included in asset bundles.
         /// </summary>
         List<CustomContent> CustomAssets { get; }
-#endif
     }
 
     /// <summary>
@@ -78,12 +74,10 @@ namespace UnityEditor.Build.Pipeline.Interfaces
         /// </summary>
         Dictionary<string, List<GUID>> BundleLayout { get; }
 
-#if UNITY_2019_3_OR_NEWER
         /// <summary>
         /// Additional list of raw files to add to an asset bundle
         /// </summary>
         Dictionary<string, List<ResourceFile>> AdditionalFiles { get; }
-#endif
 
         /// <summary>
         /// Custom loading identifiers to use for Assets or Scenes.

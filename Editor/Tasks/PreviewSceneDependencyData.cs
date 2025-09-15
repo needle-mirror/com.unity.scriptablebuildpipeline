@@ -100,7 +100,6 @@ namespace UnityEditor.Build.Pipeline.Tasks
                     usageTags = new BuildUsageTagSet();
 
                     sceneInfo.SetScene(scenePath);
-                    sceneInfo.SetProcessedScene(scenePath);
                     sceneInfo.SetReferencedObjects(references.ToArray());
 
                     if (uncachedInfo != null)

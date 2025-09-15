@@ -78,15 +78,25 @@ namespace UnityEditor.Build.Pipeline
             }
 
             var uniqueAddresses = new HashSet<string>();
-            foreach ((var guid, var address) in content.Addresses)
+            //internal ids need to be unique but only per bundle.
+            foreach (var b in content.BundleLayout)
             {
-                if (uniqueAddresses.Contains(address))
+                uniqueAddresses.Clear();
+                foreach (var guid in b.Value)
                 {
-                    result = null;
-                    BuildLogger.LogException(new InvalidOperationException($"Duplicate address '{address}' found in Addresses. Each address must be unique."));
-                    return ReturnCode.Exception;
+                    if (!content.Addresses.TryGetValue(guid, out var address))
+                    {
+                        result = null;
+                        BuildLogger.LogException(new InvalidOperationException($"Unable to find internal id for guid {guid} in bundle {b.Key}."));
+                        return ReturnCode.Exception;
+                    }
+                    if (!uniqueAddresses.Add(address))
+                    {
+                        result = null;
+                        BuildLogger.LogException(new InvalidOperationException($"Duplicate internal id '{address}' for guid {guid} found in bundle {b.Key}. Each internal id within a bundle must be unique."));
+                        return ReturnCode.Exception;
+                    }
                 }
-                uniqueAddresses.Add(address);
             }
 
             var contentBuildSettings = parameters.GetContentBuildSettings();

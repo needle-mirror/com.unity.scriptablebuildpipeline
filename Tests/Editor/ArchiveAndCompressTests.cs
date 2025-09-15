@@ -137,12 +137,10 @@ namespace UnityEditor.Build.Pipeline.Tests
                 {
                     ctx.input.GetCompressionForIdentifier = (x) => UnityEngine.BuildCompression.Uncompressed;
                 })).SetName("CompressionChanges");
-#if UNITY_2019_3_OR_NEWER
                 yield return new TestCaseData(true, new Action<RebuildTestContext>((ctx) =>
                 {
                     ctx._this.AddRawFileThatTargetsBundle(ctx.input, "mybundle", "rawInternalName");
                 })).SetName("AddAdditionalFile");
-#endif
             }
         }
 
@@ -289,7 +287,6 @@ namespace UnityEditor.Build.Pipeline.Tests
                 Assert.AreEqual(prevHash, newHash);
         }
 
-#if UNITY_2019_3_OR_NEWER
         /// <summary>
         /// WhenBuildingManyArchives_ThreadedAndNonThreadedResultsAreIdentical
         /// </summary>
@@ -313,7 +310,6 @@ namespace UnityEditor.Build.Pipeline.Tests
             AssertDirectoriesEqual(Path.Combine(m_TestTempDir, "bundleoutdir_nothreading"), Path.Combine(m_TestTempDir, "bundleoutdir_threading"), kBundleCount);
         }
 
-#endif
         /// <summary>
         /// ResourceFilesAreAddedToBundles
         /// </summary>
@@ -433,7 +429,6 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.IsTrue(log2.ContainsScopeWithSubstring("Copying From Cache"));
         }
 
-#if UNITY_2019_3_OR_NEWER
         /// <summary>
         /// CanAddRawFilesToBundles
         /// </summary>
@@ -459,19 +454,6 @@ namespace UnityEditor.Build.Pipeline.Tests
         {
             Assert.IsTrue(ReflectionExtensions.SupportsMultiThreadedArchiving);
         }
-
-#else
-        /// <summary>
-        /// SupportsMultiThreadedArchiving_WhenEditorIsBefore20193_IsFalse
-        /// </summary>
-        [Test]
-        public void SupportsMultiThreadedArchiving_WhenEditorIsBefore20193_IsFalse()
-        {
-            Assert.IsFalse(ReflectionExtensions.SupportsMultiThreadedArchiving);
-        }
-
-#endif
-
         /// <summary>
         /// CalculateBundleDependencies_ReturnsRecursiveDependencies_ForNonRecursiveInputs
         /// </summary>

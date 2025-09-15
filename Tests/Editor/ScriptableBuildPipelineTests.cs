@@ -1,10 +1,11 @@
+using NUnit.Framework;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using NUnit.Framework;
+using System.Text.RegularExpressions;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Injector;
 using UnityEditor.Build.Pipeline.Interfaces;
@@ -415,9 +416,6 @@ namespace UnityEditor.Build.Pipeline.Tests
             {
                 Command = new WriteCommand(),
                 PreloadInfo = new PreloadInfo(),
-#if !UNITY_2019_3_OR_NEWER
-                ProcessedScene = k_ScenePath,
-#endif
                 ReferenceMap = new BuildReferenceMap(),
                 UsageSet = new BuildUsageTagSet(),
                 Scene = k_ScenePath,
@@ -452,9 +450,6 @@ namespace UnityEditor.Build.Pipeline.Tests
             {
                 Command = new WriteCommand(),
                 PreloadInfo = new PreloadInfo(),
-#if !UNITY_2019_3_OR_NEWER
-                ProcessedScene = k_ScenePath,
-#endif
                 ReferenceMap = new BuildReferenceMap(),
                 UsageSet = new BuildUsageTagSet(),
                 Info = new SceneBundleInfo(),
@@ -502,7 +497,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
 
         [Test]
-        public void BuildAssetBundles_WithDuplicateAddresses_LogsErrorMessage()
+        public void BuildAssetBundles_WithDuplicateAddresses_InSeparateBundles_DoesNotLogErrorMessage()
         {
             IBundleBuildParameters buildParameters = GetBuildParameters();
             List<AssetBundleBuild> buildData = new List<AssetBundleBuild>();
@@ -527,8 +522,32 @@ namespace UnityEditor.Build.Pipeline.Tests
             IBundleBuildContent buildContent = new BundleBuildContent(buildData);
             IBundleBuildResults results;
 
-            LogAssert.Expect(LogType.Exception, $"InvalidOperationException: Duplicate address '{k_CubePath}' found in Addresses. Each address must be unique.");
 
+            var taskList = DefaultBuildTasks.Create(DefaultBuildTasks.Preset.AssetBundleCompatible);
+            ReturnCode exitCode = ContentPipeline.BuildAssetBundles(buildParameters, buildContent, out results, taskList, new BuildLog());
+
+            Assert.AreEqual(ReturnCode.Success, exitCode);
+        }
+
+        [Test]
+        public void BuildAssetBundles_WithDuplicateAddresses_InSameBundle_LogsErrorMessage()
+        {
+            IBundleBuildParameters buildParameters = GetBuildParameters();
+            List<AssetBundleBuild> buildData = new List<AssetBundleBuild>();
+            var bundle1 = new AssetBundleBuild()
+            {
+                addressableNames = new[] { k_CubePath, k_CubePath },
+                assetBundleName = k_CubePath,
+                assetBundleVariant = "",
+                assetNames = new[] { k_CubePath, k_CubePath2 }
+            };
+            buildData.Add(bundle1);
+            // different asset, same addressable name.
+
+            IBundleBuildContent buildContent = new BundleBuildContent(buildData);
+            IBundleBuildResults results;
+
+            LogAssert.Expect(LogType.Exception, new Regex($"Duplicate internal id '{k_CubePath}' for guid *"));
             var taskList = DefaultBuildTasks.Create(DefaultBuildTasks.Preset.AssetBundleCompatible);
             ReturnCode exitCode = ContentPipeline.BuildAssetBundles(buildParameters, buildContent, out results, taskList, new BuildLog());
 

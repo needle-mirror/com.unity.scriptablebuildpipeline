@@ -34,10 +34,8 @@ namespace UnityEditor.Build.Pipeline.Tasks
         [InjectContext(ContextUsage.In)]
         IBundleWriteData m_WriteData;
 
-#if UNITY_2019_3_OR_NEWER
         [InjectContext(ContextUsage.In)]
         IBundleBuildContent m_Content;
-#endif
 
         [InjectContext]
         IBundleBuildResults m_Results;
@@ -136,9 +134,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
         {
             public Dictionary<string, WriteResult> InternalFilenameToWriteResults;
             public Dictionary<string, SerializedFileMetaData> InternalFilenameToWriteMetaData;
-#if UNITY_2019_3_OR_NEWER
             public Dictionary<string, List<ResourceFile>> BundleNameToAdditionalFiles;
-#endif
             public Dictionary<string, string> InternalFilenameToBundleName;
             public Func<string, BuildCompression> GetCompressionForIdentifier;
             public Func<string, string> GetOutputFilePathForIdentifier;
@@ -162,9 +158,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
         {
             TaskInput input = new TaskInput();
             input.InternalFilenameToWriteResults = m_Results.WriteResults;
-#if UNITY_2019_3_OR_NEWER
             input.BundleNameToAdditionalFiles = m_Content.AdditionalFiles;
-#endif
             input.InternalFilenameToBundleName = m_WriteData.FileToBundle;
             input.GetCompressionForIdentifier = (x) => m_Parameters.GetCompressionForIdentifier(x);
             input.GetOutputFilePathForIdentifier = (x) => m_Parameters.GetOutputFilePathForIdentifier(x);
@@ -295,14 +289,12 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
                     item.ResourceFiles.AddRange(pair.Value.resourceFiles);
 
-#if UNITY_2019_3_OR_NEWER
                     if (input.BundleNameToAdditionalFiles.TryGetValue(bundleName, out List<ResourceFile> additionalFiles))
                     {
                         RawHash hash = HashResourceFiles(additionalFiles);
                         item.SeriliazedFileMetaDatas.Add(new SerializedFileMetaData() { ContentHash = hash.ToHash128(), RawFileHash = hash.ToHash128() });
                         item.ResourceFiles.AddRange(additionalFiles);
                     }
-#endif
                 }
 
                 List<ArchiveWorkItem> allItems = bundleNameToWorkItem.Select((x, index) => { x.Value.Index = index; return x.Value; }).ToList();

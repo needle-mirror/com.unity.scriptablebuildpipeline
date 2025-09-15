@@ -75,11 +75,9 @@ namespace UnityEditor.Build.Pipeline.Tests
 
         public virtual List<GUID> Scenes => throw new System.NotImplementedException(TestTracing.Callsite());
 
-#if UNITY_2019_3_OR_NEWER
         public virtual Dictionary<string, List<ResourceFile>> AdditionalFiles => throw new System.NotImplementedException(TestTracing.Callsite());
 
         public virtual List<CustomContent> CustomAssets => throw new System.NotImplementedException(TestTracing.Callsite());
-#endif
     }
 
     internal class TestDependencyDataBase : IDependencyData
