@@ -75,6 +75,28 @@ namespace UnityEditor.Build.Pipeline
                 return ReturnCode.Exception;
             }
 
+            var uniqueAddresses = new HashSet<string>();
+            //internal ids need to be unique but only per bundle.
+            foreach (var b in content.BundleLayout)
+            {
+                uniqueAddresses.Clear();
+                foreach (var guid in b.Value)
+                {
+                    if (!content.Addresses.TryGetValue(guid, out var address))
+                    {
+                        result = null;
+                        BuildLogger.LogException(new InvalidOperationException($"Unable to find internal id for guid {guid} in bundle {b.Key}."));
+                        return ReturnCode.Exception;
+                    }
+                    if (!uniqueAddresses.Add(address))
+                    {
+                        result = null;
+                        BuildLogger.LogException(new InvalidOperationException($"Duplicate internal id '{address}' for guid {guid} found in bundle {b.Key}. Each internal id within a bundle must be unique."));
+                        return ReturnCode.Exception;
+                    }
+                }
+            }
+
             var contentBuildSettings = parameters.GetContentBuildSettings();
             if (!CanBuildPlayer(contentBuildSettings.target, contentBuildSettings.group))
             {
