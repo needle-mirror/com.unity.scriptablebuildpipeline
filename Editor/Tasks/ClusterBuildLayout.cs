@@ -45,6 +45,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
 #pragma warning disable 649
         [InjectContext(ContextUsage.In)]
+        IBundleBuildParameters m_Parameters;
+
+        [InjectContext(ContextUsage.In)]
         IDependencyData m_DependencyData;
 
         [InjectContext]
@@ -93,8 +96,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
             foreach (var pair in m_DependencyData.SceneUsage)
                 usageSet.UnionWith(pair.Value);
 
+            var builtInResourcesGUID = new GUID("0000000000000000e000000000000000");
+
             // Generates Content Archive Files from Clusters
-            BuildReferenceMap referenceMap = new BuildReferenceMap();
             foreach (var pair in clusterToObjects)
             {
                 var cluster = pair.Key.ToString();
@@ -103,7 +107,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 var op = new RawWriteOperation();
 #pragma warning restore CS0618 // Type or member is obsolete
                 m_WriteData.WriteOperations.Add(op);
-
+                op.ReferenceMap = new BuildReferenceMap();
                 op.Command = new WriteCommand();
                 op.Command.fileName = cluster;
                 op.Command.internalName = cluster;
@@ -112,10 +116,19 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 {
                     var lfid = m_PackingMethod.SerializationIndexFromObjectIdentifier(objectId);
                     op.Command.serializeObjects.Add(new SerializationInfo { serializationObject = objectId, serializationIndex = lfid });
-                    referenceMap.AddMapping(cluster, lfid, objectId);
+                    op.ReferenceMap.AddMapping(cluster, lfid, objectId);
                     m_ClusterResult.ObjectToLocalID.Add(objectId, lfid);
                 }
-                op.ReferenceMap = referenceMap;
+                var deps = ContentBuildInterface.GetPlayerDependenciesForObjects(pair.Value.ToArray(), m_Parameters.Target, m_Parameters.ScriptInfo, DependencyType.ValidReferences);
+                foreach (var d in deps)
+                {
+                    if (d.m_GUID != builtInResourcesGUID)
+                    {
+                        var depCluster = m_ClusterResult.ObjectToCluster[d].ToString();
+                        op.ReferenceMap.AddMapping(depCluster, m_PackingMethod.SerializationIndexFromObjectIdentifier(d), d);
+                    }
+                }
+
                 op.UsageSet = usageSet;
 
                 m_WriteData.FileToBundle.Add(cluster, cluster);
@@ -128,12 +141,22 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 var op = new SceneRawWriteOperation();
 #pragma warning restore CS0618 // Type or member is obsolete
                 m_WriteData.WriteOperations.Add(op);
-
+                op.ReferenceMap = new BuildReferenceMap();
                 op.Command = new WriteCommand();
                 op.Command.fileName = pair.Key.ToString();
                 op.Command.internalName = pair.Key.ToString();
                 op.Command.serializeObjects = new List<SerializationInfo>();
-                op.ReferenceMap = referenceMap;
+
+
+                foreach (var d in pair.Value.m_ReferencedObjects)
+                {
+                    if (d.m_GUID != builtInResourcesGUID)
+                    {
+                        var depCluster = m_ClusterResult.ObjectToCluster[d].ToString();
+                        op.ReferenceMap.AddMapping(depCluster, m_PackingMethod.SerializationIndexFromObjectIdentifier(d), d);
+                    }
+                }
+
                 op.UsageSet = usageSet;
                 op.Scene = pair.Value.scene;
 
