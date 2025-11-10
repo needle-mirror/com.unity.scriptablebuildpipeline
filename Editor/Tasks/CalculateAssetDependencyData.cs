@@ -32,7 +32,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
     /// </summary>
     public class CalculateAssetDependencyData : IBuildTask
     {
-        internal const int kVersion = 6;
+        internal const int kVersion = 7;
         /// <inheritdoc />
         public int Version { get { return kVersion; } }
 
@@ -467,27 +467,6 @@ namespace UnityEditor.Build.Pipeline.Tasks
             return ReturnCode.Success;
         }
 
-        private static bool IsPackedSprite(IEnumerable<ObjectIdentifier> includedObjects, ObjectIdentifier sourceTexture, TaskInput input)
-        {
-            if (EditorSettings.spritePackerMode == SpritePackerMode.Disabled)
-                return false;
-
-            foreach (var obj in includedObjects)
-            {
-                if (BuildCacheUtility.GetMainTypeForObject(obj) != typeof(Sprite))
-                    continue;
-
-                foreach (var r in ContentBuildInterface.GetPlayerDependenciesForObject(obj, input.Target, input.TypeDB, DependencyType.ValidReferences))
-                {
-                    // packed sprites never reference the source texture
-                    if (r == sourceTexture)
-                        return false;
-                }
-            }
-
-            return true;
-        }
-
         private static AssetOutput ProcessAsset(GUID asset, string assetPath, TaskInput input, HashSet<GUID> explicitAssets,
             in Dictionary<GUID, AssetOutput> implicitAssetsOutput, HashSet<GUID> packedSprites, TextureImporter spriteImporter)
         {
@@ -526,7 +505,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             {
                 assetResult.spriteData = new SpriteImporterData();
                 assetResult.spriteData.SourceTexture = includedObjects.FirstOrDefault();
-                assetResult.spriteData.PackedSprite = IsPackedSprite(includedObjects, assetResult.spriteData.SourceTexture, input);
+                assetResult.spriteData.PackedSprite = ExtensionMethods.IsPackedSprite(includedObjects, assetResult.spriteData.SourceTexture, input.Target, input.TypeDB);
 
 #if !UNITY_2020_1_OR_NEWER
                 if (EditorSettings.spritePackerMode == SpritePackerMode.AlwaysOn || EditorSettings.spritePackerMode == SpritePackerMode.BuildTimeOnly)

@@ -3,6 +3,10 @@ All notable changes to this package will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
+
+## [2.5.0] - 2025-11-10
+- Changed calculation of cluster names to use object ids that are in the cluster vs ids of assets that depend on the cluster.  This will reduce the number of new content archives that get build for a content update.
+
 ## [2.4.3] - 2025-10-06
 - Refactor to create individual BuildReferenceMaps for each cluster.
 

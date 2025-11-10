@@ -78,13 +78,14 @@ namespace UnityEditor.Build.Pipeline.Tests
         const string k_SpriteAtlasPath = k_TestAssetsPath + "/SpriteAtlas.spriteatlasv2";
         const string k_BlackTexturePath = k_TestAssetsPath + "/BlackTexture.png";
 
-        static CalculateSceneDependencyData CreateDefaultBuildTask(List<GUID> scenes, BuildCache optionalCache, bool nonRecursive = false)
+        static CalculateSceneDependencyData CreateDefaultBuildTask(List<GUID> scenes, BuildCache optionalCache, bool nonRecursive = false, List<GUID> assets = null)
         {
             var task = new CalculateSceneDependencyData();
             var testParams = new TestParams();
             testParams.UseCache = optionalCache != null;
             testParams.NonRecursiveDependencies = nonRecursive;
             var testContent = new TestContent { TestScenes = scenes };
+            if (assets != null) testContent.TestAssets = assets;
             var testData = new TestDependencyData();
             var buildResult = new BundleBuildResults();
             IBuildContext context = new BuildContext(testParams, testContent, testData, optionalCache, buildResult);
@@ -319,6 +320,57 @@ namespace UnityEditor.Build.Pipeline.Tests
             }
 
             Assert.AreNotEqual(dependencyData1.SceneInfo[sceneGuid].referencedObjects.Count, dependencyData2.SceneInfo[sceneGuid].referencedObjects.Count);
+
+            EditorSettings.spritePackerMode = prevSpritePackerModeMode;
+        }
+
+        [Test]
+        public void CalculateSceneDependencyData_PackedSprites_DontReferenceSourceTexture([Values] bool nonRecursive, [Values] bool packed)
+        {
+            var prevSpritePackerModeMode = EditorSettings.spritePackerMode;
+            EditorSettings.spritePackerMode = SpritePackerMode.SpriteAtlasV2;
+            SetupSceneWithSpritesForTest(out var scene);
+
+            List<GUID> scenes = new List<GUID>();
+            GUID sceneGuid = new GUID(AssetDatabase.AssetPathToGUID(scene.path));
+            scenes.Add(sceneGuid);
+
+            List<GUID> assets = new List<GUID>();
+            var spriteGuid = new GUID(AssetDatabase.AssetPathToGUID(k_BlackTexturePath));
+            assets.Add(spriteGuid);
+
+            if (packed)
+            {
+                var spriteAtlas = SpriteAtlasAsset.Load(k_SpriteAtlasPath);
+                var blackSprite = AssetDatabase.LoadAssetAtPath<Sprite>(k_BlackTexturePath);
+                spriteAtlas.Add(new UnityEngine.Object[] { blackSprite });
+                SpriteAtlasAsset.Save(spriteAtlas, k_SpriteAtlasPath);
+                AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
+            }
+
+            TestDependencyData dependencyData;
+            using (BuildCache cache = new BuildCache())
+            {
+                var buildTask = CreateDefaultBuildTask(scenes, null, nonRecursive, assets);
+                buildTask.Run();
+                ExtractTestData(buildTask, out dependencyData);
+            }
+
+            // Clean-up before the assert
+            if (packed)
+            {
+                AssetDatabase.DeleteAsset(k_SpriteAtlasPath);
+            }
+
+            var texRefCount = 0;
+            foreach (var dep in dependencyData.SceneInfo[sceneGuid].referencedObjects)
+            {
+                if (dep.guid == spriteGuid)
+                    texRefCount++;
+            }
+            // If packed, only needs to reference the Sprite
+            // Not packed, so we need to reference the Sprite and the Texture2D
+            Assert.AreEqual(packed ? 1 : 2, texRefCount);
 
             EditorSettings.spritePackerMode = prevSpritePackerModeMode;
         }

@@ -13,7 +13,6 @@ using UnityEditor.Build.Pipeline.Tasks;
 using UnityEditor.Build.Pipeline.Utilities;
 using UnityEditor.Build.Pipeline.WriteTypes;
 using UnityEditor.SceneManagement;
-using UnityEditor.TestTools;
 using UnityEngine;
 using UnityEngine.Build.Pipeline;
 using UnityEngine.SceneManagement;
@@ -31,6 +30,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         const string k_TestAssetsPath = "Assets/TestAssetsOnlyWillBeDeleted";
         const string k_CubePath = k_TestAssetsPath + "/Cube.prefab";
         const string k_CubePath2 = k_TestAssetsPath + "/Cube2.prefab";
+        const string k_CubePath3 = k_TestAssetsPath + "/Cube3.prefab";
 
         ScriptableBuildPipeline.Settings m_Settings;
 
@@ -42,12 +42,15 @@ namespace UnityEditor.Build.Pipeline.Tests
 #if UNITY_2018_3_OR_NEWER
             PrefabUtility.SaveAsPrefabAsset(GameObject.CreatePrimitive(PrimitiveType.Cube), k_CubePath);
             PrefabUtility.SaveAsPrefabAsset(GameObject.CreatePrimitive(PrimitiveType.Cube), k_CubePath2);
+            PrefabUtility.SaveAsPrefabAsset(GameObject.CreatePrimitive(PrimitiveType.Cube), k_CubePath3);
 #else
             PrefabUtility.CreatePrefab(k_CubePath, GameObject.CreatePrimitive(PrimitiveType.Cube));
             PrefabUtility.CreatePrefab(k_CubePath2, GameObject.CreatePrimitive(PrimitiveType.Cube));
+            PrefabUtility.CreatePrefab(k_CubePath3, GameObject.CreatePrimitive(PrimitiveType.Cube));
 #endif
             AssetDatabase.ImportAsset(k_CubePath);
             AssetDatabase.ImportAsset(k_CubePath2);
+            AssetDatabase.ImportAsset(k_CubePath3);
 
             m_Settings = LoadSettingsFromFile();
         }
@@ -59,6 +62,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             AssetDatabase.DeleteAsset(k_ScenePath);
             AssetDatabase.DeleteAsset(k_CubePath);
             AssetDatabase.DeleteAsset(k_CubePath2);
+            AssetDatabase.DeleteAsset(k_CubePath3);
             AssetDatabase.DeleteAsset(k_TestAssetsPath);
 
             if (Directory.Exists(k_FolderPath))
@@ -529,6 +533,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreEqual(ReturnCode.Success, exitCode);
         }
 
+#if UNITY_6000_0_OR_NEWER
         [Test]
         public void BuildAssetBundles_WithDuplicateAddresses_InSameBundle_LogsErrorMessage()
         {
@@ -550,9 +555,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             LogAssert.Expect(LogType.Exception, new Regex($"Duplicate internal id '{k_CubePath}' for guid *"));
             var taskList = DefaultBuildTasks.Create(DefaultBuildTasks.Preset.AssetBundleCompatible);
             ReturnCode exitCode = ContentPipeline.BuildAssetBundles(buildParameters, buildContent, out results, taskList, new BuildLog());
-
             Assert.AreEqual(ReturnCode.Exception, exitCode);
         }
+#endif
 
         [Test]
         public void BuildParameters_SetsBuildCacheServerParameters_WhenUseBuildCacheServerEnabled()
@@ -604,6 +609,156 @@ namespace UnityEditor.Build.Pipeline.Tests
             ReturnCode exitCode = ContentPipeline.BuildAssetBundles(buildParameters, buildContent, out IBundleBuildResults results);
             Assert.AreEqual(ReturnCode.Success, exitCode);
         }
+
+        BuildDependencyData BuildBundleDepData(params string[] paths)
+        {
+            var depData = new BuildDependencyData();
+            foreach (var p in paths)
+            {
+                GUID guid1;
+                GUID.TryParse(AssetDatabase.AssetPathToGUID(p), out guid1);
+                var objIds1 = ContentBuildInterface.GetPlayerObjectIdentifiersInAsset(guid1, EditorUserBuildSettings.activeBuildTarget);
+                depData.AssetInfo.Add(guid1, new AssetLoadInfo
+                {
+                    asset = guid1,
+                    address = p,
+                    includedObjects = objIds1.ToList(),
+                    referencedObjects = new List<ObjectIdentifier>(ContentBuildInterface.GetPlayerDependenciesForObjects(objIds1, EditorUserBuildSettings.activeBuildTarget, null))
+                });
+                depData.AssetUsage.Add(guid1, new BuildUsageTagSet());
+            }
+            return depData;
+        }
+
+#if UNITY_6000_0_OR_NEWER
+        [Test]
+        public void ClusterBuildLayout_GenerateClusterName_Stress([Values(100, 1000)] int listCount, [Values(100, 1000)] int idCount)
+        {
+            var idLists = new List<List<ObjectIdentifier>>();
+            for (int i = 0; i < listCount; i++)
+            {
+                var ids = new List<ObjectIdentifier>();
+                for (int j = 0; j < idCount; j++)
+                    ids.Add(new ObjectIdentifier { filePath = $"long asset path to stress the hashing speed {i} - {j}", fileType = FileType.SerializedAssetType, guid = GUID.Generate(), localIdentifierInFile = i * listCount + j });
+                idLists.Add(ids);
+            }
+            //ensure that all hashes are unique
+            var collisionDetection = new HashSet<Hash128>();
+            for (int i = 0; i < idLists.Count; i++)
+            {
+                var hash = ClusterBuildLayout.ComputeClusterId(idLists[i]);
+                Assert.IsTrue(collisionDetection.Add(hash));
+            }
+            //ensure that the hashes are deterministic
+            for (int i = 0; i < idLists.Count; i++)
+            {
+                var hash = ClusterBuildLayout.ComputeClusterId(idLists[i]);
+                Assert.IsTrue(collisionDetection.Contains(hash));
+            }
+        }
+
+        [Test]
+        public void ClusterBuildLayout_Adding_New_Prefab_Preserves_Existing_Clusters()
+        {
+            var clusterResult1 = new ClusterOutput();
+            {
+                var buildParams = GetBuildParameters();
+                var depData = BuildBundleDepData(k_CubePath, k_CubePath2);
+                var writeData = new BundleWriteData();
+                var identifier = new PrefabPackedIdentifiers();
+                var result = ClusterBuildLayout.Run(buildParams, depData, writeData, identifier, clusterResult1, true);
+                Assert.AreEqual(ReturnCode.Success, result);
+            }
+            var clusterResult2 = new ClusterOutput();
+            {
+                var buildParams = GetBuildParameters();
+                var depData = BuildBundleDepData(k_CubePath, k_CubePath2, k_CubePath3);
+                var writeData = new BundleWriteData();
+                var identifier = new PrefabPackedIdentifiers();
+                var result = ClusterBuildLayout.Run(buildParams, depData, writeData, identifier, clusterResult2, true);
+                Assert.AreEqual(ReturnCode.Success, result);
+            }
+            Assert.Greater(clusterResult1.ObjectToCluster.Count, 0, "clusterResult1 should have clustered objects");
+            Assert.Greater(clusterResult2.ObjectToCluster.Count, 0, "clusterResult2 should have clustered objects");
+
+            // Check that all objects from clusterResult1 exist in clusterResult2 with the same cluster ID
+            foreach (var kvp in clusterResult1.ObjectToCluster)
+            {
+                var objectId = kvp.Key;
+                var cluster1 = kvp.Value;
+
+                Assert.IsTrue(clusterResult2.ObjectToCluster.ContainsKey(objectId),
+                    $"Object {objectId} from clusterResult1 is missing in clusterResult2");
+
+                var cluster2 = clusterResult2.ObjectToCluster[objectId];
+                Assert.AreEqual(cluster1, cluster2,
+                    $"Object {objectId} has different cluster IDs: {cluster1} in clusterResult1 vs {cluster2} in clusterResult2");
+            }
+
+            // Check that all local ID mappings from clusterResult1 exist in clusterResult2 with the same value
+            foreach (var kvp in clusterResult1.ObjectToLocalID)
+            {
+                var objectId = kvp.Key;
+                var localId1 = kvp.Value;
+
+                Assert.IsTrue(clusterResult2.ObjectToLocalID.ContainsKey(objectId),
+                    $"Object {objectId} local ID mapping from clusterResult1 is missing in clusterResult2");
+
+                var localId2 = clusterResult2.ObjectToLocalID[objectId];
+                Assert.AreEqual(localId1, localId2,
+                    $"Object {objectId} has different local IDs: {localId1} in clusterResult1 vs {localId2} in clusterResult2");
+            }
+
+            // Verify that clusterResult2 has more mappings due to the additional prefab
+            Assert.Greater(clusterResult2.ObjectToCluster.Count, clusterResult1.ObjectToCluster.Count,
+                "clusterResult2 should have more clustered objects due to the additional prefab");
+            Assert.Greater(clusterResult2.ObjectToLocalID.Count, clusterResult1.ObjectToLocalID.Count,
+                "clusterResult2 should have more local ID mappings due to the additional prefab");
+        }
+
+        [Test]
+        public void ClusterBuildLayout_Produces_ExpectedResults([Values(true, false)] bool useContentIds)
+        {
+            // Create concrete test data for ClusterBuildLayout.Run parameters
+            var buildParams = GetBuildParameters();
+            var depData = BuildBundleDepData(k_CubePath, k_CubePath2);
+            var writeData = new BundleWriteData();
+            var identifier = new PrefabPackedIdentifiers();
+            var clusterResult = new ClusterOutput();
+
+            var result = ClusterBuildLayout.Run(buildParams, depData, writeData, identifier, clusterResult, true);
+
+            Assert.AreEqual(ReturnCode.Success, result);
+            // Verify that clustering produced expected outputs
+            Assert.AreEqual(writeData.WriteOperations.Count, 3, "Expected 3 clusters");
+
+            for (int i = 0; i < writeData.WriteOperations.Count; i++)
+            {
+                var writeOp1 = writeData.WriteOperations[i];
+                if (writeOp1.Command == null || writeOp1.Command.serializeObjects == null)
+                    continue;
+
+                var serializedObjects1 = new HashSet<ObjectIdentifier>(
+                    writeOp1.Command.serializeObjects.Select(s => s.serializationObject));
+
+                for (int j = i + 1; j < writeData.WriteOperations.Count; j++)
+                {
+                    var writeOp2 = writeData.WriteOperations[j];
+                    if (writeOp2.Command == null || writeOp2.Command.serializeObjects == null)
+                        continue;
+
+                    foreach (var serializationInfo in writeOp2.Command.serializeObjects)
+                    {
+                        Assert.IsFalse(serializedObjects1.Contains(serializationInfo.serializationObject),
+                            $"WriteOperation {i} (fileName: {writeOp1.Command.fileName}) and WriteOperation {j} " +
+                            $"(fileName: {writeOp2.Command.fileName}) both contain the same serialized object: {serializationInfo.serializationObject}");
+                    }
+                }
+            }
+
+
+        }
+#endif
 
         ScriptableBuildPipeline.Settings LoadSettingsFromFile()
         {

@@ -2,6 +2,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Text;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Injector;
 using UnityEditor.Build.Pipeline.Interfaces;
@@ -40,8 +42,20 @@ namespace UnityEditor.Build.Pipeline.Tasks
             dictionary.Add(key, value);
         }
 
+        public ClusterBuildLayout()
+        {
+            m_useContentIdsForClusterName = false;
+        }
+
+        public ClusterBuildLayout(bool useContentIdsForClusterName)
+        {
+            m_useContentIdsForClusterName = useContentIdsForClusterName;
+        }
+
+        bool m_useContentIdsForClusterName;
+
         /// <inheritdoc />
-        public int Version { get { return 1; } }
+        public int Version { get { return 2; } }
 
 #pragma warning disable 649
         [InjectContext(ContextUsage.In)]
@@ -66,81 +80,104 @@ namespace UnityEditor.Build.Pipeline.Tasks
         /// <inheritdoc />
         public ReturnCode Run()
         {
-            // Create usage maps
-            Dictionary<ObjectIdentifier, HashSet<GUID>> objectToAssets = new Dictionary<ObjectIdentifier, HashSet<GUID>>();
-            foreach (var pair in m_DependencyData.AssetInfo)
+            return Run(m_Parameters, m_DependencyData, m_WriteData, m_PackingMethod, m_ClusterResult, m_useContentIdsForClusterName);
+        }
+
+        internal static ReturnCode Run(IBundleBuildParameters buildParams, IDependencyData dependencyData, IBundleWriteData writeData, IDeterministicIdentifiers packingMethod, IClusterOutput clusterResult, bool useContentIdsForClusterName)
+        {
+            // Create mapping of objects to all assets that depend on them
+            var objectToAssets = new Dictionary<ObjectIdentifier, HashSet<GUID>>();
+            foreach (var pair in dependencyData.AssetInfo)
             {
                 ExtractAssets(objectToAssets, pair.Key, pair.Value.includedObjects);
                 ExtractAssets(objectToAssets, pair.Key, pair.Value.referencedObjects);
             }
-            foreach (var pair in m_DependencyData.SceneInfo)
+            foreach (var pair in dependencyData.SceneInfo)
             {
                 ExtractAssets(objectToAssets, pair.Key, pair.Value.referencedObjects);
             }
 
-            // Using usage maps, create clusters
-            Dictionary<Hash128, HashSet<ObjectIdentifier>> clusterToObjects = new Dictionary<Hash128, HashSet<ObjectIdentifier>>();
+            //create clusters of object ids based on having the same assets referencing them
+            //the cluster ids here are created from the asset ids
+            var tempClusterToObjects = new Dictionary<Hash128, HashSet<ObjectIdentifier>>();
             foreach (var pair in objectToAssets)
             {
                 HashSet<GUID> assets = pair.Value;
                 Hash128 cluster = HashingMethods.Calculate(assets.OrderBy(x => x)).ToHash128();
-                GetOrAdd(clusterToObjects, cluster, out var objectIds);
+                GetOrAdd(tempClusterToObjects, cluster, out var objectIds);
                 objectIds.Add(pair.Key);
-                m_ClusterResult.ObjectToCluster.Add(pair.Key, cluster);
+            }
+
+            //create the final clusters with names based on the ids of the objects contained
+            var finalClusterToObjects = new Dictionary<Hash128, List<ObjectIdentifier>>();
+            foreach (var pair in tempClusterToObjects)
+            {
+                var objectsInCluster = pair.Value.ToList();
+#if UNITY_6000_0_OR_NEWER
+                objectsInCluster.Sort();
+#else
+                objectsInCluster.Sort((a, b) => a.GetHashCode().CompareTo(b.GetHashCode()));
+#endif
+                var clusterId = useContentIdsForClusterName ? ComputeClusterId(objectsInCluster) : pair.Key;
+                finalClusterToObjects.Add(clusterId, objectsInCluster);
+                foreach (var o in objectsInCluster)
+                    clusterResult.ObjectToCluster.TryAdd(o, clusterId);
             }
 
             // From clusters, create the final write data
             BuildUsageTagSet usageSet = new BuildUsageTagSet();
-            foreach (var pair in m_DependencyData.AssetUsage)
+            foreach (var pair in dependencyData.AssetUsage)
                 usageSet.UnionWith(pair.Value);
-            foreach (var pair in m_DependencyData.SceneUsage)
+            foreach (var pair in dependencyData.SceneUsage)
                 usageSet.UnionWith(pair.Value);
 
             var builtInResourcesGUID = new GUID("0000000000000000e000000000000000");
 
+
             // Generates Content Archive Files from Clusters
-            foreach (var pair in clusterToObjects)
+            foreach (var pair in finalClusterToObjects)
             {
-                var cluster = pair.Key.ToString();
-                m_WriteData.FileToObjects.Add(cluster, pair.Value.ToList());
+                var objectsInCluster = pair.Value;
+                var clusterName = pair.Key.ToString();
+                writeData.FileToObjects.Add(clusterName, objectsInCluster);
 #pragma warning disable CS0618 // Type or member is obsolete
                 var op = new RawWriteOperation();
 #pragma warning restore CS0618 // Type or member is obsolete
-                m_WriteData.WriteOperations.Add(op);
+                writeData.WriteOperations.Add(op);
                 op.ReferenceMap = new BuildReferenceMap();
                 op.Command = new WriteCommand();
-                op.Command.fileName = cluster;
-                op.Command.internalName = cluster;
+                op.Command.fileName = clusterName;
+                op.Command.internalName = clusterName;
                 op.Command.serializeObjects = new List<SerializationInfo>();
-                foreach (var objectId in pair.Value)
+                foreach (var objectId in objectsInCluster)
                 {
-                    var lfid = m_PackingMethod.SerializationIndexFromObjectIdentifier(objectId);
+                    var lfid = packingMethod.SerializationIndexFromObjectIdentifier(objectId);
                     op.Command.serializeObjects.Add(new SerializationInfo { serializationObject = objectId, serializationIndex = lfid });
-                    op.ReferenceMap.AddMapping(cluster, lfid, objectId);
-                    m_ClusterResult.ObjectToLocalID.Add(objectId, lfid);
+                    op.ReferenceMap.AddMapping(clusterName, lfid, objectId);
+                    clusterResult.ObjectToLocalID.Add(objectId, lfid);
                 }
-                var deps = ContentBuildInterface.GetPlayerDependenciesForObjects(pair.Value.ToArray(), m_Parameters.Target, m_Parameters.ScriptInfo, DependencyType.ValidReferences);
+                var deps = ContentBuildInterface.GetPlayerDependenciesForObjects(objectsInCluster.ToArray(), buildParams.Target, buildParams.ScriptInfo, DependencyType.ValidReferences);
                 foreach (var d in deps)
                 {
                     if (d.m_GUID != builtInResourcesGUID)
                     {
-                        var depCluster = m_ClusterResult.ObjectToCluster[d].ToString();
-                        op.ReferenceMap.AddMapping(depCluster, m_PackingMethod.SerializationIndexFromObjectIdentifier(d), d);
+                        var depCluster = clusterResult.ObjectToCluster[d].ToString();
+                        op.ReferenceMap.AddMapping(depCluster, packingMethod.SerializationIndexFromObjectIdentifier(d), d);
                     }
                 }
 
                 op.UsageSet = usageSet;
 
-                m_WriteData.FileToBundle.Add(cluster, cluster);
+                writeData.FileToBundle.Add(clusterName, clusterName);
             }
 
             // Generates Content Scene Archive Files from Scene Input
-            foreach (var pair in m_DependencyData.SceneInfo)
+            foreach (var pair in dependencyData.SceneInfo)
             {
 #pragma warning disable CS0618 // Type or member is obsolete
                 var op = new SceneRawWriteOperation();
 #pragma warning restore CS0618 // Type or member is obsolete
-                m_WriteData.WriteOperations.Add(op);
+                writeData.WriteOperations.Add(op);
                 op.ReferenceMap = new BuildReferenceMap();
                 op.Command = new WriteCommand();
                 op.Command.fileName = pair.Key.ToString();
@@ -152,18 +189,38 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 {
                     if (d.m_GUID != builtInResourcesGUID)
                     {
-                        var depCluster = m_ClusterResult.ObjectToCluster[d].ToString();
-                        op.ReferenceMap.AddMapping(depCluster, m_PackingMethod.SerializationIndexFromObjectIdentifier(d), d);
+                        var depCluster = clusterResult.ObjectToCluster[d].ToString();
+                        op.ReferenceMap.AddMapping(depCluster, packingMethod.SerializationIndexFromObjectIdentifier(d), d);
                     }
                 }
 
                 op.UsageSet = usageSet;
                 op.Scene = pair.Value.scene;
 
-                m_WriteData.FileToBundle.Add(pair.Key.ToString(), pair.Key.ToString());
+                writeData.FileToBundle.Add(pair.Key.ToString(), pair.Key.ToString());
             }
-
             return ReturnCode.Success;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        struct ObjectIdBufferData
+        {
+            public GUID guid;
+            public long lfid;
+            public FileType fileType;
+            public Hash128 pathHash;
+        }
+
+        internal static Hash128 ComputeClusterId(List<ObjectIdentifier> objIds)
+        {
+            //since ObjectIdentifer is not blittable, copy to a struct that is and compute the hash for the entire buffer
+            var seqObjectIdBuffer = new ObjectIdBufferData[objIds.Count];
+            for (int i = 0; i < seqObjectIdBuffer.Length; i++)
+            {
+                var pathHash = !string.IsNullOrEmpty(objIds[i].filePath) ? Hash128.Compute(objIds[i].filePath) : default;
+                seqObjectIdBuffer[i] = new ObjectIdBufferData { guid = objIds[i].guid, fileType = objIds[i].fileType, lfid = objIds[i].localIdentifierInFile, pathHash = pathHash };
+            }
+            return Hash128.Compute(seqObjectIdBuffer);
         }
 
         private static void ExtractAssets(Dictionary<ObjectIdentifier, HashSet<GUID>> objectToAssets, GUID asset, IEnumerable<ObjectIdentifier> objectIds)

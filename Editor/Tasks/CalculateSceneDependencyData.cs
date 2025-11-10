@@ -15,7 +15,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
     public class CalculateSceneDependencyData : IBuildTask
     {
         /// <inheritdoc />
-        public int Version { get { return 6; } }
+        public int Version { get { return 7; } }
 
 #pragma warning disable 649
         [InjectContext(ContextUsage.In)]

@@ -156,7 +156,7 @@ namespace UnityEditor.Build.Pipeline.Tests.ContentLoad
             parameters.BundleCompression = UnityEngine.BuildCompression.Uncompressed;
             parameters.NonRecursiveDependencies = false;
             parameters.WriteLinkXML = true;
-            var taskList = DefaultBuildTasks.ContentFileCompatible();
+            var taskList = DefaultBuildTasks.ContentFileCompatible(true);
             ClusterOutput cOutput = new ClusterOutput();
             IBundleBuildResults results;
             ContentPipeline.BuildAssetBundles(parameters, content, out results, taskList,

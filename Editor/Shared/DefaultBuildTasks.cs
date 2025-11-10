@@ -121,7 +121,15 @@ namespace UnityEditor.Build.Pipeline
         }
 
 #if UNITY_2022_2_OR_NEWER
+
+        //useContentIdsForClusterName is false by default to allow for opt in from the entities package that uses this method
+        //also, we're doing 2 seperate APIs because adding a default parameter to an existing API gets flagged as a breaking change
         public static IList<IBuildTask> ContentFileCompatible()
+        {
+            return ContentFileCompatible(false);
+        }
+
+        public static IList<IBuildTask> ContentFileCompatible(bool useContentIdsForClusterName)
         {
             var buildTasks = new List<IBuildTask>();
 
@@ -142,7 +150,7 @@ namespace UnityEditor.Build.Pipeline
             buildTasks.Add(new PostDependencyCallback());
 
             // Packing
-            buildTasks.Add(new ClusterBuildLayout());
+            buildTasks.Add(new ClusterBuildLayout(useContentIdsForClusterName));
             buildTasks.Add(new PostPackingCallback());
 
             // Writing

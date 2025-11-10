@@ -79,6 +79,27 @@ namespace UnityEditor.Build.Pipeline.Utilities
         }
 
 #if NONRECURSIVE_DEPENDENCY_DATA
+        public static bool IsPackedSprite(IEnumerable<ObjectIdentifier> includedObjects, ObjectIdentifier sourceTexture, BuildTarget target, TypeDB typeDB)
+        {
+            if (EditorSettings.spritePackerMode == SpritePackerMode.Disabled)
+                return false;
+
+            foreach (var obj in includedObjects)
+            {
+                if (BuildCacheUtility.GetMainTypeForObject(obj) != typeof(UnityEngine.Sprite))
+                    continue;
+
+                foreach (var r in ContentBuildInterface.GetPlayerDependenciesForObject(obj, target, typeDB, DependencyType.ValidReferences))
+                {
+                    // packed sprites never reference the source texture
+                    if (r == sourceTexture)
+                        return false;
+                }
+            }
+
+            return true;
+        }
+
         public static ObjectIdentifier[] FilterReferencedObjectIDs(GUID asset, ObjectIdentifier[] references, BuildTarget target, TypeDB typeDB, HashSet<GUID> dependencies)
         {
             // Expectation: references is populated with DependencyType.ValidReferences only for the given asset
@@ -99,9 +120,17 @@ namespace UnityEditor.Build.Pipeline.Utilities
             // can find something that can be appended, otherwise the necessary data will fail to load correctly in all cases. (EX: prefab A has reference to component on prefab B)
             foreach (var dependency in encounteredDependencies)
             {
-                // For each dependency, add just the main representation as a reference
                 var representations = ContentBuildInterface.GetPlayerAssetRepresentations(dependency.guid, target);
-                collectedImmediateReferences.Add(representations.First());
+
+                // If a sprite is packed we shouldn't add the main representation, as it's the Texture2D, but it uses the texture in the SpriteAtlas instead
+                if (BuildCacheUtility.GetMainTypeForObject(dependency) != typeof(UnityEngine.Sprite)
+                    || !IsPackedSprite(representations, representations[0], target, typeDB))
+                {
+                    // For each dependency, add just the main representation as a reference
+                    collectedImmediateReferences.Add(representations.First());
+                }
+
+
             }
             collectedImmediateReferences.UnionWith(encounteredDependencies);
             return collectedImmediateReferences.ToArray();
