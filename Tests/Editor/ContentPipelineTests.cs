@@ -76,6 +76,10 @@ namespace UnityEditor.Build.Pipeline.Tests
             public void ShowInternalPlatformBuildOptions()
             {
             }
+            public bool ShouldShowDiagnosticsDataOption()
+            {
+                return true;
+            }
 
             public bool EnabledBuildButton()
             {
