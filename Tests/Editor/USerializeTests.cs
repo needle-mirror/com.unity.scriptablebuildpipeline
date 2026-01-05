@@ -576,8 +576,19 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize.Tests
             buildUsageTagGlobal.m_FogModesUsed = fogModesUsed;
             buildUsageTagGlobal.m_ForceInstancingStrip = forceInstancingStrip;
             buildUsageTagGlobal.m_ForceInstancingKeep = forceInstancingKeep;
-            buildUsageTagGlobal.m_ShadowMasksUsed = shadowMasksUsed;
-            buildUsageTagGlobal.m_SubtractiveUsed = subtractiveUsed;
+
+            FieldInfo subtractiveUsedField = typeof(BuildUsageTagGlobal).GetField("m_SubtractiveUsed", BindingFlags.NonPublic | BindingFlags.Instance);
+            FieldInfo shadowMaskUsedField = typeof(BuildUsageTagGlobal).GetField("m_ShadowMasksUsed", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            //This checks to see if we're using the older version of BuildUsageTagGlobal. If this is null, we can assume we're using the refactor
+            if (subtractiveUsedField == null)
+                subtractiveUsedField = typeof(BuildUsageTagGlobal).GetField("m_HasBakedSubtractiveLight", BindingFlags.NonPublic | BindingFlags.Instance);
+            if(shadowMaskUsedField == null)
+                shadowMaskUsedField = typeof(BuildUsageTagGlobal).GetField("m_HasBakedShadowMaskLight", BindingFlags.NonPublic | BindingFlags.Instance);
+
+            subtractiveUsedField.SetValue(buildUsageTagGlobal, subtractiveUsed);
+            shadowMaskUsedField.SetValue(buildUsageTagGlobal, shadowMasksUsed);
+
 #if UNITY_2020_1_OR_NEWER
             buildUsageTagGlobal.m_HybridRendererPackageUsed = hybridRendererPackageUsed;
 #endif
