@@ -4,6 +4,9 @@ All notable changes to this package will be documented in this file.
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
+## [2.5.1] - 2026-01-05
+- Upgrade references from UnityEditor.GUID to UnityEngine.GUID on Unity 6.4+.
+
 ## [2.5.0] - 2025-11-10
 - Changed calculation of cluster names to use object ids that are in the cluster vs ids of assets that depend on the cluster.  This will reduce the number of new content archives that get build for a content update.
 

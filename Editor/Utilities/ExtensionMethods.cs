@@ -5,6 +5,9 @@ using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Player;
 
+using UnityEngine;
+using UnityEditor;
+
 namespace UnityEditor.Build.Pipeline.Utilities
 {
     [Serializable]

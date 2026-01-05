@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
+using UnityEditor;
 using UnityEditor.Build.Pipeline.Interfaces;
 
 namespace UnityEditor.Build.Pipeline

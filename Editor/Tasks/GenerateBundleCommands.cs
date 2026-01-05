@@ -8,6 +8,7 @@ using UnityEditor.Build.Pipeline.Utilities;
 using UnityEditor.Build.Pipeline.WriteTypes;
 using UnityEditor.Build.Utilities;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace UnityEditor.Build.Pipeline.Tasks
 {
@@ -79,16 +80,23 @@ namespace UnityEditor.Build.Pipeline.Tasks
             return ReturnCode.Success;
         }
 
-        internal static WriteCommand CreateWriteCommand(string internalName, List<ObjectIdentifier> objects, IDeterministicIdentifiers packingMethod)
+        internal static WriteCommand CreateWriteCommand(string internalName, List<ObjectIdentifier> objects, IDeterministicIdentifiers packingMethod, out Hash128 renderpipelineHash)
         {
             var command = new WriteCommand();
             command.internalName = internalName;
             command.fileName = Path.GetFileName(internalName);
 
+            renderpipelineHash = default;
+            var dependentHash = GetRenderPipelineHash();
+
             command.serializeObjects = new List<SerializationInfo>();
             var consumedIds = new Dictionary<long, ObjectIdentifier>();
             foreach (var obj in objects)
             {
+                if (BuildCacheUtility.GetMainTypeForObject(obj) == typeof(Shader))
+                {
+                    renderpipelineHash = dependentHash;
+                }
                 var serializationInfo = new SerializationInfo
                 {
                     serializationObject = obj,
@@ -134,9 +142,21 @@ You can work around this issue by changing the 'FileID Generator Seed' found in 
             return 0;
         }
 
+        static Hash128 GetRenderPipelineHash()
+        {
+            var renderAsset = GraphicsSettings.defaultRenderPipeline;
+            if (renderAsset == null)
+                return default;
+            if (!AssetDatabase.TryGetGUIDAndLocalFileIdentifier(renderAsset, out var guidStr, out long lfid))
+                return default;
+            if (!GUID.TryParse(guidStr, out var guid))
+                return default;
+            return AssetDatabase.GetAssetDependencyHash(guid);
+        }
+
         void CreateAssetBundleCommand(string bundleName, string internalName, List<GUID> assets)
         {
-            var command = CreateWriteCommand(internalName, m_WriteData.FileToObjects[internalName], m_PackingMethod);
+            var command = CreateWriteCommand(internalName, m_WriteData.FileToObjects[internalName], m_PackingMethod, out Hash128 renderPipelineHash);
             var usageSet = new BuildUsageTagSet();
             var referenceMap = new BuildReferenceMap();
             var dependencyHashes = new List<Hash128>();
@@ -153,6 +173,11 @@ You can work around this issue by changing the 'FileID Generator Seed' found in 
                 assetInfo.address = m_BuildContent.Addresses[asset];
                 bundleAssets.Add(assetInfo);
             }
+
+            // add the pipeline for the render pipeline if any shaders are present
+            if (renderPipelineHash != default)
+                dependencyHashes.Add(renderPipelineHash);
+
             bundleAssets.Sort(AssetLoadInfoCompare);
 
 
@@ -225,7 +250,7 @@ You can work around this issue by changing the 'FileID Generator Seed' found in 
         void CreateSceneBundleCommand(string bundleName, string internalName, GUID scene, List<GUID> bundledScenes, Dictionary<GUID, string> assetToMainFile)
         {
             var fileObjects = GetFileObjectsForScene(internalName);
-            var command = CreateWriteCommand(internalName, fileObjects, new LinearPackedIdentifiers(3)); // Start at 3: PreloadData = 1, AssetBundle = 2
+            var command = CreateWriteCommand(internalName, fileObjects, new LinearPackedIdentifiers(3), out Hash128 renderpipelineHash); // Start at 3: PreloadData = 1, AssetBundle = 2
             var usageSet = new BuildUsageTagSet();
             var referenceMap = new BuildReferenceMap();
             var preloadObjects = new List<ObjectIdentifier>();
@@ -273,7 +298,7 @@ You can work around this issue by changing the 'FileID Generator Seed' found in 
         void CreateSceneDataCommand(string internalName, GUID scene)
         {
             var fileObjects = GetFileObjectsForScene(internalName);
-            var command = CreateWriteCommand(internalName, fileObjects, new LinearPackedIdentifiers(2)); // Start at 3: PreloadData = 1
+            var command = CreateWriteCommand(internalName, fileObjects, new LinearPackedIdentifiers(2), out Hash128 renderpipelineHash); // Start at 3: PreloadData = 1
             var usageSet = new BuildUsageTagSet();
             var referenceMap = new BuildReferenceMap();
             var preloadObjects = new List<ObjectIdentifier>();

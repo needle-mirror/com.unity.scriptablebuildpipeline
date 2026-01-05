@@ -201,7 +201,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             objectIds.Add(MakeObjectId(new GUID("066ce95d52fe15041854096a2145195e"), 3867712242362628071, FileType.MetaAssetType, ""));
             objectIds.Add(MakeObjectId(new GUID("066ce95d52fe15041854096a2145195e"), 7498449973661844796, FileType.MetaAssetType, ""));
 
-            Assert.Throws(typeof(BuildFailedException), () => GenerateBundleCommands.CreateWriteCommand("InternalName", objectIds, new PrefabPackedIdentifiers()));
+            Assert.Throws(typeof(BuildFailedException), () => GenerateBundleCommands.CreateWriteCommand("InternalName", objectIds, new PrefabPackedIdentifiers(), out Hash128 renderpipelineHash));
 
             ResetSBP(prevV2Hasher, prevSeed, prevHeader);
         }

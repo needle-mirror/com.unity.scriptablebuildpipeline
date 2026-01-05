@@ -1,5 +1,8 @@
 using UnityEditor.Build.Content;
 
+using UnityEngine;
+using UnityEditor;
+
 namespace UnityEditor.Build.Pipeline.Tests
 {
     internal static class ReflectionExtentions

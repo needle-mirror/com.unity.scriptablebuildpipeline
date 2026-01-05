@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using UnityEditor.Build.Pipeline.Interfaces;
 
+using UnityEngine;
+using UnityEditor;
+
 namespace UnityEditor.Build.Pipeline
 {
     /// <summary>

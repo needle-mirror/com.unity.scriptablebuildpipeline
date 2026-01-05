@@ -12,6 +12,9 @@ using UnityEditor.Build.Pipeline.Tests;
 using UnityEditor.Build.Pipeline.Utilities;
 using UnityEngine;
 
+using UnityEngine;
+using UnityEditor;
+
 /// <summary>
 /// Test fixture for Archive and Compress Tests
 /// </summary>
@@ -148,7 +151,7 @@ public class ArchiveAndCompressTestFixture
         input.InternalFilenameToWriteResults = new Dictionary<string, WriteResult>();
         input.BundleNameToAdditionalFiles = new Dictionary<string, List<ResourceFile>>();
         input.InternalFilenameToBundleName = new Dictionary<string, string>();
-        input.AssetToFilesDependencies = new Dictionary<UnityEditor.GUID, List<string>>();
+        input.AssetToFilesDependencies = new Dictionary<GUID, List<string>>();
         input.InternalFilenameToWriteMetaData = new Dictionary<string, SerializedFileMetaData>();
         input.BuildCache = null;
         input.Threaded = false;

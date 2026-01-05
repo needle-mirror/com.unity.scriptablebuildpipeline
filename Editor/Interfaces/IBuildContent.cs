@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine;
+using UnityEditor;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Tasks;
 

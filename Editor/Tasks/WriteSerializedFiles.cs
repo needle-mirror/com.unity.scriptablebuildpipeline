@@ -6,6 +6,7 @@ using UnityEditor.Build.Pipeline.Injector;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Utilities;
 using UnityEngine;
+using UnityEngine.Rendering;
 using static UnityEditor.Build.Pipeline.Utilities.TaskCachingUtility;
 
 namespace UnityEditor.Build.Pipeline.Tasks
@@ -57,10 +58,27 @@ namespace UnityEditor.Build.Pipeline.Tasks
         {
             using (m_Log.ScopedStep(LogLevel.Verbose, "GetCacheEntry", operation.Command.fileName))
             {
+                //this section is to address global changes in URP that are not modifying shaders, which cause the cache to think the previous entries are still valid.
+                Hash128 renderPipelineHash = default;
+                var firstShader = operation.Command.serializeObjects?.FirstOrDefault(o => !o.serializationObject.guid.Empty() && AssetDatabase.GetMainAssetTypeFromGUID(o.serializationObject.guid) == typeof(Shader));
+                if (firstShader != null)
+                {
+                    var renderAsset = GraphicsSettings.defaultRenderPipeline;
+                    if (renderAsset != null)
+                    {
+                        if (AssetDatabase.TryGetGUIDAndLocalFileIdentifier(renderAsset, out var guidStr, out long lfid))
+                        {
+                            if (GUID.TryParse(guidStr, out var guid))
+                            {
+                                renderPipelineHash = AssetDatabase.GetAssetDependencyHash(guid);
+                            }
+                        }
+                    }
+                }
                 var entry = new CacheEntry();
                 entry.Type = CacheEntry.EntryType.Data;
                 entry.Guid = HashingMethods.Calculate("WriteSerializedFiles", operation.Command.fileName).ToGUID();
-                entry.Hash = HashingMethods.Calculate(Version, operation.GetHash128(m_Log), settings.GetHash128(), globalUsage, onlySaveFirstSerializedObject, GetPlayerSettingsHash128(settings.target)).ToHash128();
+                entry.Hash = HashingMethods.Calculate(Version, operation.GetHash128(m_Log), settings.GetHash128(), globalUsage, onlySaveFirstSerializedObject, GetPlayerSettingsHash128(settings.target), renderPipelineHash).ToHash128();
                 entry.Version = Version;
                 return entry;
             }

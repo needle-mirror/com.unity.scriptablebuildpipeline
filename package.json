@@ -1,7 +1,7 @@
 {
   "name": "com.unity.scriptablebuildpipeline",
   "displayName": "Scriptable Build Pipeline",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "unity": "2023.1",
   "description": "The Scriptable Build Pipeline moves the asset bundle build pipeline to C#.  Use the pre-defined build flows, or create your own using the divided up APIs.  This system improves build time, fixes incremental build, and provides greater flexibility.",
   "keywords": [
@@ -17,15 +17,15 @@
     "com.unity.modules.assetbundle": "1.0.0"
   },
   "_upm": {
-    "changelog": "- Changed calculation of cluster names to use object ids that are in the cluster vs ids of assets that depend on the cluster.  This will reduce the number of new content archives that get build for a content update."
+    "changelog": "- Upgrade references from UnityEditor.GUID to UnityEngine.GUID on Unity 6.4+."
   },
   "upmCi": {
-    "footprint": "0eef10f4b5fbe935b3a4465ac13279d0fd5e96f2"
+    "footprint": "b3c2a97306401d74becb9f466847ca50baea4149"
   },
   "documentationUrl": "https://docs.unity3d.com/Packages/com.unity.scriptablebuildpipeline@2.5/manual/index.html",
   "repository": {
     "url": "https://github.cds.internal.unity3d.com/unity/Addressables.git",
     "type": "git",
-    "revision": "13949f62b7d844afbe8a9cb15b9625e6ecd5bb39"
+    "revision": "8bb2b30ea83850056dcab5abd7644105ca759618"
   }
 }
