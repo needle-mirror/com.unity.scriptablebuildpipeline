@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEditor;
 using UnityEditor.Build.Pipeline.Interfaces;
+using UnityEngine;
 
 namespace UnityEditor.Build.Pipeline
 {

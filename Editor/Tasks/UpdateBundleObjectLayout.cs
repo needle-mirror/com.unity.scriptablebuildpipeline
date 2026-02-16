@@ -8,6 +8,7 @@ using UnityEditor.Build.Pipeline.Injector;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Utilities;
 using UnityEditor.Build.Utilities;
+using UnityEngine;
 
 namespace UnityEditor.Build.Pipeline.Tasks
 {

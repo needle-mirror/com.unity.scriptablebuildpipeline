@@ -32,7 +32,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
     /// </summary>
     public class CalculateAssetDependencyData : IBuildTask
     {
-        internal const int kVersion = 7;
+        internal const int kVersion = 8;
         /// <inheritdoc />
         public int Version { get { return kVersion; } }
 
@@ -209,7 +209,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
         }
 
         // expand dependencies to explicit assets, results in the same output as recursive dependency calculation
-        private void ExpandReferences(AssetOutput assetOutput, Dictionary<ObjectIdentifier, List<ObjectIdentifier>> objectDependencyMap)
+        internal static void ExpandReferences(AssetOutput assetOutput, Dictionary<ObjectIdentifier, List<ObjectIdentifier>> objectDependencyMap)
         {
             HashSet<ObjectIdentifier> processed = new HashSet<ObjectIdentifier>();
             HashSet<ObjectIdentifier> referencedObjects = new HashSet<ObjectIdentifier>(assetOutput.assetInfo.referencedObjects);
@@ -568,7 +568,8 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
                     // Without this check, if the asset references a packed sprite its source texture will also be included as reference.
                     // This conflicts with the StripUnusedSpriteSource build step which removes any unreferenced source textures.
-                    if (packedSprites != null && !packedSprites.Contains(obj.guid))
+                    // Note: this is only needed with NonRecursive, as otherwise the recursion would reach a visible representation
+                    if (input.NonRecursiveDependencies && packedSprites != null && !packedSprites.Contains(obj.guid))
                         mainRepresentationNeeded.Add(obj.guid);
                 }
                 // looking for implicit assets we have not visited yet
@@ -644,24 +645,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             {
                 // For each dependency, add just the main representation as a reference
                 var representations = ContentBuildInterface.GetPlayerAssetRepresentations(dependency, input.Target);
-                if (!encounteredExplicitAssetDependencies.Contains(representations[0]))
-                {
-                    encounteredExplicitAssetDependencies.Add(representations[0]);
-
-                    // Ensure we have somewhere to add this dependency
-                    if (assetResult.objectDependencyInfo == null)
-                        assetResult.objectDependencyInfo = new List<ObjectDependencyInfo>();
-                    if (assetResult.objectDependencyInfo.Count == 0)
-                    {
-                        assetResult.objectDependencyInfo.Add(new ObjectDependencyInfo()
-                        {
-                            Object = includedObjects[0],
-                            Dependencies = new List<ObjectIdentifier>()
-                        });
-                    }
-
-                    assetResult.objectDependencyInfo[0].Dependencies.Add(representations[0]);
-                }
+                encounteredExplicitAssetDependencies.Add(representations[0]);
             }
             collectedImmediateReferences.UnionWith(encounteredExplicitAssetDependencies);
             return collectedImmediateReferences.ToArray();

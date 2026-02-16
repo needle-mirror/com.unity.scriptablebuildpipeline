@@ -18,6 +18,7 @@ using UnityEditor.U2D;
 using UnityEngine;
 using UnityEngine.TestTools;
 using UnityEngine.U2D;
+using static UnityEditor.Build.Pipeline.Tasks.CalculateAssetDependencyData;
 
 namespace UnityEditor.Build.Pipeline.Tests
 {
@@ -118,6 +119,25 @@ namespace UnityEditor.Build.Pipeline.Tests
             IBuildContext context = new BuildContext();
             ContextInjector.Extract(context, task);
             extendedAssetData = (TestExtendedAssetData)context.GetContextObject<IBuildExtendedAssetData>();
+        }
+
+        // Mimic the way the Task treats recursive dependencies
+        static ReturnCode RunAndExpand(CalculateAssetDependencyData.TaskInput input, out CalculateAssetDependencyData.TaskOutput output)
+        {
+            var result = CalculateAssetDependencyData.RunInternal(input, out output);
+            if (input.NonRecursiveDependencies || result != ReturnCode.Success)
+                return result;
+
+            var depsMap = new Dictionary<ObjectIdentifier, List<ObjectIdentifier>>();
+            foreach (AssetOutput o in output.AssetResults)
+            {
+                foreach (var info in o.objectDependencyInfo)
+                    depsMap[info.Object] = info.Dependencies;
+            }
+            foreach (AssetOutput o in output.AssetResults)
+                CalculateAssetDependencyData.ExpandReferences(o, depsMap);
+
+            return result;
         }
 
         /// <summary>
@@ -223,10 +243,26 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
 
         /// <summary>
+        /// RecursiveMode
+        /// </summary>
+        public enum RecursiveMode
+        {
+            /// <summary>
+            /// NonRecursive
+            /// </summary>
+            NonRecursive,
+            /// <summary>
+            /// Recursive
+            /// </summary>
+            Recursive,
+        }
+
+        /// <summary>
         /// WhenAssetHasNoDependencies
         /// </summary>
+        /// <param name="rm">RecursiveMode</param>
         [Test]
-        public void WhenAssetHasNoDependencies()
+        public void WhenAssetHasNoDependencies([Values] RecursiveMode rm)
         {
             // Create an asset
             string assetPath = Path.Combine(kTestAssetFolder, "myPrefab.prefab");
@@ -234,8 +270,9 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             CalculateAssetDependencyData.TaskInput input = CreateDefaultInput();
             input.Assets = new List<GUID>() { guid };
+            input.NonRecursiveDependencies = (rm == RecursiveMode.NonRecursive);
 
-            CalculateAssetDependencyData.RunInternal(input, out CalculateAssetDependencyData.TaskOutput output);
+            RunAndExpand(input, out CalculateAssetDependencyData.TaskOutput output);
 
             Assert.AreEqual(1, output.AssetResults.Length);
             Assert.AreEqual(guid, output.AssetResults[0].asset);
@@ -593,8 +630,9 @@ namespace UnityEditor.Build.Pipeline.Tests
         /// <summary>
         /// WhenExplicitSpriteAndAtlas_AtlasOnlyReferencesSprites
         /// </summary>
+        /// <param name="rm">RecursiveMode</param>
         [Test]
-        public void WhenExplicitSpriteAndAtlas_AtlasOnlyReferencesSprites()
+        public void WhenExplicitSpriteAndAtlas_AtlasOnlyReferencesSprites([Values] RecursiveMode rm)
         {
             var sprite1 = AssetDatabase.LoadAssetAtPath<Sprite>(kSpriteTexture1Asset);
             var sprite2 = AssetDatabase.LoadAssetAtPath<Sprite>(kSpriteTexture2Asset);
@@ -616,8 +654,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             CalculateAssetDependencyData.TaskInput input = CreateDefaultInput();
             SpriteAtlasUtility.PackAllAtlases(input.Target);
             input.Assets = new List<GUID>() { spriteAtlasGuid, sprite1Guid, sprite2Guid };
+            input.NonRecursiveDependencies = (rm == RecursiveMode.NonRecursive);
 
-            CalculateAssetDependencyData.RunInternal(input, out CalculateAssetDependencyData.TaskOutput output);
+            RunAndExpand(input, out CalculateAssetDependencyData.TaskOutput output);
             List<ObjectIdentifier> referencedObjs = output.AssetResults[0].assetInfo.referencedObjects;
             Assert.AreEqual(3, referencedObjs.Count);
 
@@ -645,8 +684,9 @@ namespace UnityEditor.Build.Pipeline.Tests
         /// <summary>
         /// WhenExplicitSpritesAndImplicitAtlas_SpritesOnlyReferenceSprites
         /// </summary>
+        /// <param name="rm">RecursiveMode</param>
         [Test]
-        public void WhenExplicitSpritesAndImplicitAtlas_SpritesOnlyReferenceSprites()
+        public void WhenExplicitSpritesAndImplicitAtlas_SpritesOnlyReferenceSprites([Values] RecursiveMode rm)
         {
             var sprite1 = AssetDatabase.LoadAssetAtPath<Sprite>(kSpriteTexture1Asset);
             var sprite2 = AssetDatabase.LoadAssetAtPath<Sprite>(kSpriteTexture2Asset);
@@ -667,8 +707,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             CalculateAssetDependencyData.TaskInput input = CreateDefaultInput();
             SpriteAtlasUtility.PackAllAtlases(input.Target);
             input.Assets = new List<GUID>() { sprite1Guid, sprite2Guid };
+            input.NonRecursiveDependencies = (rm == RecursiveMode.NonRecursive);
 
-            CalculateAssetDependencyData.RunInternal(input, out CalculateAssetDependencyData.TaskOutput output);
+            RunAndExpand(input, out CalculateAssetDependencyData.TaskOutput output);
 
             List<ObjectIdentifier> referencedObjs1 = output.AssetResults[0].assetInfo.referencedObjects;
             Assert.AreEqual(3, referencedObjs1.Count);
@@ -702,8 +743,9 @@ namespace UnityEditor.Build.Pipeline.Tests
         /// <summary>
         /// WhenAssetRefsExplicitPackedSprite_AssetOnlyRefsSprite
         /// </summary>
+        /// <param name="rm">RecursiveMode</param>
         [Test]
-        public void WhenAssetRefsExplicitPackedSprite_AssetOnlyRefsSprite()
+        public void WhenAssetRefsExplicitPackedSprite_AssetOnlyRefsSprite([Values] RecursiveMode rm)
         {
             var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(kSpriteTexture1Asset);
             var texture = AssetDatabase.LoadAssetAtPath<Texture>(kSpriteTexture1Asset);
@@ -727,10 +769,10 @@ namespace UnityEditor.Build.Pipeline.Tests
             CalculateAssetDependencyData.TaskInput input = CreateDefaultInput();
             SpriteAtlasUtility.PackAllAtlases(input.Target);
             input.Assets = new List<GUID>() { prefabGuid, spriteGuid };
+            input.NonRecursiveDependencies = (rm == RecursiveMode.NonRecursive);
 
-            CalculateAssetDependencyData.RunInternal(input, out CalculateAssetDependencyData.TaskOutput output);
+            RunAndExpand(input, out CalculateAssetDependencyData.TaskOutput output);
             List<ObjectIdentifier> referencedObjs = output.AssetResults[0].assetInfo.referencedObjects;
-            Assert.AreEqual(3, referencedObjs.Count);
 
             bool refsSprite = false;
             bool refsTexture = false;
@@ -748,8 +790,9 @@ namespace UnityEditor.Build.Pipeline.Tests
         /// <summary>
         /// WhenAssetRefsExplicitPackedSprite_CachedAssetOnlyRefsSprite
         /// </summary>
+        /// <param name="rm">RecursiveMode</param>
         [Test]
-        public void WhenAssetRefsExplicitPackedSprite_CachedAssetOnlyRefsSprite()
+        public void WhenAssetRefsExplicitPackedSprite_CachedAssetOnlyRefsSprite([Values] RecursiveMode rm)
         {
             var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(kSpriteTexture1Asset);
             var texture = AssetDatabase.LoadAssetAtPath<Texture>(kSpriteTexture1Asset);
@@ -773,18 +816,18 @@ namespace UnityEditor.Build.Pipeline.Tests
             CalculateAssetDependencyData.TaskInput input = CreateDefaultInput();
             SpriteAtlasUtility.PackAllAtlases(input.Target);
             input.Assets = new List<GUID>() { prefabGuid, spriteGuid };
+            input.NonRecursiveDependencies = (rm == RecursiveMode.NonRecursive);
 
             using (BuildCache cache = new BuildCache())
             {
                 cache.ClearCacheEntryMaps(); // needed if running multiple times
                 input.BuildCache = cache;
 
-                CalculateAssetDependencyData.RunInternal(input, out CalculateAssetDependencyData.TaskOutput output1);
+                RunAndExpand(input, out CalculateAssetDependencyData.TaskOutput output1);
                 cache.SyncPendingSaves();
 
-                CalculateAssetDependencyData.RunInternal(input, out CalculateAssetDependencyData.TaskOutput output2);
+                RunAndExpand(input, out CalculateAssetDependencyData.TaskOutput output2);
                 List<ObjectIdentifier> referencedObjs = output2.AssetResults[0].assetInfo.referencedObjects;
-                Assert.AreEqual(3, referencedObjs.Count);
 
                 bool refsSprite = false;
                 bool refsTexture = false;
@@ -803,8 +846,9 @@ namespace UnityEditor.Build.Pipeline.Tests
         /// <summary>
         /// WhenAssetRefsExplicitSprite_AssetRefsSpriteAndTexture
         /// </summary>
+        /// <param name="rm">RecursiveMode</param>
         [Test]
-        public void WhenAssetRefsExplicitSprite_AssetRefsSpriteAndTexture()
+        public void WhenAssetRefsExplicitSprite_AssetRefsSpriteAndTexture([Values] RecursiveMode rm)
         {
             var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(kSpriteTexture1Asset);
             var texture = AssetDatabase.LoadAssetAtPath<Texture>(kSpriteTexture1Asset);
@@ -826,8 +870,9 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             CalculateAssetDependencyData.TaskInput input = CreateDefaultInput();
             input.Assets = new List<GUID>() { prefabGuid, spriteGuid };
+            input.NonRecursiveDependencies = (rm == RecursiveMode.NonRecursive);
 
-            CalculateAssetDependencyData.RunInternal(input, out CalculateAssetDependencyData.TaskOutput output);
+            RunAndExpand(input, out CalculateAssetDependencyData.TaskOutput output);
             List<ObjectIdentifier> referencedObjs = output.AssetResults[0].assetInfo.referencedObjects;
             Assert.AreEqual(4, referencedObjs.Count);
 
@@ -1004,15 +1049,16 @@ f 3//6 1//6 2//6
         }
 
         /// <summary>
-        /// WhenAssetRefsImportedMesh_AssetOnlyRefsMesh
+        /// WhenAssetRefsImportedMesh_ReferenceToMainAsset
         /// </summary>
-        ///
+        /// <param name="rm">RecursiveMode</param>
         [Test]
-        public void WhenAssetRefsImportedMesh_ReferenceFullPrefab()
+        public void WhenAssetRefsImportedMesh_ReferenceToMainAsset([Values] RecursiveMode rm)
         {
             string testModelPath = Path.Combine(kTestAssetFolder, "model.obj");
             CreateTestModel(testModelPath);
             var model = AssetDatabase.LoadAssetAtPath<Mesh>(testModelPath);
+            var modelPref = AssetDatabase.LoadAssetAtPath<GameObject>(testModelPath);
 
             string prefabName = "prefabWithModel.prefab";
             string assetPath = Path.Combine(kTestAssetFolder, prefabName);
@@ -1024,16 +1070,42 @@ f 3//6 1//6 2//6
 
             string prefabGuidStr = AssetDatabase.AssetPathToGUID(assetPath);
             AssetDatabase.TryGetGUIDAndLocalFileIdentifier(model, out string modelGuidStr, out long modelLocalId);
+            AssetDatabase.TryGetGUIDAndLocalFileIdentifier(modelPref, out string modelPrefGuidStr, out long modelPrefLocalId);
             GUID prefabGuid = new GUID(prefabGuidStr);
             GUID modelGuid = new GUID(modelGuidStr);
 
-            CalculateAssetDependencyData buildTask = CreateDefaultBuildTask(new List<GUID>() { prefabGuid, modelGuid });
-            buildTask.Run();
+            CalculateAssetDependencyData.TaskInput input = CreateDefaultInput();
+            input.Assets = new List<GUID>() { prefabGuid, modelGuid };
+            input.NonRecursiveDependencies = (rm == RecursiveMode.NonRecursive);
 
-            IBuildContext context = new BuildContext();
-            ContextInjector.Extract(context, buildTask);
-            var depData = context.GetContextObject<IDependencyData>();
-            Assert.AreEqual(10, depData.AssetInfo[prefabGuid].referencedObjects.Count);
+            RunAndExpand(input, out CalculateAssetDependencyData.TaskOutput output);
+
+            bool refsMesh = false;
+            bool refsPrefab = false;
+
+            foreach (var res in output.AssetResults)
+            {
+                if (res.asset != prefabGuid)
+                    continue;
+
+                foreach (var dep in res.assetInfo.referencedObjects)
+                {
+                    if (dep.guid != modelGuid)
+                        continue;
+
+                    if (dep.localIdentifierInFile == modelLocalId)
+                        refsMesh = true;
+                    else if (dep.localIdentifierInFile == modelPrefLocalId)
+                        refsPrefab = true;
+                }
+                break;
+            }
+
+            Assert.IsTrue(refsMesh, "The reference to the mesh is missing");
+            if (rm == RecursiveMode.Recursive)
+                Assert.IsFalse(refsPrefab, "Unnecessary reference to the Main Asset when in recursive mode");
+            else
+                Assert.IsTrue(refsPrefab, "Missing reference to the Main Asset when in non-recursive mode");
         }
     }
 }

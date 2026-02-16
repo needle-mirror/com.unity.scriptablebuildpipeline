@@ -31,7 +31,7 @@ namespace UnityEditor.Build.Pipeline.Tests
 #endif
             };
 
-            var assembly = AppDomain.CurrentDomain.GetAssemblies().First(x => x.GetName().Name == "Unity.ScriptableBuildPipeline.Editor");
+            var assembly = AssemblyUtility.GetAssemblies().First(x => x.GetName().Name == "Unity.ScriptableBuildPipeline.Editor");
             return assembly.GetTypes().Where(x => typeof(IContextObject).IsAssignableFrom(x) && !x.IsInterface && !x.IsAbstract).Where(x => !blacklist.Contains(x)).ToArray();
         }
 

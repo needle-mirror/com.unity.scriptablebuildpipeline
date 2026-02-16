@@ -4,6 +4,7 @@ using System.Linq;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Player;
+using UnityEngine;
 
 using UnityEngine;
 using UnityEditor;

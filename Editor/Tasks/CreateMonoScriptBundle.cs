@@ -5,6 +5,7 @@ using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Injector;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Utilities;
+using UnityEngine;
 
 using UnityEngine;
 using UnityEditor;

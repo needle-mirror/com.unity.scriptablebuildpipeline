@@ -5,6 +5,7 @@ using UnityEditor;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Utilities;
+using UnityEngine;
 
 namespace UnityEditor.Build.Pipeline
 {
