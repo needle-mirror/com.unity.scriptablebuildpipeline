@@ -4,9 +4,6 @@
     "references": [
         "Unity.ScriptableBuildPipeline.Editor",
         "Unity.ScriptableBuildPipeline",
-        "Unity.PerformanceTesting",
-        "Unity.PerformanceTesting.Editor",
-        "ScriptableBuildPipelineTests",
         "UnityEngine.TestRunner",
         "UnityEditor.TestRunner",
         "Unity.ScriptableBuildPipeline.Tests",

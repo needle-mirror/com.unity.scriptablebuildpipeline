@@ -2,8 +2,7 @@
     "name": "Unity.ScriptableBuildPipeline.Editor",
     "rootNamespace": "",
     "references": [
-        "Unity.ScriptableBuildPipeline",
-        "UnityEditor.CacheServer"
+        "Unity.ScriptableBuildPipeline"
     ],
     "includePlatforms": [
         "Editor"
