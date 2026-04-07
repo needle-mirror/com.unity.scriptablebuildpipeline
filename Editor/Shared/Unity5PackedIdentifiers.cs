@@ -21,7 +21,8 @@ namespace UnityEditor.Build.Pipeline
         public virtual long SerializationIndexFromObjectIdentifier(ObjectIdentifier objectID)
         {
             RawHash hash;
-            bool extraArtifact = objectID.filePath.StartsWith("VirtualArtifacts/Extra/", StringComparison.Ordinal);
+            bool extraArtifact = HashingMethods.IsVirtualArtifactsExtraPath(objectID.filePath)
+                || HashingMethods.IsUdsDataPath(objectID.filePath);
             int hashSeed = ScriptableBuildPipeline.fileIDHashSeed;
             if (extraArtifact && hashSeed != 0)
             {

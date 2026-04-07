@@ -4,7 +4,6 @@ using UnityEngine;
 using UnityEditor;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Tasks;
-using UnityEngine;
 
 namespace UnityEditor.Build.Pipeline.Interfaces
 {

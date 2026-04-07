@@ -46,12 +46,8 @@ namespace UnityEditor.Build.Pipeline.Tests
 
         void SetupSBP(out bool prevV2Hasher, out int prevSeed, out int prevHeader, bool v2Hasher = false, int seed = 0, int header = 2)
         {
-#if UNITY_2020_1_OR_NEWER
             prevV2Hasher = ScriptableBuildPipeline.useV2Hasher;
             ScriptableBuildPipeline.useV2Hasher = v2Hasher;
-#else
-            prevV2Hasher = false;
-#endif
             prevSeed = ScriptableBuildPipeline.fileIDHashSeed;
             ScriptableBuildPipeline.fileIDHashSeed = seed;
             prevHeader = ScriptableBuildPipeline.prefabPackedHeaderSize;
@@ -60,9 +56,7 @@ namespace UnityEditor.Build.Pipeline.Tests
 
         void ResetSBP(bool prevV2Hasher, int prevSeed, int prevHeader)
         {
-#if UNITY_2020_1_OR_NEWER
             ScriptableBuildPipeline.useV2Hasher = prevV2Hasher;
-#endif
             ScriptableBuildPipeline.fileIDHashSeed = prevSeed;
             ScriptableBuildPipeline.prefabPackedHeaderSize = prevHeader;
         }
@@ -156,9 +150,10 @@ namespace UnityEditor.Build.Pipeline.Tests
 
         void BatchingQualityStressTest(IDeterministicIdentifiers packingMethod, bool useV2Hasher, int seed, int headerSize, int runCount)
         {
-            // This test is to check the quality of default clustering per source asset falls within certain guidelines
-            // For 10,000 unique assets and 100 unique assets, we want to ensure that at most we see <0.1% (10)
-            // assets generate the same cluster and <10% collision of all clusters.
+            // This test is to check the quality of default clustering per source asset falls within certain guidelines.
+            // Reused-cluster count should stay well below 10% of samples. Worst hot-bucket size should stay below ~0.1%
+            // of runCount; for tiny runCount the float threshold rounds to zero, so use an integer exclusive cap with a
+            // small floor (matches large runs: e.g. 10k → ceil(10)=10 → allow max bucket size at most 9).
             SetupSBP(out bool prevV2Hasher, out int prevSeed, out int prevHeader, useV2Hasher, seed, headerSize);
 
             System.Random rand = new System.Random(RandomSeed);
@@ -168,12 +163,10 @@ namespace UnityEditor.Build.Pipeline.Tests
             {
                 objId.SetGuid(GuidRandom(rand));
                 long lfid = packingMethod.SerializationIndexFromObjectIdentifier(objId);
-                byte[] bytes = BitConverter.GetBytes(lfid);
-                byte[] header = new byte[4];
-                for (int j = 0; j < ScriptableBuildPipeline.prefabPackedHeaderSize; j++)
-                    header[4 - ScriptableBuildPipeline.prefabPackedHeaderSize + j] = bytes[j];
-
-                int cluster = BitConverter.ToInt32(header, 0);
+                // UUM-131143: cluster by the same high-bit asset prefix as PrefabPackedIdentifiers uses for
+                // contiguous-bundle ordering; do not use the first LE bytes of BitConverter.GetBytes(lfid).
+                int cluster = PrefabPackedSerializationIndexTestUtil.ToClusterDictionaryKey(
+                    lfid, ScriptableBuildPipeline.prefabPackedHeaderSize);
                 clusters.TryGetValue(cluster, out int count);
                 clusters[cluster] = count + 1;
             }
@@ -187,7 +180,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             int medCollisions = collisionValues.Length > 0 ? collisionValues[collisionValues.Length / 2] : 0;
             Debug.Log($"Reused Clusters {collisions} ({(float)collisions/runCount*100:n2}%), Max {maxCollisions} ({(float)maxCollisions/runCount*100}%), Med {medCollisions} ({(float)medCollisions/runCount*100}%)");
             Assert.IsTrue(runCount * 0.1f > collisions, "Reused cluster count > 10%");
-            Assert.IsTrue(runCount * 0.001f > maxCollisions, "Max per cluster reuse > 0.1%");
+            int maxPerClusterExclusiveCap = Math.Max(3, (int)Math.Ceiling(runCount * 0.001f));
+            Assert.IsTrue(maxCollisions < maxPerClusterExclusiveCap,
+                $"Worst cluster bucket size {maxCollisions} must be below cap {maxPerClusterExclusiveCap} (~0.1% of {runCount} samples, with a minimum cap for small runs).");
 
             ResetSBP(prevV2Hasher, prevSeed, prevHeader);
         }

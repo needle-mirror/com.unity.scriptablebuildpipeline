@@ -22,7 +22,8 @@ namespace UnityEditor.Build.Pipeline
         {
             byte[] assetHash;
             byte[] objectHash;
-            bool extraArtifact = objectID.filePath.StartsWith("VirtualArtifacts/Extra/", StringComparison.Ordinal);
+            bool extraArtifact = HashingMethods.IsVirtualArtifactsExtraPath(objectID.filePath)
+                || HashingMethods.IsUdsDataPath(objectID.filePath);
             int hashSeed = ScriptableBuildPipeline.fileIDHashSeed;
             if (extraArtifact && hashSeed != 0)
             {
@@ -48,18 +49,14 @@ namespace UnityEditor.Build.Pipeline
             }
 
             int headerSize = ScriptableBuildPipeline.prefabPackedHeaderSize;
-            if (headerSize < 4)
-            {
-                for (int i = 0; i < headerSize; i++)
-                    objectHash[i] = assetHash[i];
-                return BitConverter.ToInt64(objectHash, 0);
-            }
-            else
-            {
-                var assetVal = BitConverter.ToUInt64(assetHash, 0);
-                var objectVal = BitConverter.ToUInt64(objectHash, 0);
-                return (long)((0xFFFFFFFF00000000 & assetVal) | (0x00000000FFFFFFFF & (objectVal ^ assetVal)));
-            }
+            if (headerSize == 0)
+                throw new ArgumentOutOfRangeException(nameof(headerSize), headerSize, "Prefab packed header size must be non-zero; zero breaks serialization index masking (64-bit shift / low mask).");
+
+            ulong assetVal = BitConverter.ToUInt64(assetHash, 0);
+            ulong objectVal = BitConverter.ToUInt64(objectHash, 0);
+            ulong mask = 0xFFFFFFFFFFFFFFFF;
+            mask = mask >> headerSize * 8;
+            return (long)((~mask & assetVal) | (mask & (objectVal ^ assetVal)));
         }
     }
 }

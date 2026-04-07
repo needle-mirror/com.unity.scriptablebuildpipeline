@@ -12,9 +12,6 @@ using UnityEditor.Build.Pipeline.Tests;
 using UnityEditor.Build.Pipeline.Utilities;
 using UnityEngine;
 
-using UnityEngine;
-using UnityEditor;
-
 /// <summary>
 /// Test fixture for Archive and Compress Tests
 /// </summary>

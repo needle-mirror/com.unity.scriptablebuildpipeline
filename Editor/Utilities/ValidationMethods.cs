@@ -3,8 +3,6 @@ using System.IO;
 using System.Linq;
 using UnityEditor.SceneManagement;
 using UnityEngine;
-
-using UnityEngine;
 using UnityEditor;
 
 namespace UnityEditor.Build.Pipeline.Utilities

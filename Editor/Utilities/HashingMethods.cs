@@ -514,8 +514,33 @@ namespace UnityEditor.Build.Pipeline.Utilities
             return hash;
         }
 
+        /// <summary>
+        /// Unity UDS (Unity Data Services) paths look like "uds:..."; they are not host filesystem paths, so
+        /// <see cref="FileStream"/> is invalid and may path-normalize together with the working directory to a bad path.
+        /// Hash the string for deterministic, stable output when a real file is not openable.
+        /// </summary>
+        internal static bool IsUdsDataPath(string filePath) =>
+            !string.IsNullOrEmpty(filePath) && filePath.IndexOf("uds:", StringComparison.OrdinalIgnoreCase) >= 0;
+
+        /// <summary>
+        /// Scripted importer / artifact paths under Unity's virtual artifact root. These are not guaranteed to be
+        /// openable via <see cref="FileStream"/> from the process working directory (they may embed <c>uds:</c> segments).
+        /// </summary>
+        internal static bool IsVirtualArtifactsExtraPath(string filePath)
+        {
+            if (string.IsNullOrEmpty(filePath))
+                return false;
+            return filePath.Replace('\\', '/').StartsWith("VirtualArtifacts/Extra/", StringComparison.Ordinal);
+        }
+
+        static bool IsNonHostFileHashPath(string filePath) =>
+            IsUdsDataPath(filePath) || IsVirtualArtifactsExtraPath(filePath);
+
         static RawHash CalculateFileInternal(string filePath)
         {
+            if (IsNonHostFileHashPath(filePath))
+                return Calculate(filePath);
+
             RawHash rawHash;
             using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
                 rawHash = CalculateStream(stream);
@@ -530,6 +555,9 @@ namespace UnityEditor.Build.Pipeline.Utilities
         /// <returns>Returns the hash of the file.</returns>
         public static RawHash CalculateFile<T>(string filePath) where T : HashAlgorithm
         {
+            if (IsNonHostFileHashPath(filePath))
+                return Calculate<T>(filePath);
+
             RawHash rawHash;
             using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.Read))
                 rawHash = CalculateStream<T>(stream);
