@@ -1,7 +1,7 @@
 {
   "name": "com.unity.scriptablebuildpipeline",
   "displayName": "Scriptable Build Pipeline",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "unity": "6000.0",
   "description": "The Scriptable Build Pipeline moves the asset bundle build pipeline to C#.  Use the pre-defined build flows, or create your own using the divided up APIs.  This system improves build time, fixes incremental build, and provides greater flexibility.",
   "keywords": [
@@ -17,15 +17,15 @@
     "com.unity.modules.assetbundle": "1.0.0"
   },
   "_upm": {
-    "changelog": "- Added support for extracting type tree data from asset bundles.This requires Unity 6.5+.\n- Avoid pulling in exta dependencies when using recursive dependencies."
+    "changelog": "- Internal fixes."
   },
   "upmCi": {
-    "footprint": "3c016772f9532d30d920d81c17b087a759530194"
+    "footprint": "db9ae660306a8c233dfc7edea027c1f6c02d6019"
   },
   "documentationUrl": "https://docs.unity3d.com/Packages/com.unity.scriptablebuildpipeline@3.0/manual/index.html",
   "repository": {
     "url": "https://github.cds.internal.unity3d.com/unity/Addressables.git",
     "type": "git",
-    "revision": "f4f0da20e24c7fc94626fa71fa2796960dafd55b"
+    "revision": "7d7ab519cc6367ae3394522c0a10c1c9c62c5ed3"
   }
 }
