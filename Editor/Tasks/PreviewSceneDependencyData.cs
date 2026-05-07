@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
-using UnityEditor;
+using UnityEngine; // explicitly imported for GUID backwards compatibility
+using UnityEditor; // explicitly imported for GUID backwards compatibility
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Injector;
 using UnityEditor.Build.Pipeline.Interfaces;

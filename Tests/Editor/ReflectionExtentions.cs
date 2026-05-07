@@ -1,6 +1,6 @@
+using UnityEngine; // explicitly imported for GUID backwards compatibility
+using UnityEditor; // explicitly imported for GUID backwards compatibility
 using UnityEditor.Build.Content;
-using UnityEngine;
-using UnityEditor;
 
 namespace UnityEditor.Build.Pipeline.Tests
 {

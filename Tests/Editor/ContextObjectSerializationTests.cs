@@ -7,6 +7,10 @@ using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Tasks;
 using UnityEditor.Build.Pipeline.Utilities;
 
+#if ENABLE_CONTENT_DIRECTORIES
+using UnityEditor.AddressableAssets.Build.DataBuilders;
+#endif
+
 namespace UnityEditor.Build.Pipeline.Tests
 {
     /// <summary>
@@ -28,6 +32,9 @@ namespace UnityEditor.Build.Pipeline.Tests
 #if UNITY_2022_2_OR_NEWER
                 , typeof(ContentFileIdentifiers)
                 , typeof(ClusterOutput)
+#endif
+#if ENABLE_CONTENT_DIRECTORIES
+                , typeof(BuildReportContext)
 #endif
             };
 

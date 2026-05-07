@@ -44,6 +44,12 @@ namespace UnityEditor.Build.Pipeline.Tests
         {
             throw new System.NotImplementedException(TestTracing.Callsite());
         }
+#if ENABLE_CONTENT_DIRECTORIES
+        public BuildContentDirectoryParameters GetContentDirectoryParameters()
+        {
+            throw new System.NotImplementedException();
+        }
+#endif
 
         public virtual string GetOutputFilePathForIdentifier(string identifier)
         {

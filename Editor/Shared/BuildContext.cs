@@ -92,6 +92,32 @@ namespace UnityEditor.Build.Pipeline
             types.ForEach(x => m_ContextObjects[x] = contextObject);
         }
 
+        /// <summary>
+        /// Sets the build context object if one of the same type does not already exist in the context. This is used when a build context
+        /// is shared across multiple build types and you want to ensure that the first one doesn't get overridden.
+        /// </summary>
+        /// <param name="contextObject">The context object for the build task</param>
+        /// <exception cref="ArgumentNullException">If the context object is null.</exception>
+        /// <exception cref="Exception">If the passed in context object does not exist on the build task.</exception>
+        public void SetContextObjectIfNull(IContextObject contextObject)
+        {
+            if (contextObject == null)
+                throw new ArgumentNullException("contextObject");
+
+            List<Type> types = new List<Type>(WalkAssignableTypes(contextObject));
+            if (types.Count == 0)
+                throw new Exception($"Could not determine context object type for object of type {contextObject.GetType().FullName}");
+
+            types.ForEach(x =>
+            {
+                if (!m_ContextObjects.ContainsKey(x))
+                {
+                    m_ContextObjects[x] = contextObject;
+                }
+            });
+
+        }
+
         /// <inheritdoc />
         public bool ContainsContextObject<T>() where T : IContextObject
         {

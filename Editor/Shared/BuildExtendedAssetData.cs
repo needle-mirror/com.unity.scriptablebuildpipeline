@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
+using UnityEngine; // explicitly imported for GUID backwards compatibility
+using UnityEditor; // explicitly imported for GUID backwards compatibility
 using UnityEditor.Build.Pipeline.Interfaces;
-using UnityEngine;
-using UnityEditor;
 
 namespace UnityEditor.Build.Pipeline
 {

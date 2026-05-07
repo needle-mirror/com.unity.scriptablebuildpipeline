@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEditor.Build.Pipeline.Utilities;
+using UnityEditor.Build.Reporting;
 using UnityEditor.Build.Utilities;
 using UnityEditor.Modules;
 
@@ -29,21 +30,145 @@ namespace UnityEditor.Build.Pipeline
         public static BuildCallbacks BuildCallbacks = new BuildCallbacks();
 
         /// <summary>
-        /// Default implementation of generating Asset Bundles using the Scriptable Build Pipeline.
+        /// <para>Default implementation of generating Asset Bundles using the Scriptable Build Pipeline.</para>
+        /// <para>The target platform must be installed. Otherwise AssetBundles will be built based on the editor version of the Assemblies and may have incorrect content.</para>
         /// </summary>
         /// <param name="parameters">Set of parameters used for building asset bundles.</param>
         /// <param name="content">Set of content and explicit asset bundle layout to build.</param>
         /// <param name="result">Results from building the content and explicit asset bundle layout.</param>
         /// <returns>Return code with status information about success or failure causes.</returns>
-        /// <remarks>The target platform must be installed. Otherwise AssetBundles will be built based on the editor version of the Assemblies and may have incorrect content.</remarks>
         public static ReturnCode BuildAssetBundles(IBundleBuildParameters parameters, IBundleBuildContent content, out IBundleBuildResults result)
         {
-            var taskList = DefaultBuildTasks.Create(DefaultBuildTasks.Preset.AssetBundleCompatible);
-            return BuildAssetBundles(parameters, content, out result, taskList);
+            BuildContext buildContext = new BuildContext();
+            return BuildAssetBundles(buildContext, parameters, content, out result);
         }
 
         /// <summary>
-        /// Default implementation of generating Asset Bundles using the Scriptable Build Pipeline.
+        /// <para>Default implementation of generating Asset Bundles using the Scriptable Build Pipeline.</para>
+        /// <para>The target platform must be installed. Otherwise AssetBundles will be built based on the editor version of the Assemblies and may have incorrect content.</para>
+        /// </summary>
+        /// <param name="buildContext">The build context to use for this build.</param>
+        /// <param name="parameters">Set of parameters used for building asset bundles.</param>
+        /// <param name="content">Set of content and explicit asset bundle layout to build.</param>
+        /// <param name="result">Results from building the content and explicit asset bundle layout.</param>
+        /// <returns>Return code with status information about success or failure causes.</returns>
+        public static ReturnCode BuildAssetBundles(BuildContext buildContext, IBundleBuildParameters parameters, IBundleBuildContent content, out IBundleBuildResults result)
+        {
+            var taskList = DefaultBuildTasks.Create(DefaultBuildTasks.Preset.AssetBundleCompatible);
+            return BuildAssetBundles(buildContext, parameters, content, out result, taskList);
+        }
+
+        /// <summary>
+        /// Default implementation of generating Content Directories using the Scriptable Build Pipeline.
+        /// </summary>
+        /// <param name="buildContext">The build context to use for this build.</param>
+        /// <param name="parameters">Set of parameters used for building asset bundles.</param>
+        /// <param name="result">Results from building the content and explicit asset bundle layout.</param>
+        /// <param name="taskList">Custom task list for building asset bundles.</param>
+        /// <param name="contextObjects">Additional context objects to make available to the build.</param>
+        /// <returns>Return code with status information about success or failure causes.</returns>
+        public static ReturnCode BuildContentDirectories(BuildContext buildContext, IBuildParameters parameters, out IBuildResults result, IList<IBuildTask> taskList, params IContextObject[] contextObjects)
+        {
+            if (BuildPipeline.isBuildingPlayer)
+            {
+                result = null;
+                BuildLogger.LogException(new InvalidOperationException("Cannot build asset bundles while a build is in progress"));
+                return ReturnCode.Exception;
+            }
+
+            // Avoid throwing exceptions in here as we don't want them bubbling up to calling user code
+            if (parameters == null)
+            {
+                result = null;
+                BuildLogger.LogException(new ArgumentNullException("parameters"));
+                return ReturnCode.Exception;
+            }
+
+            var contentBuildSettings = parameters.GetContentBuildSettings();
+            if (!CanBuildPlayer(contentBuildSettings.target, contentBuildSettings.group))
+            {
+                result = null;
+                BuildLogger.LogException(new InvalidOperationException("Unable to build with the current configuration, please check the Build Settings."));
+                return ReturnCode.Exception;
+            }
+
+            // Don't run if there are unsaved changes
+            if (ValidationMethods.HasDirtyScenes())
+            {
+                result = null;
+                return ReturnCode.UnsavedChanges;
+            }
+
+            ThreadingManager.WaitForOutstandingTasks();
+            BuildLog buildLog = null;
+
+            IBuildLogger logger;
+            if (!buildContext.TryGetContextObject<IBuildLogger>(out logger))
+            {
+                logger = buildLog = new BuildLog();
+                buildContext.SetContextObject(buildLog);
+            }
+
+            using (logger.ScopedStep(LogLevel.Info, "AssetDatabase.SaveAssets"))
+                AssetDatabase.SaveAssets();
+
+            ReturnCode exitCode;
+            result = new BundleBuildResults();
+
+#if !CI_TESTRUNNER_PROJECT
+            using (new SceneStateCleanup())
+            using (var progressTracker = new ProgressTracker())
+#else
+            using (var progressTracker = new ProgressLoggingTracker())
+#endif
+            {
+                using (new AutoBuildCacheUtility())
+                using (var interfacesWrapper = new BuildInterfacesWrapper())
+                {
+                    try
+                    {
+                        buildContext.SetContextObject(parameters);
+                        buildContext.SetContextObjectIfNull(result);
+                        buildContext.SetContextObjectIfNull(interfacesWrapper);
+                        buildContext.SetContextObjectIfNull(progressTracker);
+                        buildContext.SetContextObjectIfNull(new ObjectDependencyData());
+                        buildContext.SetContextObjectIfNull(BuildCallbacks);
+                    }
+                    catch (Exception e)
+                    {
+                        // Avoid throwing exceptions in here as we don't want them bubbling up to calling user code
+                        result = null;
+                        BuildLogger.LogException(e);
+                        return ReturnCode.Exception;
+                    }
+                    exitCode = BuildTasksRunner.Validate(taskList, buildContext);
+                    if (exitCode >= ReturnCode.Success)
+#if SBP_PROFILER_ENABLE
+                        exitCode = BuildTasksRunner.RunProfiled(taskList, buildContext);
+#else
+                        exitCode = BuildTasksRunner.Run(taskList, buildContext);
+#endif
+
+                    if (Directory.Exists(parameters.TempOutputFolder))
+                        Directory.Delete(parameters.TempOutputFolder, true);
+
+                    if (buildLog != null)
+                    {
+                        string buildLogPath = parameters.GetOutputFilePathForIdentifier("buildlogtep.json");
+                        Directory.CreateDirectory(Path.GetDirectoryName(buildLogPath));
+                        File.WriteAllText(parameters.GetOutputFilePathForIdentifier("buildlogtep.json"), buildLog.FormatForTraceEventProfiler());
+                    }
+                }
+            }
+
+            long maximumCacheSize = ScriptableBuildPipeline.maximumCacheSize * BuildCache.k_BytesToGigaBytes;
+            BuildCache.PruneCache_Background(maximumCacheSize);
+            return exitCode;
+        }
+
+        /// <summary>
+        /// <para>Default implementation of generating Asset Bundles using the Scriptable Build Pipeline.</para>
+        /// <para>The target platform must be installed. Otherwise AssetBundles will be built based on the editor version of the Assemblies and may have incorrect content.</para>
         /// </summary>
         /// <param name="parameters">Set of parameters used for building asset bundles.</param>
         /// <param name="content">Set of content and explicit asset bundle layout to build.</param>
@@ -51,8 +176,24 @@ namespace UnityEditor.Build.Pipeline
         /// <param name="taskList">Custom task list for building asset bundles.</param>
         /// <param name="contextObjects">Additional context objects to make available to the build.</param>
         /// <returns>Return code with status information about success or failure causes.</returns>
-        /// <remarks>The target platform must be installed. Otherwise AssetBundles will be built based on the editor version of the Assemblies and may have incorrect content.</remarks>
         public static ReturnCode BuildAssetBundles(IBundleBuildParameters parameters, IBundleBuildContent content, out IBundleBuildResults result, IList<IBuildTask> taskList, params IContextObject[] contextObjects)
+        {
+            BuildContext buildContext = new BuildContext(contextObjects);
+            return BuildAssetBundles(buildContext, parameters, content, out result, taskList, contextObjects);
+        }
+
+        /// <summary>
+        /// <para>Default implementation of generating Asset Bundles using the Scriptable Build Pipeline.</para>
+        /// <para>The target platform must be installed. Otherwise AssetBundles will be built based on the editor version of the Assemblies and may have incorrect content.</para>
+        /// </summary>
+        /// <param name="buildContext">The build context to use for this build.</param>
+        /// <param name="parameters">Set of parameters used for building asset bundles.</param>
+        /// <param name="content">Set of content and explicit asset bundle layout to build.</param>
+        /// <param name="result">Results from building the content and explicit asset bundle layout.</param>
+        /// <param name="taskList">Custom task list for building asset bundles.</param>
+        /// <param name="contextObjects">Additional context objects to make available to the build.</param>
+        /// <returns>Return code with status information about success or failure causes.</returns>
+        public static ReturnCode BuildAssetBundles(BuildContext buildContext, IBundleBuildParameters parameters, IBundleBuildContent content, out IBundleBuildResults result, IList<IBuildTask> taskList, params IContextObject[] contextObjects)
         {
             if (BuildPipeline.isBuildingPlayer)
             {
@@ -115,7 +256,6 @@ namespace UnityEditor.Build.Pipeline
             }
 
             ThreadingManager.WaitForOutstandingTasks();
-            BuildContext buildContext = new BuildContext(contextObjects);
             BuildLog buildLog = null;
 
             IBuildLogger logger;
@@ -149,18 +289,18 @@ namespace UnityEditor.Build.Pipeline
                     try
                     {
                         buildContext.SetContextObject(parameters);
-                        buildContext.SetContextObject(content);
-                        buildContext.SetContextObject(result);
-                        buildContext.SetContextObject(interfacesWrapper);
-                        buildContext.SetContextObject(progressTracker);
-                        buildContext.SetContextObject(buildCache);
+                        buildContext.SetContextObjectIfNull(content);
+                        buildContext.SetContextObjectIfNull(result);
+                        buildContext.SetContextObjectIfNull(interfacesWrapper);
+                        buildContext.SetContextObjectIfNull(progressTracker);
+                        buildContext.SetContextObjectIfNull(buildCache);
                         // If IDeterministicIdentifiers was passed in with contextObjects, don't add the default
                         if (!buildContext.ContainsContextObject(typeof(IDeterministicIdentifiers)))
-                            buildContext.SetContextObject(parameters.ContiguousBundles ? new PrefabPackedIdentifiers() : (IDeterministicIdentifiers)new Unity5PackedIdentifiers());
-                        buildContext.SetContextObject(new BuildDependencyData());
-                        buildContext.SetContextObject(new ObjectDependencyData());
-                        buildContext.SetContextObject(new BundleWriteData());
-                        buildContext.SetContextObject(BuildCallbacks);
+                            buildContext.SetContextObjectIfNull(parameters.ContiguousBundles ? new PrefabPackedIdentifiers() : (IDeterministicIdentifiers)new Unity5PackedIdentifiers());
+                        buildContext.SetContextObjectIfNull(new BuildDependencyData());
+                        buildContext.SetContextObjectIfNull(new ObjectDependencyData());
+                        buildContext.SetContextObjectIfNull(new BundleWriteData());
+                        buildContext.SetContextObjectIfNull(BuildCallbacks);
                         buildCache.SetBuildLogger(logger);
                     }
                     catch (Exception e)

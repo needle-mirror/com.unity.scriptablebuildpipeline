@@ -38,6 +38,11 @@
             "name": "Unity",
             "expression": "2023.3.0b1",
             "define": "BUILD_OPTIONS_RECURSE_DEPENDENCIES_2023_3"
+        },
+        {
+            "name": "Unity",
+            "expression": "6000.6.0a5",
+            "define": "ENABLE_CONTENT_DIRECTORIES"
         }
     ],
     "noEngineReferences": false

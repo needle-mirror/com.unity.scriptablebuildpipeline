@@ -1,9 +1,9 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using UnityEngine; // explicitly imported for GUID backwards compatibility
+using UnityEditor; // explicitly imported for GUID backwards compatibility
 using UnityEditor.SceneManagement;
-using UnityEngine;
-using UnityEditor;
 
 namespace UnityEditor.Build.Pipeline.Utilities
 {

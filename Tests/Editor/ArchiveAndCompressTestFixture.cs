@@ -4,13 +4,13 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using UnityEditor;
+using UnityEngine; // explicitly imported for GUID backwards compatibility
+using UnityEditor; // explicitly imported for GUID backwards compatibility
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline;
 using UnityEditor.Build.Pipeline.Tasks;
 using UnityEditor.Build.Pipeline.Tests;
 using UnityEditor.Build.Pipeline.Utilities;
-using UnityEngine;
 
 /// <summary>
 /// Test fixture for Archive and Compress Tests

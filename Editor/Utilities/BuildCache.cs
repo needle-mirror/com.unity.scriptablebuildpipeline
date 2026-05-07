@@ -770,7 +770,8 @@ namespace UnityEditor.Build.Pipeline.Utilities
         // TODO: Add to IBuildCache interface when IBuildLogger becomes public
         internal void SetBuildLogger(IBuildLogger profiler)
         {
-            m_Logger = profiler;
+            if(m_Logger == null)
+                m_Logger = profiler;
         }
     }
 }

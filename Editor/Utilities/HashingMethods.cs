@@ -172,6 +172,12 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 var bytes = BitConverter.GetBytes((int)currObj);
                 stream.Write(bytes, 0, bytes.Length);
             }
+            else if(currObj is IntPtr)
+            {
+                var ptr = (IntPtr)currObj;
+                var bytes = BitConverter.GetBytes((int)ptr.ToInt64());
+                stream.Write(bytes, 0, bytes.Length);
+            }
             else if (currObj is long)
             {
                 var bytes = BitConverter.GetBytes((long)currObj);
@@ -261,6 +267,14 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 {
                     var field = fields[index];
                     var newObj = field.GetValue(currObj);
+
+                    //I'm not sure what this LoaderAllocator type is, but it causes issues when encountered. It adds an insane array
+                    //of objects, where each object is a engine DLL. Then all of those DLLs get iterated through and get back in here
+                    //where reflection takes over again and adds ALL of the fields. This is probably not the right fix, but I'm using it
+                    //for now until a proper solution can be found.
+                    if (newObj == null || newObj.GetType().Name == "LoaderAllocator")
+                        continue;
+
                     state.Push(newObj);
                 }
             }

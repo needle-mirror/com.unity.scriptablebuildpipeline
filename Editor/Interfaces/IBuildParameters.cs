@@ -104,6 +104,14 @@ namespace UnityEditor.Build.Pipeline.Interfaces
         /// </summary>
         /// <returns>Returns the ScriptCompilationSettings struct to use for script compiling.</returns>
         ScriptCompilationSettings GetScriptCompilationSettings();
+
+#if ENABLE_CONTENT_DIRECTORIES
+        /// <summary>
+        /// Gets the content directory build parameters.
+        /// </summary>
+        /// <returns>Any content directory build parameters if any have been set.</returns>
+        BuildContentDirectoryParameters GetContentDirectoryParameters();
+#endif
     }
 
     /// <summary>

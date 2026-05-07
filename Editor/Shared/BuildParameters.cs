@@ -158,6 +158,18 @@ namespace UnityEditor.Build.Pipeline
         {
             return BundleCompression;
         }
+
+#if ENABLE_CONTENT_DIRECTORIES
+        /// <summary>
+        /// Retrieves the parameters used to configure the content directory for a build process.
+        /// </summary>
+        /// <returns>A <see cref="BuildContentDirectoryParameters"/> object containing the configuration parameters  for the
+        /// content directory. Returns the default value if no parameters are configured.</returns>
+        public virtual BuildContentDirectoryParameters GetContentDirectoryParameters()
+        {
+            return default;
+        }
+#endif
     }
 
     /// <summary>
