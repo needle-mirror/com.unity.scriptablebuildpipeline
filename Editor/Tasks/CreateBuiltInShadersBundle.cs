@@ -47,9 +47,10 @@ namespace UnityEditor.Build.Pipeline.Tasks
         {
             IBuildContext context = new BuildContext(m_DependencyData, m_Layout);
             CreateBuiltInBundle createBuiltInBundle = new CreateBuiltInBundle(ShaderBundleName);
-            ContextInjector.Inject(context, createBuiltInBundle );
+            var injector = new ContextInjector();
+            injector.Inject(context, createBuiltInBundle );
             ReturnCode result = createBuiltInBundle.Run();
-            ContextInjector.Extract(context, createBuiltInBundle);
+            injector.Extract(context, createBuiltInBundle);
 
             m_DependencyData = context.GetContextObject<IDependencyData>();
             m_Layout = context.GetContextObject<IBundleExplictObjectLayout>();

@@ -13,11 +13,7 @@ using UnityEngine.Build.Pipeline;
 
 namespace UnityEditor.Build.Pipeline.Tasks
 {
-#if UNITY_2018_3_OR_NEWER
     using BuildCompression = UnityEngine.BuildCompression;
-#else
-    using BuildCompression = UnityEditor.Build.Content.BuildCompression;
-#endif
     /// <summary>
     /// Archives and compresses all asset bundles.
     /// </summary>
@@ -366,7 +362,10 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
         static private void ArchiveSingleItem(ArchiveWorkItem item, string tempOutputFolder, IBuildLogger log, bool stripUnityVersion)
         {
-            using (log.ScopedStep(LogLevel.Info, "ArchiveSingleItem", item.BundleName))
+            using (log.ScopedStep(LogLevel.Info, "ArchiveSingleItem",
+                ("BundleName", item.BundleName),
+                ("Compression", item.Compression.compression.ToString())
+            ))
             {
                 item.ResultDetails = new BundleDetails();
                 string writePath = string.Format("{0}/{1}", tempOutputFolder, item.BundleName);
@@ -376,6 +375,8 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 Directory.CreateDirectory(Path.GetDirectoryName(writePath));
                 item.ResultDetails.FileName = item.OutputFilePath;
                 item.ResultDetails.Crc = ContentBuildInterface.ArchiveAndCompress(item.ResourceFiles.ToArray(), writePath, item.Compression, stripUnityVersion);
+
+                log.AddArgSafe("Crc", item.ResultDetails.Crc.ToString());
 
                 CopyFileWithTimestampIfDifferent(writePath, item.ResultDetails.FileName, log);
             }

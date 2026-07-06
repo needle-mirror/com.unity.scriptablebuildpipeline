@@ -89,14 +89,14 @@ namespace UnityEditor.Build.Pipeline.Tests
             var testData = new TestDependencyData();
             var buildResult = new BundleBuildResults();
             IBuildContext context = new BuildContext(testParams, testContent, testData, optionalCache, buildResult);
-            ContextInjector.Inject(context, task);
+            new ContextInjector().Inject(context, task);
             return task;
         }
 
         static void ExtractTestData(IBuildTask task, out TestDependencyData dependencyData)
         {
             IBuildContext context = new BuildContext();
-            ContextInjector.Extract(context, task);
+            new ContextInjector().Extract(context, task);
             dependencyData = (TestDependencyData)context.GetContextObject<IDependencyData>();
         }
 
@@ -120,21 +120,16 @@ namespace UnityEditor.Build.Pipeline.Tests
         {
             EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo();
             Directory.CreateDirectory(k_TestAssetsPath);
-#if UNITY_2018_3_OR_NEWER
             PrefabUtility.SaveAsPrefabAsset(GameObject.CreatePrimitive(PrimitiveType.Cube), k_CubePath);
             PrefabUtility.SaveAsPrefabAsset(GameObject.CreatePrimitive(PrimitiveType.Cube), k_CubePath2);
-#else
-            PrefabUtility.CreatePrefab(k_CubePath, GameObject.CreatePrimitive(PrimitiveType.Cube));
-            PrefabUtility.CreatePrefab(k_CubePath2, GameObject.CreatePrimitive(PrimitiveType.Cube));
-#endif
             AssetDatabase.ImportAsset(k_CubePath);
             AssetDatabase.ImportAsset(k_CubePath2);
         }
 
-#if UNITY_2021_1_OR_NEWER
         /// <summary>
         /// SetupSceneWithSpritesForTest
         /// </summary>
+        /// <param name="scene">The newly created scene containing the test sprites.</param>
         public void SetupSceneWithSpritesForTest(out Scene scene)
         {
             var spriteAtlasAsset = new SpriteAtlasAsset();
@@ -159,7 +154,6 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             EditorSceneManager.SaveScene(scene, k_ScenePath);
         }
-#endif
         /// <summary>
         /// Cleanup
         /// </summary>
@@ -282,7 +276,6 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreNotEqual(json, "{\"m_objToUsage\":[]}");
         }
 
-#if UNITY_2022_3_OR_NEWER
         /// <summary>
         /// CalculateSceneDependencyData_WhenSpriteDependencyChanges_RecalculatesDependencies
         /// </summary>
@@ -324,6 +317,11 @@ namespace UnityEditor.Build.Pipeline.Tests
             EditorSettings.spritePackerMode = prevSpritePackerModeMode;
         }
 
+        /// <summary>
+        /// CalculateSceneDependencyData_PackedSprites_DontReferenceSourceTexture
+        /// </summary>
+        /// <param name="nonRecursive">Whether to calculate dependencies using non-recursive mode.</param>
+        /// <param name="packed">Whether the sprites are packed into a sprite atlas before calculating dependencies.</param>
         [Test]
         public void CalculateSceneDependencyData_PackedSprites_DontReferenceSourceTexture([Values] bool nonRecursive, [Values] bool packed)
         {
@@ -374,7 +372,6 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             EditorSettings.spritePackerMode = prevSpritePackerModeMode;
         }
-#endif
 
     }
 }

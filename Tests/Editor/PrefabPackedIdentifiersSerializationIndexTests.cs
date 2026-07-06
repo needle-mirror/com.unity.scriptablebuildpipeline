@@ -99,12 +99,8 @@ namespace UnityEditor.Build.Pipeline.Tests
 
         static void PushSbpState(out bool prevV2Hasher, out int prevSeed, out int prevHeader, int headerSize, int hashSeed = 0)
         {
-#if UNITY_2020_1_OR_NEWER
             prevV2Hasher = ScriptableBuildPipeline.useV2Hasher;
             ScriptableBuildPipeline.useV2Hasher = false;
-#else
-            prevV2Hasher = false;
-#endif
             prevSeed = ScriptableBuildPipeline.fileIDHashSeed;
             ScriptableBuildPipeline.fileIDHashSeed = hashSeed;
             prevHeader = ScriptableBuildPipeline.prefabPackedHeaderSize;
@@ -113,9 +109,7 @@ namespace UnityEditor.Build.Pipeline.Tests
 
         static void PopSbpState(bool prevV2Hasher, int prevSeed, int prevHeader)
         {
-#if UNITY_2020_1_OR_NEWER
             ScriptableBuildPipeline.useV2Hasher = prevV2Hasher;
-#endif
             ScriptableBuildPipeline.fileIDHashSeed = prevSeed;
             ScriptableBuildPipeline.prefabPackedHeaderSize = prevHeader;
         }

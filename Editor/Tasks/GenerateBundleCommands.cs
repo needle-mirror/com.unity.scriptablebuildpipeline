@@ -196,7 +196,6 @@ You can work around this issue by changing the 'FileID Generator Seed' found in 
             m_WriteData.FileToReferenceMap.Add(command.internalName, referenceMap);
         }
 
-#if !UNITY_2019_1_OR_NEWER || NONRECURSIVE_DEPENDENCY_DATA
         static int GetSortIndex(System.Type type)
         {
             // Closely matches CalculateSortIndex in C++, not 100% as the same info is not available to C#, doesn't need to be 100%
@@ -228,22 +227,17 @@ You can work around this issue by changing the 'FileID Generator Seed' found in 
             return sortedObjects.OrderBy(x => x.sortIndex).Select(x => x.objectId).ToList();
         }
 
-#endif
 
         List<ObjectIdentifier> GetFileObjectsForScene(string internalName)
         {
             var fileObjects = m_WriteData.FileToObjects[internalName];
-#if !UNITY_2019_1_OR_NEWER || NONRECURSIVE_DEPENDENCY_DATA
             // ContentBuildInterface.PrepareScene was not returning stable sorted references, causing a indeterminism and loading errors in some cases
             // Add correct sorting here until patch lands to fix the API.
             // Additionally, if we are using Non-Recursive build mode, we still need to sort by type.
-#if NONRECURSIVE_DEPENDENCY_DATA
             if (m_Parameters.NonRecursiveDependencies)
-#endif
             {
                 fileObjects = GetSortedSceneObjectIdentifiers(fileObjects);
             }
-#endif
             return fileObjects;
         }
 

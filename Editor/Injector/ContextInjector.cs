@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using UnityEditor.Build.Pipeline.Interfaces;
 
@@ -65,18 +66,28 @@ namespace UnityEditor.Build.Pipeline.Injector
 
     class ContextInjector
     {
-        public static void Inject(IBuildContext context, object obj)
+        private List<(FieldInfo, InjectContextAttribute)> m_Fields;
+
+        private void PopulateFields(object obj)
         {
+            m_Fields = new List<(FieldInfo, InjectContextAttribute)>();
             FieldInfo[] fields = obj.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic);
             foreach (FieldInfo field in fields)
             {
-                object[] attrs = field.GetCustomAttributes(typeof(InjectContextAttribute), true);
-                if (attrs.Length == 0)
+                InjectContextAttribute attr = field.GetCustomAttribute<InjectContextAttribute>();
+                if (attr == null)
                     continue;
+                m_Fields.Add((field, attr));
+            }
 
+        }
+        public void Inject(IBuildContext context, object obj)
+        {
+            PopulateFields(obj);
+            foreach (var (field, attr) in m_Fields)
+            {
                 var overwriteProtection = field.IsDefined(typeof(BuildOverwriteProtectedAttribute), false);
 
-                InjectContextAttribute attr = attrs[0] as InjectContextAttribute;
                 if (attr == null || attr.Usage == ContextUsage.Out)
                     continue;
 
@@ -101,16 +112,13 @@ namespace UnityEditor.Build.Pipeline.Injector
             }
         }
 
-        public static void Extract(IBuildContext context, object obj)
+        public void Extract(IBuildContext context, object obj)
         {
-            FieldInfo[] fields = obj.GetType().GetFields(BindingFlags.Instance | BindingFlags.NonPublic);
-            foreach (FieldInfo field in fields)
+            // support calling only extract for tests
+            if (m_Fields == null)
+                PopulateFields(obj);
+            foreach (var (field, attr) in m_Fields)
             {
-                object[] attrs = field.GetCustomAttributes(typeof(InjectContextAttribute), true);
-                if (attrs.Length == 0)
-                    continue;
-
-                InjectContextAttribute attr = attrs[0] as InjectContextAttribute;
                 if (attr == null || attr.Usage == ContextUsage.In)
                     continue;
 
@@ -123,6 +131,8 @@ namespace UnityEditor.Build.Pipeline.Injector
                 else if (contextObject != null)
                     context.SetContextObject(field.FieldType, contextObject);
             }
+
+            m_Fields.Clear();
         }
     }
 }

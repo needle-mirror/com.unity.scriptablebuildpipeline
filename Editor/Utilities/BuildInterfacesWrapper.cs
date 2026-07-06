@@ -22,6 +22,9 @@ namespace UnityEditor.Build.Pipeline.Utilities
     /// </summary>
     public class BuildInterfacesWrapper : IDisposable, IEditorBuildCallbacks
     {
+        [NonSerialized]
+        IBuildLogger m_Logger;
+
         Type m_Type = null;
         bool m_Disposed = false;
 
@@ -31,10 +34,15 @@ namespace UnityEditor.Build.Pipeline.Utilities
         /// <summary>
         /// Default constructor, initializes properties to defaults
         /// </summary>
-        public BuildInterfacesWrapper()
+        /// <param name="logger">The build logger to report build callback steps to, or null for no logging.</param>
+        public BuildInterfacesWrapper(IBuildLogger logger = null)
         {
-            m_Type = Type.GetType("UnityEditor.Build.BuildPipelineInterfaces, UnityEditor");
-            InitializeCallbacks();
+            m_Logger = logger;
+            using (m_Logger?.ScopedStep(LogLevel.Verbose, "BuildInterfacesWrapper Init"))
+            {
+                m_Type = Type.GetType("UnityEditor.Build.BuildPipelineInterfaces, UnityEditor");
+                InitializeCallbacks();
+            }
         }
 
         /// <summary>
@@ -42,8 +50,11 @@ namespace UnityEditor.Build.Pipeline.Utilities
         /// </summary>
         public void Dispose()
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
+            using (m_Logger?.ScopedStep(LogLevel.Verbose, "BuildInterfacesWrapper Dispose"))
+            {
+                Dispose(true);
+                GC.SuppressFinalize(this);
+            }
         }
 
         /// <summary>
@@ -65,11 +76,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
         public void InitializeCallbacks()
         {
             var init = m_Type.GetMethod("InitializeBuildCallbacks", BindingFlags.NonPublic | BindingFlags.Static);
-#if UNITY_2020_2_OR_NEWER
             init.Invoke(null, new object[] { 274 }); // 274 = BuildCallbacks.SceneProcessors | BuildCallbacks.ShaderProcessors | BuildCallbacks.ComputeShader
-#else
-            init.Invoke(null, new object[] { 18 }); // 18 = BuildCallbacks.SceneProcessors | BuildCallbacks.ShaderProcessors
-#endif
 
             GatherCallbackVersions();
         }
@@ -83,11 +90,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             foreach (var type in typeCollection)
             {
                 var attribute = (VersionedCallbackAttribute)Attribute.GetCustomAttribute(type, versionedType);
-#if UNITY_2020_2_OR_NEWER
                 if (typeof(IPreprocessShaders).IsAssignableFrom(type) || typeof(IPreprocessComputeShaders).IsAssignableFrom(type))
-#else
-                if (typeof(IPreprocessShaders).IsAssignableFrom(type))
-#endif
                 {
                     shaderInputs.Add(HashingMethods.Calculate(type.AssemblyQualifiedName, attribute.version).ToHash128());
                 }

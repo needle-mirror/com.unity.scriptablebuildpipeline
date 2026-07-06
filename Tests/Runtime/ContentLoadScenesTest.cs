@@ -1,4 +1,3 @@
-#if UNITY_2022_2_OR_NEWER
 using System;
 using NUnit.Framework;
 using System.Collections;
@@ -18,8 +17,15 @@ using UnityEditor.TestTools;
 
 namespace UnityEditor.Build.Pipeline.Tests.ContentLoad
 {
+    /// <summary>
+    /// Tests for loading scenes through the ContentLoadInterface.
+    /// </summary>
     abstract public class SceneTests : ContentFileFixture
     {
+        /// <summary>
+        /// Unloads all loaded scenes except the init test scene, creating one if it does not exist.
+        /// </summary>
+        /// <returns>An IEnumerator to yield on until the scenes are unloaded.</returns>
         public static IEnumerator UnloadAllScenesExceptInitTestSceneAsync()
         {
 #pragma warning disable 0618
@@ -34,6 +40,10 @@ namespace UnityEditor.Build.Pipeline.Tests.ContentLoad
 #pragma warning restore 0618
         }
 
+        /// <summary>
+        /// Ensures only the init test scene is loaded before each test.
+        /// </summary>
+        /// <returns>An IEnumerator to yield on until the scenes are unloaded.</returns>
         [UnitySetUp]
         public IEnumerator UnloadAllScenesExceptInitTestScene()
         {
@@ -42,7 +52,9 @@ namespace UnityEditor.Build.Pipeline.Tests.ContentLoad
             yield return UnloadAllScenesExceptInitTestSceneAsync();
         }
 
-        // IPostBuildCleanup
+        /// <summary>
+        /// IPostBuildCleanup implementation. Deletes the built content and temporary assets after the test run.
+        /// </summary>
         public override void Cleanup()
         {
             base.Cleanup();
@@ -56,6 +68,16 @@ namespace UnityEditor.Build.Pipeline.Tests.ContentLoad
 #endif
         }
 
+        /// <summary>
+        /// Starts loading a scene through the ContentLoadInterface.
+        /// </summary>
+        /// <param name="path">The path of the scene file to load.</param>
+        /// <param name="sceneName">The name to give the loaded scene.</param>
+        /// <param name="mode">Whether to load the scene additively or single.</param>
+        /// <param name="deps">The content files the scene depends on.</param>
+        /// <param name="integrate">If true, waits for loading to complete and requests integration at end of frame.</param>
+        /// <param name="autoIntegrate">If true, the scene integrates automatically without an explicit integration request.</param>
+        /// <returns>The scene file load operation.</returns>
         public ContentSceneFile LoadSceneHelper(string path, string sceneName, LoadSceneMode mode, ContentFile[] deps,
             bool integrate = true, bool autoIntegrate = false)
         {
@@ -117,6 +139,10 @@ namespace UnityEditor.Build.Pipeline.Tests.ContentLoad
         // This used to test loading a scene with no dependencies. Scenes, however, depend on unity builtin extras by default, so this
         // test has been changed to be more explicit about what it's testing. The scene has visual elements with a shaded material so
         // you can verify it is actually working. The name has stayed the same for instability tracking.
+        /// <summary>
+        /// CanLoadSceneWithNoDependencies
+        /// </summary>
+        /// <returns>An IEnumerator to yield on until the test completes.</returns>
         [UnityTest]
         public IEnumerator CanLoadSceneWithNoDependencies()
         {
@@ -224,4 +250,3 @@ namespace UnityEditor.Build.Pipeline.Tests.ContentLoad
 #endif
 
 }
-#endif

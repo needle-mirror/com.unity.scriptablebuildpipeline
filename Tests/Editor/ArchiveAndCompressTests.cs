@@ -342,7 +342,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             input.Log = log;
             AddSimpleBundle(input, "mybundle", "internalName");
             ArchiveAndCompressBundles.Run(input, out ArchiveAndCompressBundles.TaskOutput output);
-            var node = log.Root.Children.Find((x) => x.Name.StartsWith("ArchiveItems"));
+            var node = log.Root.Children.Find((x) => x is BuildLog.LogStep step && step.Name.StartsWith("ArchiveItems"));
             Assert.IsNotNull(node);
         }
 

@@ -17,7 +17,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
     public class WriteSerializedFiles : IBuildTask, IRunCachedCallbacks<WriteSerializedFiles.Item>
     {
         /// <inheritdoc />
-        public int Version { get { return 4; } }
+        public int Version { get { return 5; } }
 
 #pragma warning disable 649
         [InjectContext(ContextUsage.In)]
@@ -47,9 +47,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             return HashingMethods.Calculate(
                 PlayerSettings.stripUnusedMeshComponents,
                 PlayerSettings.bakeCollisionMeshes
-#if UNITY_2020_1_OR_NEWER
                 , PlayerSettings.mipStripping ? PlayerSettingsApi.GetNumberOfMipsStripped() : 0
-#endif
                 , PlayerSettings.GetGraphicsAPIs(target)
                 ).ToHash128();
         }
@@ -163,6 +161,15 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 }
                 contentHashObjects.Add(contentHash);
             }
+
+            // UUM-133631: Include types in our hash calculation. [FormerlySerializedAs] can change
+            // the binary type without changing the actual data.
+            if (result.includedTypes != null)
+            {
+                foreach (var type in result.includedTypes)
+                    contentHashObjects.Add(HashingMethods.Calculate(BuildCacheUtility.GetCacheEntry(type).Hash));
+            }
+
             SerializedFileMetaData data = new SerializedFileMetaData();
             data.RawFileHash = HashingMethods.Calculate(fullHashObjects).ToHash128();
             data.ContentHash = HashingMethods.Calculate(contentHashObjects).ToHash128();
@@ -185,12 +192,8 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
             using (m_Log.ScopedStep(LogLevel.Info, $"Writing {op.GetType().Name}", op.Command.fileName))
             {
-#if UNITY_2020_2_OR_NEWER || ENABLE_DETAILED_PROFILE_CAPTURING
                 using (new ProfileCaptureScope(m_Log, ProfileCaptureOptions.None))
                     item.Context.Result = op.Write(targetDir, m_BuildSettings, m_GlobalUsage);
-#else
-                item.Context.Result = op.Write(targetDir, m_BuildSettings, m_GlobalUsage);
-#endif
             }
 
             item.Context.MetaData = CalculateFileMetadata(ref item.Context.Result);

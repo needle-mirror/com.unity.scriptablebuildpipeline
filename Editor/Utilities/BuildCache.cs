@@ -1,4 +1,5 @@
 using System;
+using System.Buffers;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -23,11 +24,6 @@ namespace UnityEditor.Build.Pipeline.Utilities
         // Custom serialization handler for 'BuildUsageTagSet' type as it cannot be correctly serialized purely with reflection
         internal class USerializeCustom_BuildUsageTagSet : ICustomSerializer
         {
-#if !UNITY_2019_4_OR_NEWER
-            static MethodInfo m_SerializeToBinary = typeof(BuildUsageTagSet).GetMethod("SerializeToBinary", BindingFlags.Instance | BindingFlags.NonPublic);
-            static MethodInfo m_DeserializeFromBinary = typeof(BuildUsageTagSet).GetMethod("DeserializeFromBinary", BindingFlags.Instance | BindingFlags.NonPublic);
-#endif
-
             // Return the type that this custom serializer deals with
             Type ICustomSerializer.GetType()
             {
@@ -38,11 +34,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             {
                 BuildUsageTagSet buildUsageTagSet = (BuildUsageTagSet)value;
                 if (serializer.WriteNullFlag(buildUsageTagSet))
-#if UNITY_2019_4_OR_NEWER
                     serializer.WriteBytes(buildUsageTagSet.SerializeToBinary());
-#else
-                    serializer.WriteBytes((byte[])m_SerializeToBinary.Invoke(buildUsageTagSet, null));
-#endif
             }
 
             object ICustomSerializer.UDeSerializer(DeSerializer deserializer)
@@ -52,11 +44,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 {
                     tagSet = new BuildUsageTagSet();
                     byte[] bytes = deserializer.ReadBytes();
-#if UNITY_2019_4_OR_NEWER
                     tagSet.DeserializeFromBinary(bytes);
-#else
-                    m_DeserializeFromBinary.Invoke(tagSet, new object[] { bytes });
-#endif
                 }
                 return tagSet;
             }
@@ -111,18 +99,14 @@ namespace UnityEditor.Build.Pipeline.Utilities
         /// <summary>
         /// Creates a new remote build cache object.
         /// </summary>
-        /// <param name="host">The server host.</param>
-        /// <param name="port">The server port.</param>
-        public BuildCache(string host, int port = 8126)
+        /// <param name="logger">The build logger to use for cache activity logging.</param>
+        public BuildCache(IBuildLogger logger)
         {
-            m_GlobalHash = CalculateGlobalArtifactVersionHash();
-
-            if (string.IsNullOrEmpty(host))
-                return;
-
-            string msg = $"Cache Server is no longer supported.";
-            m_Logger.AddEntrySafe(LogLevel.Warning, msg);
-            UnityEngine.Debug.LogWarning(msg);
+            m_Logger = logger;
+            using (logger.ScopedStep(LogLevel.Info, "Initializing BuildCache"))
+            {
+                m_GlobalHash = CalculateGlobalArtifactVersionHash();
+            }
         }
 
         static Hash128 CalculateGlobalArtifactVersionHash()
@@ -243,50 +227,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             return string.Format("{0}/{1}/{2}/{3}", k_CachePath, guid.Substring(0, 2), guid, finalHash);
         }
 
-        class FileOperations
-        {
-            public FileOperations(int size)
-            {
-                data = new FileOperation[size];
-                waitLock = new Semaphore(0, size);
-            }
-
-            public FileOperation[] data;
-            public Semaphore waitLock;
-        }
-
-        struct FileOperation
-        {
-            public string file;
-            public MemoryStream bytes;
-        }
-
-        static void Read(object data)
-        {
-            var ops = (FileOperations)data;
-            for (int index = 0; index < ops.data.Length; index++, ops.waitLock.Release())
-            {
-                try
-                {
-                    var op = ops.data[index];
-                    if (File.Exists(op.file))
-                    {
-                        byte[] bytes = File.ReadAllBytes(op.file);
-                        if (bytes.Length > 0)
-                            op.bytes = new MemoryStream(bytes, false);
-                    }
-                    ops.data[index] = op;
-                }
-                catch (Exception e)
-                {
-                    BuildLogger.LogException(e);
-                }
-            }
-        }
-
-
-#if UNITY_2019_4_OR_NEWER
-        // Newer Parallel.For concurrent method for 2019.4 and newer.  ~3x faster than the old two-thread read/deserialize method when using four threads
+        /// <inheritdoc />
         public void LoadCachedData(IList<CacheEntry> entries, out IList<CachedInfo> cachedInfos)
         {
             if (entries == null)
@@ -318,30 +259,50 @@ namespace UnityEditor.Build.Pipeline.Utilities
                         deserializers.Push(new DeSerializer(CustomSerializers, ObjectFactories));
                     Parallel.For(0, entries.Count, parallelOptions, index =>
                     {
+                        string file = GetCachedInfoFile(entries[index]);
+                        if (!File.Exists(file))
+                        {
+                            LogCacheMiss($"[Cache Miss]: Missing cache entry. Entry: {entries[index]}");
+                            return;
+                        }
+                        byte[] rented = null;
                         try
                         {
-                            string file = GetCachedInfoFile(entries[index]);
-                            byte[] bytes = File.ReadAllBytes(file);
-                            if ((bytes != null) && (bytes.Length > 0))
+                            using (FileStream fs = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read))
                             {
-                                using (MemoryStream memoryStream = new MemoryStream(bytes, false))
+                                int length = (int)fs.Length;
+                                rented = ArrayPool<byte>.Shared.Rent(length);
+                                int bytesRead = 0;
+                                while (bytesRead < length)
                                 {
-                                    deserializers.TryPop(out DeSerializer deserializer);
-                                    cachedInfoArray[index] = deserializer.DeSerialize<CachedInfo>(memoryStream);
-                                    deserializers.Push(deserializer);
-                                    Interlocked.Increment(ref cachedCount);
+                                    int read = fs.Read(rented, bytesRead, length - bytesRead);
+                                    if (read == 0) break;
+                                    bytesRead += read;
+                                }
+                                if (length > 0)
+                                {
+                                    using (MemoryStream memoryStream = new MemoryStream(rented, 0, length, false))
+                                    {
+                                        deserializers.TryPop(out DeSerializer deserializer);
+                                        cachedInfoArray[index] = deserializer.DeSerialize<CachedInfo>(memoryStream);
+                                        deserializers.Push(deserializer);
+                                        Interlocked.Increment(ref cachedCount);
+                                    }
                                 }
                             }
-                            else
-                                LogCacheMiss($"[Cache Miss]: Missing cache entry. Entry: {entries[index]}");
                         }
                         catch (Exception)
                         {
                             LogCacheMiss($"[Cache Miss]: Invalid cache entry. Entry: {entries[index]}");
                         }
+                        finally
+                        {
+                            if (rented != null)
+                                ArrayPool<byte>.Shared.Return(rented);
+                        }
                     });
                     deserializeTimer.Stop();
-                    cachedInfos = cachedInfoArray.ToList();
+                    cachedInfos = cachedInfoArray;
                 }
 
                 m_Logger.AddEntrySafe(LogLevel.Info, $"Time spent deserializing: {deserializeTimer.ElapsedMilliseconds}ms");
@@ -363,118 +324,6 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
             Assert.AreEqual(entries.Count, cachedInfos.Count);
         }
-
-#else // !UNITY_2019_4_OR_NEWER
-        // Old two-thread serialize/read method for 2018.4 support.
-        // 2018.4 does not support us running serialization on threads other than the main thread due to functions being called in Unity that are not marked as thread safe in that version (GUIDToHexInternal() and SerializeToBinary() at least)
-
-        /// <inheritdoc />
-        public void LoadCachedData(IList<CacheEntry> entries, out IList<CachedInfo> cachedInfos)
-        {
-            if (entries == null)
-            {
-                cachedInfos = null;
-                return;
-            }
-
-            if (entries.Count == 0)
-            {
-                cachedInfos = new List<CachedInfo>();
-                return;
-            }
-
-            using (m_Logger.ScopedStep(LogLevel.Info, "LoadCachedData"))
-            {
-                m_Logger.AddEntrySafe(LogLevel.Info, $"{entries.Count} items");
-                // Setup Operations
-                var ops = new FileOperations(entries.Count);
-                using (m_Logger.ScopedStep(LogLevel.Info, "GetCachedInfoFile"))
-                {
-                    for (int i = 0; i < entries.Count; i++)
-                    {
-                        var op = ops.data[i];
-                        op.file = GetCachedInfoFile(entries[i]);
-                        ops.data[i] = op;
-                    }
-                }
-
-                int cachedCount = 0;
-                using (m_Logger.ScopedStep(LogLevel.Info, "Read and deserialize cache info"))
-                {
-                    // Start file reading
-                    Thread thread = new Thread(Read);
-                    thread.Start(ops);
-
-                    cachedInfos = new List<CachedInfo>(entries.Count);
-
-                    // Deserialize as files finish reading
-                    Stopwatch deserializeTimer = Stopwatch.StartNew();
-                    DeSerializer deserializer = new DeSerializer(CustomSerializers, ObjectFactories);
-                    for (int index = 0; index < entries.Count; index++)
-                    {
-                        // Basic wait lock
-                        if (!ops.waitLock.WaitOne(0))
-                        {
-                            deserializeTimer.Stop();
-                            ops.waitLock.WaitOne();
-                            deserializeTimer.Start();
-                        }
-
-                        CachedInfo info = null;
-                        try
-                        {
-                            var op = ops.data[index];
-                            if (op.bytes != null && op.bytes.Length > 0)
-                            {
-                                info = deserializer.DeSerialize<CachedInfo>(op.bytes);
-                                cachedCount++;
-                            }
-                            else
-                                LogCacheMiss($"[Cache Miss]: Missing cache entry. Entry: {entries[index]}");
-                        }
-                        catch (Exception)
-                        {
-                            LogCacheMiss($"[Cache Miss]: Invalid cache entry. Entry: {entries[index]}");
-                        }
-                        cachedInfos.Add(info);
-                    }
-                    thread.Join();
-                    ((IDisposable)ops.waitLock).Dispose();
-
-                    deserializeTimer.Stop();
-                    m_Logger.AddEntrySafe(LogLevel.Info, $"Time spent deserializing: {deserializeTimer.ElapsedMilliseconds}ms");
-                    m_Logger.AddEntrySafe(LogLevel.Info, $"Local Cache hit count: {cachedCount}");
-                }
-
-                using (m_Logger.ScopedStep(LogLevel.Info, "Check for changed dependencies"))
-                {
-                    for (int i = 0; i < cachedInfos.Count; i++)
-                    {
-                        if (HasAssetOrDependencyChanged(cachedInfos[i]))
-                            cachedInfos[i] = null;
-                    }
-                }
-
-                // If we have a cache server connection, download & check any missing info
-                int downloadedCount = 0;
-                if (m_Downloader != null)
-                {
-                    using (m_Logger.ScopedStep(LogLevel.Info, "Download Missing Entries"))
-                    {
-                        m_Downloader.DownloadMissing(entries, cachedInfos);
-                        downloadedCount = cachedInfos.Count(i => i != null) - cachedCount;
-                    }
-                }
-
-                m_Logger.AddEntrySafe(LogLevel.Info, $"Local Cache hit count: {cachedCount}, Cache Server hit count: {downloadedCount}");
-
-                Assert.AreEqual(entries.Count, cachedInfos.Count);
-            }
-        }
-#endif
-
-#if UNITY_2019_4_OR_NEWER
-        // Newer Parallel.For concurrent method for 2019.4 and newer.  ~3x faster than the old two-thread serialize/write method when using four threads
 
         class SaveCachedDataTaskData
         {
@@ -512,35 +361,35 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 {
                     int workerThreadCount = Math.Min(Environment.ProcessorCount, 4);    // Testing of the USerialize code has shown increasing concurrency beyond four threads produces worse performance (the suspicion is due to GC contention but that's TBC)
                     ParallelOptions parallelOptions = new ParallelOptions() { MaxDegreeOfParallelism = workerThreadCount };
-                    ConcurrentStack<Serializer> serializers = new ConcurrentStack<Serializer>();
+                    ConcurrentStack<(Serializer serializer, MemoryStream stream)> serializers = new ConcurrentStack<(Serializer, MemoryStream)>();
                     for (int serializerNum = 0; serializerNum < workerThreadCount; serializerNum++)
-                        serializers.Push(new Serializer(CustomSerializers));
+                        serializers.Push((new Serializer(CustomSerializers), new MemoryStream()));
                     Parallel.For(0, infos.Count, parallelOptions, index =>
-
                     {
+                        serializers.TryPop(out var item);
                         try
                         {
-                            using (var stream = new MemoryStream())
+                            item.stream.SetLength(0);
+                            item.serializer.Serialize(item.stream, infos[index], 1);
+
+                            if (item.stream.Length > 0)
                             {
-                                serializers.TryPop(out Serializer serializer);
-                                serializer.Serialize(stream, infos[index], 1);
-                                serializers.Push(serializer);
+                                string cachedInfoFilepath = GetCachedInfoFile(infos[index].Asset);
+                                Directory.CreateDirectory(Path.GetDirectoryName(cachedInfoFilepath));
 
-                                if (stream.Length > 0)
+                                using (FileStream fileStream = new FileStream(cachedInfoFilepath, FileMode.Create))
                                 {
-                                    string cachedInfoFilepath = GetCachedInfoFile(infos[index].Asset);
-                                    Directory.CreateDirectory(Path.GetDirectoryName(cachedInfoFilepath));
-
-                                    using (FileStream fileStream = new FileStream(cachedInfoFilepath, FileMode.Create))
-                                    {
-                                        fileStream.Write(stream.GetBuffer(), 0, (int)stream.Length);
-                                    }
+                                    fileStream.Write(item.stream.GetBuffer(), 0, (int)item.stream.Length);
                                 }
                             }
                         }
                         catch (Exception e)
                         {
                             BuildLogger.LogException(e);
+                        }
+                        finally
+                        {
+                            serializers.Push(item);
                         }
                     });
                 }
@@ -549,92 +398,6 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 taskData.m_DoneLock.Release();
             }
         }
-
-#else   // !UNITY_2019_4_OR_NEWER
-        // Old two-thread serialize/write method for 2018.4 support.
-        // 2018.4 does not support us running serialization on threads other than the main thread due to functions being called in Unity that are not marked as thread safe in that version (GUIDToHexInternal() and SerializeToBinary() at least)
-
-        static void Write(object data)
-        {
-            var ops = (FileOperations)data;
-            for (int index = 0; index < ops.data.Length; index++)
-            {
-                // Basic spin lock
-                ops.waitLock.WaitOne();
-                var op = ops.data[index];
-                if (op.bytes != null && op.bytes.Length > 0)
-                {
-                    try
-                    {
-                        Directory.CreateDirectory(Path.GetDirectoryName(op.file));
-                        using (FileStream fileStream = new FileStream(op.file, FileMode.Create))
-                        {
-                            fileStream.Write(op.bytes.GetBuffer(), 0, (int)op.bytes.Length);
-                        }
-                    }
-                    catch (Exception e)
-                    {
-                        BuildLogger.LogException(e);
-                    }
-                }
-            }
-            ((IDisposable)ops.waitLock).Dispose();
-        }
-
-        /// <inheritdoc />
-        public void SaveCachedData(IList<CachedInfo> infos)
-        {
-            if (infos == null || infos.Count == 0)
-                return;
-
-            using (m_Logger.ScopedStep(LogLevel.Info, "SaveCachedData"))
-            {
-                m_Logger.AddEntrySafe(LogLevel.Info, $"Saving {infos.Count} infos");
-                // Setup Operations
-                var ops = new FileOperations(infos.Count);
-                using (m_Logger.ScopedStep(LogLevel.Info, "SetupOperations"))
-                {
-                    for (int i = 0; i < infos.Count; i++)
-                    {
-                        var op = ops.data[i];
-                        op.file = GetCachedInfoFile(infos[i].Asset);
-                        ops.data[i] = op;
-                    }
-                }
-
-                Serializer serializer = new Serializer(CustomSerializers);
-                // Start writing thread
-                ThreadingManager.QueueTask(ThreadingManager.ThreadQueues.SaveQueue, Write, ops);
-
-                using (m_Logger.ScopedStep(LogLevel.Info, "SerializingCacheInfos"))
-                {
-                    // Serialize data as previous data is being written out
-                    for (int index = 0; index < infos.Count; index++, ops.waitLock.Release())
-                    {
-                        try
-                        {
-                            var op = ops.data[index];
-                            var stream = new MemoryStream();
-                            serializer.Serialize(stream, infos[index], 1);
-                            if (stream.Length > 0)
-                            {
-                                op.bytes = stream;
-                                ops.data[index] = op;
-
-                                // If we have a cache server connection, upload the cached data
-                                if (m_Uploader != null)
-                                    m_Uploader.QueueUpload(infos[index].Asset, GetCachedArtifactsDirectory(infos[index].Asset), new MemoryStream(stream.GetBuffer(), false));
-                            }
-                        }
-                        catch (Exception e)
-                        {
-                            BuildLogger.LogException(e);
-                        }
-                    }
-                }
-            }
-        }
-#endif  // #if UNITY_2019_4_OR_NEWER
 
         internal void SyncPendingSaves()
         {

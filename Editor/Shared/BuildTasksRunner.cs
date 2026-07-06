@@ -50,13 +50,14 @@ namespace UnityEditor.Build.Pipeline
                         if (!tracker.UpdateTaskUnchecked(task.GetType().Name.HumanReadable()))
                             return ReturnCode.Canceled;
 
-                        ContextInjector.Inject(context, task);
+                        var injector = new ContextInjector();
+                        injector.Inject(context, task);
                         ReturnCode result;
                         using (logger.ScopedStep(LogLevel.Info, task.GetType().Name))
                             result = task.Run();
                         if (result < ReturnCode.Success)
                             return result;
-                        ContextInjector.Extract(context, task);
+                        injector.Extract(context, task);
                     }
                     catch (Exception e)
                     {
@@ -114,7 +115,8 @@ namespace UnityEditor.Build.Pipeline
                         return ReturnCode.Canceled;
                     }
 
-                    ContextInjector.Inject(context, task);
+                    var injector = new ContextInjector();
+                    injector.Inject(context, task);
                     profiler.Start(count, task.GetType().Name);
                     var result = task.Run();
                     profiler.Stop(count++);
@@ -125,7 +127,7 @@ namespace UnityEditor.Build.Pipeline
                         profiler.Print();
                         return result;
                     }
-                    ContextInjector.Extract(context, task);
+                    injector.Extract(context, task);
                 }
                 catch (Exception e)
                 {

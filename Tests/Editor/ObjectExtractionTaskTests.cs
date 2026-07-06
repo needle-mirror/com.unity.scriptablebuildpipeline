@@ -58,7 +58,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             });
 
             IBuildContext context = new BuildContext(dependencyData, layout);
-            ContextInjector.Inject(context, task);
+            new ContextInjector().Inject(context, task);
         }
 
         [Test]

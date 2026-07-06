@@ -18,6 +18,7 @@ using System.Reflection;
 
 namespace UnityEditor.Build.Pipeline.Utilities.USerialize.Tests
 {
+    using BuildCompression = UnityEngine.BuildCompression;
     // Tests for the USerialize serialization code
     [TestFixture]
     class USerializeTests
@@ -262,6 +263,85 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize.Tests
                 false); // full Equality not implemented for CachedInfo so we rely on the dumper text comparison
         }
 
+        [Test]
+        public void TestBuildCompressionSerialises()
+        {
+            TestSerializeData(new PrimitiveValue<BuildCompression>() { m_Value = BuildCompression.LZ4 },
+                BuildCache.CustomSerializers, BuildCache.ObjectFactories, null, true);
+        }
+
+        [Test]
+        public void TestBuildSettingsSerialises()
+        {
+            BuildSettings settings = new BuildSettings
+            {
+                target = BuildTarget.StandaloneWindows64,
+                subtarget = 0,
+                group = BuildTargetGroup.Standalone,
+                buildFlags = ContentBuildFlags.DisableWriteTypeTree,
+                typeDB = null
+            };
+            TestSerializeData(new PrimitiveValue<BuildSettings>() { m_Value = settings },
+                BuildCache.CustomSerializers, BuildCache.ObjectFactories, null, true);
+        }
+
+        [Test]
+        public void TestWriteCommandSerialises()
+        {
+            System.Random rnd = new System.Random(8345213);
+            WriteCommand writeCommand = new WriteCommand
+            {
+                fileName = "FileName_" + rnd.Next(),
+                internalName = "InternalName_" + rnd.Next(),
+                serializeObjects = new List<SerializationInfo>
+                {
+                    new SerializationInfo { serializationObject = CreateObjectIdentifier(rnd), serializationIndex = rnd.Next() },
+                    new SerializationInfo { serializationObject = CreateObjectIdentifier(rnd), serializationIndex = rnd.Next() }
+                }
+            };
+            TestSerializeData(new PrimitiveValue<WriteCommand>() { m_Value = writeCommand },
+                BuildCache.CustomSerializers, BuildCache.ObjectFactories, null, false);
+        }
+
+        [Test]
+        public void TestSceneBundleInfoSerialises()
+        {
+            System.Random rnd = new System.Random(1572934);
+            SceneBundleInfo sceneBundleInfo = new SceneBundleInfo
+            {
+                bundleName = "BundleName_" + rnd.Next(),
+                bundleScenes = new List<SceneLoadInfo>
+                {
+                    new SceneLoadInfo { asset = CreateGuid(rnd), address = "Address_" + rnd.Next(), internalName = "InternalName_" + rnd.Next() },
+                    new SceneLoadInfo { asset = CreateGuid(rnd), address = "Address_" + rnd.Next(), internalName = "InternalName_" + rnd.Next() }
+                }
+            };
+            TestSerializeData(new PrimitiveValue<SceneBundleInfo>() { m_Value = sceneBundleInfo },
+                BuildCache.CustomSerializers, BuildCache.ObjectFactories, null, false);
+        }
+
+        [Test]
+        public void TestAssetBundleInfoSerialises()
+        {
+            System.Random rnd = new System.Random(48512);
+            AssetBundleInfo assetBundleInfo = new AssetBundleInfo
+            {
+                bundleName = "BundleName_" + rnd.Next(),
+                bundleAssets = new List<AssetLoadInfo>
+                {
+                    new AssetLoadInfo
+                    {
+                        asset = CreateGuid(rnd),
+                        address = "Address_" + rnd.Next(),
+                        includedObjects = new List<ObjectIdentifier> { CreateObjectIdentifier(rnd), CreateObjectIdentifier(rnd) },
+                        referencedObjects = new List<ObjectIdentifier> { CreateObjectIdentifier(rnd) }
+                    }
+                }
+            };
+            TestSerializeData(new PrimitiveValue<AssetBundleInfo>() { m_Value = assetBundleInfo },
+                BuildCache.CustomSerializers, BuildCache.ObjectFactories, null, false);
+        }
+
 
         // --------------------------------------------------------------------------------------------------------------------------------------------------------------
         // Utilities & Supporting Code
@@ -498,13 +578,7 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize.Tests
             string buildUsageTagSetJsonData = "{\"m_objToUsage\":[{\"first\":{\"filePath\":\"\",\"fileType\":3,\"guid\":\"822642a2b47082c49966f0c54db535a4\",\"localIdentifierInFile\":-7728386467694932768},\"second\":{\"forceTextureReadable\":false,\"maxBonesPerVertex\":4,\"meshSupportedChannels\":12799,\"meshUsageFlags\":1,\"shaderIncludeInstancingVariants\":false,\"shaderUsageKeywordNames\":[],\"strippedPrefabObject\":false}},{\"first\":{\"filePath\":\"\",\"fileType\":3,\"guid\":\"90b695013db7b334cbcf925848031399\",\"localIdentifierInFile\":-1848259448780025149},\"second\":{\"forceTextureReadable\":false,\"maxBonesPerVertex\":0,\"meshSupportedChannels\":383,\"meshUsageFlags\":0,\"shaderIncludeInstancingVariants\":false,\"shaderUsageKeywordNames\":[],\"strippedPrefabObject\":false}},{\"first\":{\"filePath\":\"\",\"fileType\":3,\"guid\":\"db9aadf200fd84e4591cc30ea4d1358c\",\"localIdentifierInFile\":3883874861523733925},\"second\":{\"forceTextureReadable\":false,\"maxBonesPerVertex\":0,\"meshSupportedChannels\":383,\"meshUsageFlags\":0,\"shaderIncludeInstancingVariants\":false,\"shaderUsageKeywordNames\":[],\"strippedPrefabObject\":false}}]}";
 
             BuildUsageTagSet buildUsageTagSet = new BuildUsageTagSet();
-
-#if UNITY_2019_4_OR_NEWER
             buildUsageTagSet.DeserializeFromJson(buildUsageTagSetJsonData);
-#else
-            typeof(BuildUsageTagSet).GetMethod("DeserializeFromJson", BindingFlags.Instance | BindingFlags.NonPublic).Invoke(buildUsageTagSet, new object[] { buildUsageTagSetJsonData });
-#endif
-
             return buildUsageTagSet;
 
         }
@@ -534,33 +608,14 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize.Tests
             return objectTypes;
         }
 
-#if !UNITY_2019_4_OR_NEWER
-        // Set the value of a named field on an instance using the reflection API.  Required only for 2018.4 where we don't have direct access to internal fields
-        static void SetFieldValue<ObjectType>(ObjectType instance, string fieldName, object value)
-        {
-            typeof(ObjectType).GetField(fieldName, BindingFlags.Instance | BindingFlags.NonPublic).SetValue(instance, value);
-        }
-#endif
-
         // Create a populated 'SceneDependencyInfo' instance.  Can set fields directly for 2019.4+ as internals are available but have to use reflection for 2018.4
         static SceneDependencyInfo CreateSceneDependencyInfo(string scene, ObjectIdentifier[] objectIdentifiers, BuildUsageTagGlobal globalUsage, Type[] includedTypes)
         {
             SceneDependencyInfo sceneDependencyInfo = new SceneDependencyInfo();
-
-#if UNITY_2019_4_OR_NEWER
             sceneDependencyInfo.m_Scene = scene;
             sceneDependencyInfo.m_ReferencedObjects = objectIdentifiers;
             sceneDependencyInfo.m_GlobalUsage = globalUsage;
-
-#if UNITY_2020_1_OR_NEWER
             sceneDependencyInfo.m_IncludedTypes = includedTypes;
-#endif
-#else
-            sceneDependencyInfo.SetScene(scene);
-            sceneDependencyInfo.SetReferencedObjects(objectIdentifiers);
-            SetFieldValue(sceneDependencyInfo, "m_GlobalUsage", globalUsage);
-#endif
-
             return sceneDependencyInfo;
         }
 
@@ -569,7 +624,6 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize.Tests
         {
             BuildUsageTagGlobal buildUsageTagGlobal = new BuildUsageTagGlobal();
 
-#if UNITY_2019_4_OR_NEWER
             buildUsageTagGlobal.m_LightmapModesUsed = lightmapModesUsed;
             buildUsageTagGlobal.m_LegacyLightmapModesUsed = legacyLightmapModesUsed;
             buildUsageTagGlobal.m_DynamicLightmapsUsed = dynamicLightmapsUsed;
@@ -589,19 +643,7 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize.Tests
             subtractiveUsedField.SetValue(buildUsageTagGlobal, subtractiveUsed);
             shadowMaskUsedField.SetValue(buildUsageTagGlobal, shadowMasksUsed);
 
-#if UNITY_2020_1_OR_NEWER
             buildUsageTagGlobal.m_HybridRendererPackageUsed = hybridRendererPackageUsed;
-#endif
-#else
-            SetFieldValue(buildUsageTagGlobal, "m_LightmapModesUsed", lightmapModesUsed);
-            SetFieldValue(buildUsageTagGlobal, "m_LegacyLightmapModesUsed", legacyLightmapModesUsed);
-            SetFieldValue(buildUsageTagGlobal, "m_DynamicLightmapsUsed", dynamicLightmapsUsed);
-            SetFieldValue(buildUsageTagGlobal, "m_FogModesUsed", fogModesUsed);
-            SetFieldValue(buildUsageTagGlobal, "m_ForceInstancingStrip", forceInstancingStrip);
-            SetFieldValue(buildUsageTagGlobal, "m_ForceInstancingKeep", forceInstancingKeep);
-            SetFieldValue(buildUsageTagGlobal, "m_ShadowMasksUsed", shadowMasksUsed);
-            SetFieldValue(buildUsageTagGlobal, "m_SubtractiveUsed", subtractiveUsed);
-#endif
 
             return buildUsageTagGlobal;
         }
@@ -618,16 +660,10 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize.Tests
         {
             WriteResult writeResult = new WriteResult();
 
-#if UNITY_2019_4_OR_NEWER
             writeResult.m_SerializedObjects = serializedObjects;
             writeResult.m_ResourceFiles = resourceFiles;
             writeResult.m_IncludedTypes = includedTypes;
             writeResult.m_IncludedSerializeReferenceFQN = includedSerializeReferenceFQN;
-#else
-            SetFieldValue(writeResult, "m_SerializedObjects", serializedObjects);
-            SetFieldValue(writeResult, "m_ResourceFiles", resourceFiles);
-            SetFieldValue(writeResult, "m_IncludedTypes", includedTypes);
-#endif
 
             return writeResult;
         }
@@ -637,15 +673,9 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize.Tests
         {
             ObjectSerializedInfo objectSerializedInfo = new ObjectSerializedInfo();
 
-#if UNITY_2019_4_OR_NEWER
             objectSerializedInfo.m_SerializedObject = serializedObject;
             objectSerializedInfo.m_Header = header;
             objectSerializedInfo.m_RawData = rawData;
-#else
-            SetFieldValue(objectSerializedInfo, "m_SerializedObject", serializedObject);
-            SetFieldValue(objectSerializedInfo, "m_Header", header);
-            SetFieldValue(objectSerializedInfo, "m_RawData", rawData);
-#endif
 
             return objectSerializedInfo;
         }
@@ -655,15 +685,9 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize.Tests
         {
             ResourceFile resourceFile = new ResourceFile();
 
-#if UNITY_2019_4_OR_NEWER
             resourceFile.m_FileName = filename;
             resourceFile.m_FileAlias = fileAlias;
             resourceFile.m_SerializedFile = serializedFile;
-#else
-            SetFieldValue(resourceFile, "m_FileName", filename);
-            SetFieldValue(resourceFile, "m_FileAlias", fileAlias);
-            SetFieldValue(resourceFile, "m_SerializedFile", serializedFile);
-#endif
 
             return resourceFile;
         }
@@ -673,15 +697,9 @@ namespace UnityEditor.Build.Pipeline.Utilities.USerialize.Tests
         {
             SerializedLocation serializedLocation = new SerializedLocation();
 
-#if UNITY_2019_4_OR_NEWER
             serializedLocation.m_FileName = filename;
             serializedLocation.m_Offset = offset;
             serializedLocation.m_Size = size;
-#else
-            SetFieldValue(serializedLocation, "m_FileName", filename);
-            SetFieldValue(serializedLocation, "m_Offset", offset);
-            SetFieldValue(serializedLocation, "m_Size", size);
-#endif
 
             return serializedLocation;
         }

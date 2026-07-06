@@ -43,31 +43,17 @@ namespace UnityEditor.Build.Pipeline.Tasks
         CacheEntry GetCacheEntry(GUID asset)
         {
             CacheEntry entry;
-#if NONRECURSIVE_DEPENDENCY_DATA
             entry = m_Cache.GetCacheEntry(asset, m_Parameters.NonRecursiveDependencies ? -Version : Version);
-#else
-            entry = m_Cache.GetCacheEntry(asset, Version);
-#endif
             return entry;
         }
 
         CacheEntry GetCacheEntry(string asset)
         {
-#if UNITY_2020_1_OR_NEWER
             GUID guid = AssetDatabase.AssetPathToGUID_Internal(asset);
-#else
-            string stringGUID = AssetDatabase.AssetPathToGUID(asset);
-            if (GUID.TryParse(stringGUID, out GUID guid))
-                return GetCacheEntry(guid);
-#endif
             if (!guid.Empty())
                 return GetCacheEntry(guid);
 
-#if NONRECURSIVE_DEPENDENCY_DATA
             return m_Cache.GetCacheEntry(asset, m_Parameters.NonRecursiveDependencies ? -Version : Version);
-#else
-            return m_Cache.GetCacheEntry(asset, Version);
-#endif
         }
 
         CachedInfo GetCachedInfo(GUID scene, IEnumerable<ObjectIdentifier> references, SceneDependencyInfo sceneInfo, BuildUsageTagSet usageTags, IEnumerable<CacheEntry> prefabEntries, Hash128 prefabDependency)
@@ -75,11 +61,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             var info = new CachedInfo();
             info.Asset = GetCacheEntry(scene);
 
-#if ENABLE_TYPE_HASHING || UNITY_2020_1_OR_NEWER
             var uniqueTypes = new HashSet<System.Type>(sceneInfo.includedTypes);
-#else
-            var uniqueTypes = new HashSet<System.Type>();
-#endif
             var objectTypes = new List<ObjectTypes>();
             var dependencies = new HashSet<CacheEntry>(prefabEntries);
             ExtensionMethods.ExtractCommonCacheData(m_Cache, null, references, uniqueTypes, objectTypes, dependencies);
@@ -108,19 +90,26 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
             List<CachedInfo> info = new List<CachedInfo>(m_Content.Scenes.Count);
             BuildSettings settings = m_Parameters.GetContentBuildSettings();
+            HashSet<GUID> explicitAssetsSet = m_Parameters.NonRecursiveDependencies
+                ? new HashSet<GUID>(m_Content.Assets)
+                : null;
             for (int i = 0; i < m_Content.Scenes.Count; i++)
             {
                 using (m_Log.ScopedStep(LogLevel.Info, "Calculate Scene Dependencies"))
                 {
                     GUID scene = m_Content.Scenes[i];
                     string scenePath = AssetDatabase.GUIDToAssetPath(scene.ToString());
+                    m_Log.AddArgSafe("ScenePath", scenePath);
+                    m_Log.AddArgSafe("GUID", scene.ToString());
 
                     SceneDependencyInfo sceneInfo;
                     BuildUsageTagSet usageTags;
                     Hash128 prefabDependency = new Hash128();
                     bool useCachedScene = false;
 
-                    if (cachedInfo != null && cachedInfo[i] != null)
+                    var isCached = cachedInfo != null && cachedInfo[i] != null;
+                    m_Log.AddArgSafe("Cached", isCached.ToString());
+                    if (isCached)
                     {
                         useCachedScene = true;
                         if (!m_Tracker.UpdateInfoUnchecked(string.Format("{0} (Cached)", scenePath)))
@@ -145,15 +134,13 @@ namespace UnityEditor.Build.Pipeline.Tasks
                                 {
                                     ObjectIdentifier[] filteredReferences = sceneInfo.referencedObjects.ToArray();
                                     ObjectIdentifier[] filteredReferencesNew = null;
-#if NONRECURSIVE_DEPENDENCY_DATA
                                     if (m_Parameters.NonRecursiveDependencies)
                                     {
                                         var sceneInfoNew = ContentBuildInterface.CalculatePlayerDependenciesForScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache, DependencyType.ValidReferences);
                                         filteredReferencesNew = sceneInfoNew.referencedObjects.ToArray();
-                                        filteredReferencesNew = ExtensionMethods.FilterReferencedObjectIDs(scene, filteredReferencesNew, m_Parameters.Target, m_Parameters.ScriptInfo, new HashSet<GUID>(m_Content.Assets));
+                                        filteredReferencesNew = ExtensionMethods.FilterReferencedObjectIDs(scene, filteredReferencesNew, m_Parameters.Target, m_Parameters.ScriptInfo, explicitAssetsSet);
                                     }
                                     else
-#endif
                                     {
                                         var sceneInfoNew = ContentBuildInterface.CalculatePlayerDependenciesForScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache);
                                         filteredReferencesNew = sceneInfoNew.referencedObjects.ToArray();
@@ -186,17 +173,15 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
                         usageTags = new BuildUsageTagSet();
 
-#if NONRECURSIVE_DEPENDENCY_DATA
                         if (m_Parameters.NonRecursiveDependencies)
                         {
                             sceneInfo = ContentBuildInterface.CalculatePlayerDependenciesForScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache, DependencyType.ValidReferences);
                             ObjectIdentifier[] filteredReferences = sceneInfo.referencedObjects.ToArray();
-                            filteredReferences = ExtensionMethods.FilterReferencedObjectIDs(scene, filteredReferences, m_Parameters.Target, m_Parameters.ScriptInfo, new HashSet<GUID>(m_Content.Assets));
+                            filteredReferences = ExtensionMethods.FilterReferencedObjectIDs(scene, filteredReferences, m_Parameters.Target, m_Parameters.ScriptInfo, explicitAssetsSet);
                             ContentBuildInterface.CalculateBuildUsageTags(filteredReferences, filteredReferences, sceneInfo.globalUsage, usageTags);
                             sceneInfo.SetReferencedObjects(filteredReferences);
                         }
                         else
-#endif
                         {
                             sceneInfo = ContentBuildInterface.CalculatePlayerDependenciesForScene(scenePath, settings, usageTags, m_DependencyData.DependencyUsageCache);
                         }

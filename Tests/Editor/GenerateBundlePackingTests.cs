@@ -60,58 +60,58 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
 
         [Test]
-        public void WhenReferencesAreUnique_FilterReferencesForAsset_ReturnsReferences()
+        public void WhenReferencesAreUnique_FilterReferencesForAsset_ReturnsReferences([Values] bool recursiveDeps)
         {
             var assetInBundle = new GUID("00000000000000000000000000000000");
             List<ObjectIdentifier> objects = CreateObjectIdentifierList("path", assetInBundle, assetInBundle);
             IDependencyData dep = GetDependencyData(objects, assetInBundle);
 
             var references = new List<ObjectIdentifier>(objects);
-            List<GUID> results = GenerateBundlePacking.FilterReferencesForAsset(dep, assetInBundle, references);
+            List<GUID> results = GenerateBundlePacking.FilterReferencesForAsset(dep, assetInBundle, references, recursiveDeps);
             Assert.AreEqual(1, results.Count);
             Assert.AreEqual(assetInBundle, results[0]);
         }
 
         [Test]
-        public void WhenReferencesContainsDefaultResources_FilterReferencesForAsset_PrunesDefaultResources()
+        public void WhenReferencesContainsDefaultResources_FilterReferencesForAsset_PrunesDefaultResources([Values] bool recursiveDeps)
         {
             var assetInBundle = new GUID("00000000000000000000000000000000");
             List<ObjectIdentifier> objects = CreateObjectIdentifierList(CommonStrings.UnityDefaultResourcePath, assetInBundle);
             IDependencyData dep = GetDependencyData(objects, assetInBundle);
 
             var references = new List<ObjectIdentifier>(objects);
-            GenerateBundlePacking.FilterReferencesForAsset(dep, assetInBundle, references);
+            GenerateBundlePacking.FilterReferencesForAsset(dep, assetInBundle, references, recursiveDeps);
             Assert.AreEqual(0, references.Count);
         }
 
         [Test]
-        public void WhenReferencesContainsAssetsInBundles_FilterReferencesForAsset_PrunesAssetsInBundles()
+        public void WhenReferencesContainsAssetsInBundles_FilterReferencesForAsset_PrunesAssetsInBundles([Values] bool recursiveDeps)
         {
             var assetInBundle = new GUID("00000000000000000000000000000000");
             List<ObjectIdentifier> objects = CreateObjectIdentifierList("path", assetInBundle);
             IDependencyData dep = GetDependencyData(objects, assetInBundle);
 
             var references = new List<ObjectIdentifier>(objects);
-            GenerateBundlePacking.FilterReferencesForAsset(dep, assetInBundle, references);
+            GenerateBundlePacking.FilterReferencesForAsset(dep, assetInBundle, references, recursiveDeps);
             Assert.AreEqual(0, references.Count);
         }
 
         [Test]
-        public void WhenReferencesDoesNotContainAssetsInBundles_FilterReferences_PrunesNothingAndReturnsNothing()
+        public void WhenReferencesDoesNotContainAssetsInBundles_FilterReferences_PrunesNothingAndReturnsNothing([Values] bool recursiveDeps)
         {
             var assetInBundle = new GUID("00000000000000000000000000000000");
             List<ObjectIdentifier> objects = CreateObjectIdentifierList("path", assetInBundle);
             IDependencyData dep = new BuildDependencyData();
 
             var references = new List<ObjectIdentifier>(objects);
-            List<GUID> results = GenerateBundlePacking.FilterReferencesForAsset(dep, assetInBundle, references);
+            List<GUID> results = GenerateBundlePacking.FilterReferencesForAsset(dep, assetInBundle, references, recursiveDeps);
             Assert.AreEqual(1, references.Count);
             Assert.AreEqual(assetInBundle, references[0].guid);
             Assert.AreEqual(0, results.Count);
         }
 
         [Test]
-        public void WhenReferencesContainsRefsIncludedByNonCircularAssets_FilterReferencesForAsset_PrunesRefsIncludedByNonCircularAssets()
+        public void WhenReferencesContainsRefsIncludedByNonCircularAssets_FilterReferencesForAsset_PrunesRefsIncludedByNonCircularAssets([Values] bool recursiveDeps)
         {
             var assetNotInBundle = new GUID("00000000000000000000000000000000");
             var referenceInBundle = new GUID("00000000000000000000000000000001");
@@ -120,12 +120,16 @@ namespace UnityEditor.Build.Pipeline.Tests
             IDependencyData dep = GetDependencyData(objects, referenceInBundle);
 
             List<ObjectIdentifier> references = CreateObjectIdentifierList("path", referenceInBundle, referenceNotInBundle);
-            GenerateBundlePacking.FilterReferencesForAsset(dep, assetNotInBundle, references);
-            Assert.AreEqual(0, references.Count);
+            GenerateBundlePacking.FilterReferencesForAsset(dep, assetNotInBundle, references, recursiveDeps);
+
+            if (recursiveDeps)
+                Assert.AreEqual(0, references.Count);
+            else
+                Assert.AreEqual(1, references.Count);
         }
 
         [Test]
-        public void WhenReferencesContainsRefsIncludedByCircularAssetsWithLowerGuid_FilterReferencesForAsset_PrunesRefsIncludedByCircularAssetsWithLowerGuid()
+        public void WhenReferencesContainsRefsIncludedByCircularAssetsWithLowerGuid_FilterReferencesForAsset_PrunesRefsIncludedByCircularAssetsWithLowerGuid([Values] bool recursiveDeps)
         {
             var assetNotInBundle = new GUID("00000000000000000000000000000001");
             var referenceInBundle = new GUID("00000000000000000000000000000000");
@@ -133,12 +137,16 @@ namespace UnityEditor.Build.Pipeline.Tests
             IDependencyData dep = GetDependencyData(objects, referenceInBundle);
 
             List<ObjectIdentifier> references = CreateObjectIdentifierList("path", referenceInBundle, assetNotInBundle);
-            GenerateBundlePacking.FilterReferencesForAsset(dep, assetNotInBundle, references);
-            Assert.AreEqual(0, references.Count);
+            GenerateBundlePacking.FilterReferencesForAsset(dep, assetNotInBundle, references, recursiveDeps);
+
+            if (recursiveDeps)
+                Assert.AreEqual(0, references.Count);
+            else
+                Assert.AreEqual(1, references.Count);
         }
 
         [Test]
-        public void WhenReferencesContainsRefsIncludedByCircularAssetsWithHigherGuid_FilterReferencesForAsset_DoesNotPruneRefsIncludedByCircularAssetsWithHigherGuid()
+        public void WhenReferencesContainsRefsIncludedByCircularAssetsWithHigherGuid_FilterReferencesForAsset_DoesNotPruneRefsIncludedByCircularAssetsWithHigherGuid([Values] bool recursiveDeps)
         {
             var assetNotInBundle = new GUID("00000000000000000000000000000000");
             var referenceInBundle = new GUID("00000000000000000000000000000001");
@@ -146,13 +154,13 @@ namespace UnityEditor.Build.Pipeline.Tests
             IDependencyData dep = GetDependencyData(objects, referenceInBundle);
 
             List<ObjectIdentifier> references = CreateObjectIdentifierList("path", referenceInBundle, assetNotInBundle);
-            GenerateBundlePacking.FilterReferencesForAsset(dep, assetNotInBundle, references);
+            GenerateBundlePacking.FilterReferencesForAsset(dep, assetNotInBundle, references, recursiveDeps);
             Assert.AreEqual(1, references.Count);
             Assert.AreEqual(assetNotInBundle, references[0].guid);
         }
 
         [Test]
-        public void WhenReferencesContainsPreviousSceneObjects_FilterReferencesForAsset_PrunesPreviousSceneObjects()
+        public void WhenReferencesContainsPreviousSceneObjects_FilterReferencesForAsset_PrunesPreviousSceneObjects([Values] bool recursiveDeps)
         {
             var assetInBundle = new GUID("00000000000000000000000000000001");
             var referenceNotInBundle = new GUID("00000000000000000000000000000000");
@@ -160,12 +168,12 @@ namespace UnityEditor.Build.Pipeline.Tests
             IDependencyData dep = GetDependencyData(objects, assetInBundle);
 
             var references = new List<ObjectIdentifier>(objects);
-            GenerateBundlePacking.FilterReferencesForAsset(dep, assetInBundle, references, new HashSet<ObjectIdentifier>() { objects[0] });
+            GenerateBundlePacking.FilterReferencesForAsset(dep, assetInBundle, references, recursiveDeps, new HashSet<ObjectIdentifier>() { objects[0] });
             Assert.AreEqual(0, references.Count);
         }
 
         [Test]
-        public void WhenReferencesContainPreviousSceneAssetDependencies_FilterReferencesForAsset_PrunesPreviousAssetDependencies([Values] bool containsPreviousSceneAsset)
+        public void WhenReferencesContainPreviousSceneAssetDependencies_FilterReferencesForAsset_PrunesPreviousAssetDependencies([Values] bool containsPreviousSceneAsset, [Values] bool recursiveDeps)
         {
             var assetInBundle = new GUID("00000000000000000000000000000001");
             var referenceNotInBundle = new GUID("00000000000000000000000000000000");
@@ -176,23 +184,13 @@ namespace UnityEditor.Build.Pipeline.Tests
             var previousSceneReferences = new HashSet<GUID>();
             if (containsPreviousSceneAsset)
                 previousSceneReferences.Add(assetInBundle);
-            GenerateBundlePacking.FilterReferencesForAsset(dep, assetInBundle, references, new HashSet<ObjectIdentifier>(), previousSceneReferences);
+            GenerateBundlePacking.FilterReferencesForAsset(dep, assetInBundle, references, recursiveDeps, new HashSet<ObjectIdentifier>(), previousSceneReferences);
 
             if (containsPreviousSceneAsset)
                 Assert.AreEqual(0, references.Count);
             else
                 Assert.AreEqual(1, references.Count);
         }
-
-#if !UNITY_2019_1_OR_NEWER
-        [Test]
-        public void WhenPrefabContainsDuplicateTypes_GetSortedSceneObjectIdentifiers_DoesNotThorwError()
-        {
-            var includes = new List<ObjectIdentifier>(ContentBuildInterface.GetPlayerObjectIdentifiersInAsset(k_TempGuid, EditorUserBuildSettings.activeBuildTarget));
-            var sorted = GenerateBundleCommands.GetSortedSceneObjectIdentifiers(includes);
-            Assert.AreEqual(includes.Count, sorted.Count);
-        }
-#endif
 
         [Test]
         public void BuildCacheUtility_GetSortedUniqueTypesForObjects_ReturnsUniqueAndSortedTypeArray()

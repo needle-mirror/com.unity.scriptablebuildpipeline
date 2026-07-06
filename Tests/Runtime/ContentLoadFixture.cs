@@ -1,4 +1,3 @@
-#if UNITY_2022_2_OR_NEWER
 using NUnit.Framework;
 using NUnit.Framework.Interfaces;
 using System;
@@ -19,37 +18,69 @@ using UnityEditor.Build.Pipeline.Utilities;
 
 namespace UnityEditor.Build.Pipeline.Tests.ContentLoad
 {
+    /// <summary>
+    /// Base fixture for content file loading tests. Builds test content and a <see cref="Catalog"/> before the test run and loads content from it during tests.
+    /// </summary>
     public abstract class ContentFileFixture : IPrebuildSetup, IPostBuildCleanup
     {
+        /// <summary>
+        /// The root directory that test content is built to.
+        /// </summary>
         protected string m_ContentRoot;
 
+        /// <summary>
+        /// The root directory that test content is built to.
+        /// </summary>
         protected string ContentRoot
         {
             get { return m_ContentRoot; }
         }
 
+        /// <summary>
+        /// The directory containing the built content for this fixture.
+        /// </summary>
         public virtual string ContentDir
         {
             get { return Path.Combine(ContentRoot, this.GetType().Name); }
         }
 
+        /// <summary>
+        /// The currently loaded catalog. See <see cref="LoadCatalog"/>.
+        /// </summary>
         protected Catalog m_Catalog;
+
+        /// <summary>
+        /// The directory containing the currently loaded catalog.
+        /// </summary>
         protected string m_CatalogDir;
+
+        /// <summary>
+        /// The content namespace used for loading content files during a test.
+        /// </summary>
         protected ContentNamespace m_NS;
         Dictionary<string, ContentFile> m_LoadedFiles = new Dictionary<string, ContentFile>();
         List<ContentFile> m_ToUnload = new List<ContentFile>();
 
+        /// <summary>
+        /// Creates the fixture with the content root set to the streaming assets path.
+        /// </summary>
         public ContentFileFixture()
         {
             m_ContentRoot = Application.streamingAssetsPath;
         }
 
+        /// <summary>
+        /// Creates the content namespace before each test.
+        /// </summary>
         [SetUp]
         public void SetUp()
         {
             m_NS = ContentNamespace.GetOrCreateNamespace("Test");
         }
 
+        /// <summary>
+        /// Unloads any content files loaded during the test and deletes the content namespace.
+        /// </summary>
         [TearDown]
         public void TearDown()
         {
@@ -66,7 +97,9 @@ namespace UnityEditor.Build.Pipeline.Tests.ContentLoad
             m_NS.Delete();
         }
 
-        // IPostBuildCleanup
+        /// <summary>
+        /// IPostBuildCleanup implementation. Deletes the built content after the test run.
+        /// </summary>
         public virtual void Cleanup()
         {
 #if UNITY_EDITOR
@@ -79,6 +112,11 @@ namespace UnityEditor.Build.Pipeline.Tests.ContentLoad
 #endif
         }
 
+        /// <summary>
+        /// Loads the named catalog from the built content into <see cref="m_Catalog"/>.
+        /// </summary>
+        /// <param name="name">The name of the catalog to load.</param>
+        /// <param name="mountAllArchives">Unused.</param>
         public void LoadCatalog(string name, bool mountAllArchives = true)
         {
             m_CatalogDir = Path.Combine(ContentDir, name);
@@ -86,6 +124,11 @@ namespace UnityEditor.Build.Pipeline.Tests.ContentLoad
             m_Catalog = Catalog.LoadFromFile(path);
         }
 
+        /// <summary>
+        /// Gets the full path of a file within the currently loaded catalog directory.
+        /// </summary>
+        /// <param name="fn">The filename relative to the catalog directory.</param>
+        /// <returns>The full path of the file.</returns>
         public string GetVFSFilename(string fn)
         {
             return Path.Combine(m_CatalogDir, fn);
@@ -203,6 +246,9 @@ namespace UnityEditor.Build.Pipeline.Tests.ContentLoad
         }
 #endif
 
+        /// <summary>
+        /// IPrebuildSetup implementation. Builds the test content in the editor before the test run.
+        /// </summary>
         public void Setup()
         {
 #if UNITY_EDITOR
@@ -211,4 +257,3 @@ namespace UnityEditor.Build.Pipeline.Tests.ContentLoad
         }
     }
 }
-#endif

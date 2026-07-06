@@ -16,7 +16,6 @@ namespace UnityEditor.Build.Pipeline.Tests
         [Test]
         public void TestCanBuildPlayer()
         {
-#if UNITY_2021_3_OR_NEWER
             // this will always return false for IsBuildTargetSupported, so it tests that pathway
             Assert.AreEqual(true, ContentPipeline.CanBuildPlayer(BuildTarget.NoTarget, BuildTargetGroup.Unknown, null));
 #if UNITY_EDITOR_WIN
@@ -50,12 +49,8 @@ namespace UnityEditor.Build.Pipeline.Tests
             }
 #endif
 
-#else
-            Assert.AreEqual(true, ContentPipeline.CanBuildPlayer(BuildTarget.StandaloneWindows, BuildTargetGroup.Standalone));
-#endif
         }
 
-#if UNITY_2021_3_OR_NEWER
         internal class TestBuildWindowExtension : IBuildWindowExtension
         {
             private bool m_EnabledBuildButton;
@@ -164,7 +159,6 @@ namespace UnityEditor.Build.Pipeline.Tests
             {
             }
         }
-#endif
     }
 }
 

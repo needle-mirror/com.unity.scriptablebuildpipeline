@@ -2,6 +2,7 @@ using System;
 using UnityEditor.Build.Pipeline.Utilities;
 using UnityEditor.SceneManagement;
 using System.Linq;
+using UnityEditor.Build.Pipeline.Interfaces;
 
 namespace UnityEditor.Build.Utilities
 {
@@ -10,6 +11,8 @@ namespace UnityEditor.Build.Utilities
     /// </summary>
     public class SceneStateCleanup : IDisposable
     {
+        IBuildLogger m_Logger;
+
         SceneSetup[] m_Scenes;
 
         bool m_Disposed;
@@ -17,9 +20,14 @@ namespace UnityEditor.Build.Utilities
         /// <summary>
         /// Creates a new scene state cleanup object.
         /// </summary>
-        public SceneStateCleanup()
+        /// <param name="logger">The build logger to report scene restore steps to, or null for no logging.</param>
+        public SceneStateCleanup(IBuildLogger logger = null)
         {
-            m_Scenes = EditorSceneManager.GetSceneManagerSetup();
+            m_Logger = logger;
+            using (m_Logger?.ScopedStep(LogLevel.Verbose, "SceneStateCleanup Init"))
+            {
+                m_Scenes = EditorSceneManager.GetSceneManagerSetup();
+            }
         }
 
         /// <summary>
@@ -27,8 +35,11 @@ namespace UnityEditor.Build.Utilities
         /// </summary>
         public void Dispose()
         {
-            Dispose(true);
-            GC.SuppressFinalize(this);
+            using (m_Logger?.ScopedStep(LogLevel.Verbose, "SceneStateCleanup Dispose"))
+            {
+                Dispose(true);
+                GC.SuppressFinalize(this);
+            }
         }
 
         /// <summary>

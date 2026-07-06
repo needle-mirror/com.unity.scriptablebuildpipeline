@@ -21,6 +21,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
 #pragma warning disable 649
         [InjectContext(ContextUsage.In)]
+        IBundleBuildParameters m_Parameters;
+
+        [InjectContext(ContextUsage.In)]
         IBundleBuildContent m_BuildContent;
 
         [InjectContext(ContextUsage.In)]
@@ -28,6 +31,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
         [InjectContext]
         IBundleWriteData m_WriteData;
+
+        [InjectContext(Optional = true)]
+        private IBuildLogger m_Logger;
 
         [InjectContext(ContextUsage.In)]
         IDeterministicIdentifiers m_PackingMethod;
@@ -45,32 +51,40 @@ namespace UnityEditor.Build.Pipeline.Tasks
         /// <inheritdoc />
         public ReturnCode Run()
         {
+            bool recursiveDependencies = !m_Parameters.NonRecursiveDependencies;
+
             Dictionary<GUID, List<GUID>> assetToReferences = new Dictionary<GUID, List<GUID>>();
             HashSet<GUID> customAssets = new HashSet<GUID>();
             if (m_CustomAssets != null)
                 customAssets.UnionWith(m_CustomAssets.Assets);
 
             // Pack each asset bundle
-            foreach (var bundle in m_BuildContent.BundleLayout)
+            using (m_Logger.ScopedStep(LogLevel.Info, "Calculate Bundle Layout"))
             {
-                if (ValidAssetBundle(bundle.Value, customAssets))
-                    PackAssetBundle(bundle.Key, bundle.Value, assetToReferences);
-                else if (ValidationMethods.ValidSceneBundle(bundle.Value))
-                    PackSceneBundle(bundle.Key, bundle.Value, assetToReferences);
+                foreach (var bundle in m_BuildContent.BundleLayout)
+                {
+                    if (ValidAssetBundle(bundle.Value, customAssets))
+                        PackAssetBundle(bundle.Key, bundle.Value, assetToReferences, recursiveDependencies);
+                    else if (ValidationMethods.ValidSceneBundle(bundle.Value))
+                        PackSceneBundle(bundle.Key, bundle.Value, assetToReferences, recursiveDependencies);
+                }
             }
 
             // Calculate Asset file load dependency list
-            foreach (var bundle in m_BuildContent.BundleLayout)
+            using (m_Logger.ScopedStep(LogLevel.Info, "Calculate Dependencies"))
             {
-                foreach (var asset in bundle.Value)
+                foreach (var bundle in m_BuildContent.BundleLayout)
                 {
-                    List<string> files = m_WriteData.AssetToFiles[asset];
-                    List<GUID> references = assetToReferences[asset];
-                    foreach (var reference in references)
+                    foreach (var asset in bundle.Value)
                     {
-                        List<string> referenceFiles = m_WriteData.AssetToFiles[reference];
-                        if (!files.Contains(referenceFiles[0]))
-                            files.Add(referenceFiles[0]);
+                        List<string> files = m_WriteData.AssetToFiles[asset];
+                        List<GUID> references = assetToReferences[asset];
+                        foreach (var reference in references)
+                        {
+                            List<string> referenceFiles = m_WriteData.AssetToFiles[reference];
+                            if (!files.Contains(referenceFiles[0]))
+                                files.Add(referenceFiles[0]);
+                        }
                     }
                 }
             }
@@ -78,63 +92,77 @@ namespace UnityEditor.Build.Pipeline.Tasks
             return ReturnCode.Success;
         }
 
-        void PackAssetBundle(string bundleName, List<GUID> includedAssets, Dictionary<GUID, List<GUID>> assetToReferences)
+        void PackAssetBundle(string bundleName, List<GUID> includedAssets, Dictionary<GUID, List<GUID>> assetToReferences, bool recursiveDependencies)
         {
             var internalName = string.Format(CommonStrings.AssetBundleNameFormat, m_PackingMethod.GenerateInternalFileName(bundleName));
-
-            var allObjects = new HashSet<ObjectIdentifier>();
-            Dictionary<GUID, HashSet<ObjectIdentifier>> assetObjectIdentifierHashSets = new Dictionary<GUID, HashSet<ObjectIdentifier>>();
-            foreach (var asset in includedAssets)
+            using (m_Logger.ScopedStep(LogLevel.Verbose, "PackAssetBundle",
+                ("BundleName", bundleName),
+                ("InternalName", internalName),
+                ("IncludedAssets", includedAssets.Count.ToString()),
+                ("RecursiveDependencies", recursiveDependencies.ToString())))
             {
-                AssetLoadInfo assetInfo = m_DependencyData.AssetInfo[asset];
-                allObjects.UnionWith(assetInfo.includedObjects);
 
-                var references = new List<ObjectIdentifier>();
-                references.AddRange(assetInfo.referencedObjects);
-                assetToReferences[asset] = FilterReferencesForAsset(m_DependencyData, asset, references, null, null, assetObjectIdentifierHashSets);
+                var allObjects = new HashSet<ObjectIdentifier>();
+                Dictionary<GUID, HashSet<ObjectIdentifier>> assetObjectIdentifierHashSets = new Dictionary<GUID, HashSet<ObjectIdentifier>>();
+                foreach (var asset in includedAssets)
+                {
+                    AssetLoadInfo assetInfo = m_DependencyData.AssetInfo[asset];
+                    allObjects.UnionWith(assetInfo.includedObjects);
 
-                allObjects.UnionWith(references);
-                m_WriteData.AssetToFiles[asset] = new List<string> { internalName };
+                    var references = new List<ObjectIdentifier>();
+                    references.AddRange(assetInfo.referencedObjects);
+                    assetToReferences[asset] = FilterReferencesForAsset(m_DependencyData, asset, references, recursiveDependencies, null, null, assetObjectIdentifierHashSets);
+
+                    allObjects.UnionWith(references);
+                    m_WriteData.AssetToFiles[asset] = new List<string> { internalName };
+                }
+
+                m_WriteData.FileToBundle.Add(internalName, bundleName);
+                m_WriteData.FileToObjects.Add(internalName, allObjects.ToList());
             }
-
-            m_WriteData.FileToBundle.Add(internalName, bundleName);
-            m_WriteData.FileToObjects.Add(internalName, allObjects.ToList());
         }
 
-        void PackSceneBundle(string bundleName, List<GUID> includedScenes, Dictionary<GUID, List<GUID>> assetToReferences)
+        void PackSceneBundle(string bundleName, List<GUID> includedScenes, Dictionary<GUID, List<GUID>> assetToReferences, bool recursiveDependencies)
         {
             if (includedScenes.IsNullOrEmpty())
                 return;
 
-            string firstFileName = "";
-            HashSet<ObjectIdentifier> previousSceneObjects = new HashSet<ObjectIdentifier>();
-            HashSet<GUID> previousSceneAssets = new HashSet<GUID>();
-            List<string> sceneInternalNames = new List<string>();
-            Dictionary<GUID, HashSet<ObjectIdentifier>> assetObjectIdentifierHashSets = new Dictionary<GUID, HashSet<ObjectIdentifier>>();
-            foreach (var scene in includedScenes)
+            using (m_Logger.ScopedStep(LogLevel.Verbose, "PackSceneBundle",
+                       ("BundleName", bundleName),
+                       ("IncludedScenes", includedScenes.Count.ToString()),
+                       ("RecursiveDependencies", recursiveDependencies.ToString())))
             {
-                var scenePath = AssetDatabase.GUIDToAssetPath(scene.ToString());
-                var internalSceneName = m_PackingMethod.GenerateInternalFileName(scenePath);
-                if (string.IsNullOrEmpty(firstFileName))
-                    firstFileName = internalSceneName;
-                var internalName = string.Format(CommonStrings.SceneBundleNameFormat, firstFileName, internalSceneName);
+                string firstFileName = "";
+                HashSet<ObjectIdentifier> previousSceneObjects = new HashSet<ObjectIdentifier>();
+                HashSet<GUID> previousSceneAssets = new HashSet<GUID>();
+                List<string> sceneInternalNames = new List<string>();
+                Dictionary<GUID, HashSet<ObjectIdentifier>> assetObjectIdentifierHashSets = new Dictionary<GUID, HashSet<ObjectIdentifier>>();
+                foreach (var scene in includedScenes)
+                {
+                    var scenePath = AssetDatabase.GUIDToAssetPath(scene.ToString());
+                    var internalSceneName = m_PackingMethod.GenerateInternalFileName(scenePath);
+                    if (string.IsNullOrEmpty(firstFileName))
+                        firstFileName = internalSceneName;
+                    var internalName = string.Format(CommonStrings.SceneBundleNameFormat, firstFileName, internalSceneName);
 
-                SceneDependencyInfo sceneInfo = m_DependencyData.SceneInfo[scene];
+                    SceneDependencyInfo sceneInfo = m_DependencyData.SceneInfo[scene];
 
-                var references = new List<ObjectIdentifier>();
-                references.AddRange(sceneInfo.referencedObjects);
-                assetToReferences[scene] = FilterReferencesForAsset(m_DependencyData, scene, references, previousSceneObjects, previousSceneAssets, assetObjectIdentifierHashSets);
-                previousSceneObjects.UnionWith(references);
-                previousSceneAssets.UnionWith(assetToReferences[scene]);
+                    var references = new List<ObjectIdentifier>();
+                    references.AddRange(sceneInfo.referencedObjects);
+                    assetToReferences[scene] = FilterReferencesForAsset(m_DependencyData, scene, references, recursiveDependencies, previousSceneObjects, previousSceneAssets,
+                        assetObjectIdentifierHashSets);
+                    previousSceneObjects.UnionWith(references);
+                    previousSceneAssets.UnionWith(assetToReferences[scene]);
 
-                m_WriteData.FileToObjects.Add(internalName, references);
-                m_WriteData.FileToBundle.Add(internalName, bundleName);
+                    m_WriteData.FileToObjects.Add(internalName, references);
+                    m_WriteData.FileToBundle.Add(internalName, bundleName);
 
-                var files = new List<string> { internalName };
-                files.AddRange(sceneInternalNames);
-                m_WriteData.AssetToFiles[scene] = files;
+                    var files = new List<string> { internalName };
+                    files.AddRange(sceneInternalNames);
+                    m_WriteData.AssetToFiles[scene] = files;
 
-                sceneInternalNames.Add(internalName);
+                    sceneInternalNames.Add(internalName);
+                }
             }
         }
 
@@ -149,7 +177,8 @@ namespace UnityEditor.Build.Pipeline.Tasks
             return refObjectIdLookup;
         }
 
-        internal static List<GUID> FilterReferencesForAsset(IDependencyData dependencyData, GUID asset, List<ObjectIdentifier> references, HashSet<ObjectIdentifier> previousSceneObjects = null, HashSet<GUID> previousSceneReferences = null, Dictionary<GUID, HashSet<ObjectIdentifier>> assetObjectIdentifierHashSets = null)
+        internal static List<GUID> FilterReferencesForAsset(IDependencyData dependencyData, GUID asset, List<ObjectIdentifier> references, bool recursiveDependencies,
+            HashSet<ObjectIdentifier> previousSceneObjects = null, HashSet<GUID> previousSceneReferences = null, Dictionary<GUID, HashSet<ObjectIdentifier>> assetObjectIdentifierHashSets = null)
         {
             var referencedAssets = new HashSet<AssetLoadInfo>();
             var referencedAssetsGuids = new List<GUID>(referencedAssets.Count);
@@ -172,26 +201,30 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
             // Remove References also included by non-circular Referenced Assets
             // Remove References also included by circular Referenced Assets if Asset's GUID is higher than Referenced Asset's GUID
-            foreach (AssetLoadInfo referencedAsset in referencedAssets)
+            // Only needed for recursive dependencies, for non-recursive these assets won't be in the dependencies anyway
+            if (recursiveDependencies)
             {
-                if ((asset > referencedAsset.asset) || (asset == referencedAsset.asset))
+                foreach (AssetLoadInfo referencedAsset in referencedAssets)
                 {
-                    references.RemoveAll(GetRefObjectIdLookup(referencedAsset, assetObjectIdentifierHashSets).Contains);
-                }
-                else
-                {
-                    bool exists = false;
-                    foreach (ObjectIdentifier referencedObject in referencedAsset.referencedObjects)
-                    {
-                        if (referencedObject.guid == asset)
-                        {
-                            exists = true;
-                            break;
-                        }
-                    }
-                    if (!exists)
+                    if ((asset > referencedAsset.asset) || (asset == referencedAsset.asset))
                     {
                         references.RemoveAll(GetRefObjectIdLookup(referencedAsset, assetObjectIdentifierHashSets).Contains);
+                    }
+                    else
+                    {
+                        bool exists = false;
+                        foreach (ObjectIdentifier referencedObject in referencedAsset.referencedObjects)
+                        {
+                            if (referencedObject.guid == asset)
+                            {
+                                exists = true;
+                                break;
+                            }
+                        }
+                        if (!exists)
+                        {
+                            references.RemoveAll(GetRefObjectIdLookup(referencedAsset, assetObjectIdentifierHashSets).Contains);
+                        }
                     }
                 }
             }

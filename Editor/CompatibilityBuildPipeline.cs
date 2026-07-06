@@ -6,11 +6,7 @@ using UnityEngine.Build.Pipeline;
 
 namespace UnityEditor.Build.Pipeline
 {
-#if UNITY_2018_3_OR_NEWER
     using BuildCompression = UnityEngine.BuildCompression;
-#else
-    using BuildCompression = UnityEditor.Build.Content.BuildCompression;
-#endif
 
     /// <summary>
     /// Static class exposing convenient methods that match the BuildPipeline <see cref="BuildPipeline.BuildAssetBundles"/> method, suitable
@@ -68,29 +64,18 @@ namespace UnityEditor.Build.Pipeline
             if ((options & BuildAssetBundleOptions.AppendHashToAssetBundleName) != 0)
                 parameters.AppendHash = true;
 
-#if UNITY_2018_3_OR_NEWER
             if ((options & BuildAssetBundleOptions.ChunkBasedCompression) != 0)
                 parameters.BundleCompression = BuildCompression.LZ4;
             else if ((options & BuildAssetBundleOptions.UncompressedAssetBundle) != 0)
                 parameters.BundleCompression = BuildCompression.Uncompressed;
             else
                 parameters.BundleCompression = BuildCompression.LZMA;
-#else
-            if ((options & BuildAssetBundleOptions.ChunkBasedCompression) != 0)
-                parameters.BundleCompression = BuildCompression.DefaultLZ4;
-            else if ((options & BuildAssetBundleOptions.UncompressedAssetBundle) != 0)
-                parameters.BundleCompression = BuildCompression.DefaultUncompressed;
-            else
-                parameters.BundleCompression = BuildCompression.DefaultLZMA;
-#endif
 
             if ((options & BuildAssetBundleOptions.DisableWriteTypeTree) != 0)
                 parameters.ContentBuildFlags |= ContentBuildFlags.DisableWriteTypeTree;
 
-#if BUILD_OPTIONS_RECURSE_DEPENDENCIES_2022_3 || BUILD_OPTIONS_RECURSE_DEPENDENCIES_2023_3 || UNITY_6000_0_OR_NEWER
             if ((options & BuildAssetBundleOptions.RecurseDependencies) != 0)
                 parameters.NonRecursiveDependencies = false;
-#endif
 
             IBundleBuildResults results;
             ReturnCode exitCode = ContentPipeline.BuildAssetBundles(parameters, content, out results);

@@ -70,11 +70,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             public bool slimWriteResults = true;
             public int maximumCacheSize = 20;
             public bool useDetailedBuildLog = false;
-#if UNITY_2021_1_OR_NEWER
             public bool useV2Hasher = true;
-#elif UNITY_2020_1_OR_NEWER
-            public bool useV2Hasher = false;
-#endif
             public int fileIDHashSeed = 0;
             public int prefabPackedHeaderSize = 2;
         }
@@ -178,13 +174,11 @@ namespace UnityEditor.Build.Pipeline.Utilities
         /// <summary>
         /// Set this to true to use the same hasher as Asset Database V2. This hasher improves build cache performance, but invalidates the existing build cache.
         /// </summary>
-#if UNITY_2020_1_OR_NEWER
         public static bool useV2Hasher
         {
             get => s_Settings.useV2Hasher;
             set => CompareAndSet(ref s_Settings.useV2Hasher, value);
         }
-#endif
 
         // Internal as we don't want to allow setting these via API. We want to ensure they are saved to json, and checked in to the project version control.
         internal static int fileIDHashSeed
@@ -246,7 +240,6 @@ namespace UnityEditor.Build.Pipeline.Utilities
             LoadSettings();
         }
 
-#if UNITY_2019_1_OR_NEWER
         [SettingsProvider]
         static SettingsProvider CreateBuildCacheProvider()
         {
@@ -255,9 +248,6 @@ namespace UnityEditor.Build.Pipeline.Utilities
             return provider;
         }
 
-#else
-        [PreferenceItem("Scriptable Build Pipeline")]
-#endif
         static void OnGUI()
         {
             using (new GUIScope())
@@ -282,9 +272,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
             s_Settings.logAssetWarnings = EditorGUILayout.Toggle(Properties.logAssetWarnings, s_Settings.logAssetWarnings);
             s_Settings.slimWriteResults = EditorGUILayout.Toggle(Properties.slimWriteResults, s_Settings.slimWriteResults);
             s_Settings.useDetailedBuildLog = EditorGUILayout.Toggle(Properties.useDetailedBuildLog, s_Settings.useDetailedBuildLog);
-#if UNITY_2020_1_OR_NEWER
             s_Settings.useV2Hasher = EditorGUILayout.Toggle(Properties.v2Hasher, s_Settings.useV2Hasher);
-#endif
             GUILayout.BeginHorizontal();
             s_Settings.fileIDHashSeed = EditorGUILayout.IntField(Properties.hashSeed, s_Settings.fileIDHashSeed);
             if (GUILayout.Button(Properties.randSeed, GUILayout.Width(120)))

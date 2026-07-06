@@ -35,24 +35,16 @@ namespace UnityEditor.Build.Pipeline.Utilities
             if (inputBuffer == null || inputOffset < 0 || inputCount <= 0 || (inputCount > inputBuffer.Length) || (inputBuffer.Length - inputCount) < inputOffset)
                 return;
 
-#if UNITY_2020_1_OR_NEWER
             m_Hash.Append(inputBuffer, inputOffset, inputCount);
-#else
-            throw new System.InvalidOperationException("SpookyHash implementation was unstable and not deterministic prior to Unity 2020.1. Use MD5 or MD4 instead.");
-#endif
         }
 
         protected override byte[] HashFinal()
         {
-#if UNITY_2020_1_OR_NEWER
             byte[] results = new byte[UnsafeUtility.SizeOf<Hash128>()];
             byte* hashPtr = (byte*)UnsafeUtility.AddressOf(ref m_Hash);
             fixed(byte* d = results)
             UnsafeUtility.MemCpy(d, hashPtr, results.Length);
             return results;
-#else
-            throw new System.InvalidOperationException("SpookyHash implementation was unstable and not deterministic prior to Unity 2020.1. Use MD5 or MD4 instead.");
-#endif
         }
     }
 }

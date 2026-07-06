@@ -120,15 +120,23 @@ namespace UnityEditor.Build.Pipeline
             return buildTasks;
         }
 
-#if UNITY_2022_2_OR_NEWER
 
         //useContentIdsForClusterName is false by default to allow for opt in from the entities package that uses this method
         //also, we're doing 2 seperate APIs because adding a default parameter to an existing API gets flagged as a breaking change
+        /// <summary>
+        /// Constructs and returns the IBuildTasks used to build Archive files that contain ContentFiles.
+        /// </summary>
+        /// <returns>Returns the list of build tasks used to build Archive files that contain ContentFiles.</returns>
         public static IList<IBuildTask> ContentFileCompatible()
         {
             return ContentFileCompatible(false);
         }
 
+        /// <summary>
+        /// Constructs and returns the IBuildTasks used to build Archive files that contain ContentFiles.
+        /// </summary>
+        /// <param name="useContentIdsForClusterName">If true, cluster names are computed from the ids of the objects contained in the cluster; otherwise they are based on the ids of the referencing assets.</param>
+        /// <returns>Returns the list of build tasks used to build Archive files that contain ContentFiles.</returns>
         public static IList<IBuildTask> ContentFileCompatible(bool useContentIdsForClusterName)
         {
             var buildTasks = new List<IBuildTask>();
@@ -161,6 +169,5 @@ namespace UnityEditor.Build.Pipeline
 
             return buildTasks;
         }
-#endif
     }
 }

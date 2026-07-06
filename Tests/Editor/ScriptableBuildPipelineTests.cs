@@ -39,15 +39,9 @@ namespace UnityEditor.Build.Pipeline.Tests
         {
             EditorSceneManager.SaveCurrentModifiedScenesIfUserWantsTo();
             Directory.CreateDirectory(k_TestAssetsPath);
-#if UNITY_2018_3_OR_NEWER
             PrefabUtility.SaveAsPrefabAsset(GameObject.CreatePrimitive(PrimitiveType.Cube), k_CubePath);
             PrefabUtility.SaveAsPrefabAsset(GameObject.CreatePrimitive(PrimitiveType.Cube), k_CubePath2);
             PrefabUtility.SaveAsPrefabAsset(GameObject.CreatePrimitive(PrimitiveType.Cube), k_CubePath3);
-#else
-            PrefabUtility.CreatePrefab(k_CubePath, GameObject.CreatePrimitive(PrimitiveType.Cube));
-            PrefabUtility.CreatePrefab(k_CubePath2, GameObject.CreatePrimitive(PrimitiveType.Cube));
-            PrefabUtility.CreatePrefab(k_CubePath3, GameObject.CreatePrimitive(PrimitiveType.Cube));
-#endif
             AssetDatabase.ImportAsset(k_CubePath);
             AssetDatabase.ImportAsset(k_CubePath2);
             AssetDatabase.ImportAsset(k_CubePath3);
@@ -78,9 +72,10 @@ namespace UnityEditor.Build.Pipeline.Tests
         {
             IBuildContext context = new BuildContext(args);
             IBuildTask instance = Activator.CreateInstance<T>();
-            ContextInjector.Inject(context, instance);
+            var injector = new ContextInjector();
+            injector.Inject(context, instance);
             var result = instance.Run();
-            ContextInjector.Extract(context, instance);
+            injector.Extract(context, instance);
             return result;
         }
 
@@ -271,8 +266,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             IDependencyData dep = GetDependencyData();
             IBundleWriteData writeData = new BundleWriteData();
             IDeterministicIdentifiers deterministicId = new PrefabPackedIdentifiers();
+            IBundleBuildParameters buildParams = GetBuildParameters();
 
-            ReturnCode exitCode = RunTask<GenerateBundlePacking>(buildContent, dep, writeData, deterministicId);
+            ReturnCode exitCode = RunTask<GenerateBundlePacking>(buildParams, buildContent, dep, writeData, deterministicId);
             Assert.AreEqual(ReturnCode.Success, exitCode);
         }
 
@@ -283,11 +279,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             IDependencyData dep = GetDependencyData();
             IBundleWriteData writeData = new BundleWriteData();
             IDeterministicIdentifiers deterministicId = new PrefabPackedIdentifiers();
-
-            RunTask<GenerateBundlePacking>(buildContent, dep, writeData, deterministicId);
-
             IBundleBuildParameters buildParams = GetBuildParameters();
 
+            RunTask<GenerateBundlePacking>(buildParams, buildContent, dep, writeData, deterministicId);
             ReturnCode exitCode = RunTask<GenerateBundleCommands>(buildParams, buildContent, dep, writeData, deterministicId);
             Assert.AreEqual(ReturnCode.Success, exitCode);
         }
@@ -560,36 +554,6 @@ namespace UnityEditor.Build.Pipeline.Tests
 #endif
 
         [Test]
-        public void BuildParameters_SetsBuildCacheServerParameters_WhenUseBuildCacheServerEnabled()
-        {
-            int port = 9999;
-            string host = "fake host";
-
-            using (new StoreCacheServerConfig(true, host, port))
-            {
-                IBundleBuildParameters buildParameters = GetBuildParameters();
-
-                Assert.AreEqual(port, buildParameters.CacheServerPort);
-                Assert.AreEqual(host, buildParameters.CacheServerHost);
-            }
-        }
-
-        [Test]
-        public void BuildParameters_DoesNotSetBuildCacheServerParameters_WhenUseBuildCacheServerDisabled()
-        {
-            int port = 9999;
-            string host = "testHost";
-
-            using (new StoreCacheServerConfig(false, host, port))
-            {
-                IBundleBuildParameters buildParameters = GetBuildParameters();
-
-                Assert.AreEqual(8126, buildParameters.CacheServerPort);
-                Assert.AreEqual(null, buildParameters.CacheServerHost);
-            }
-        }
-
-        [Test]
         public void BuildAssetBundles_WithCache_Succeeds()
         {
             IBundleBuildParameters buildParameters = GetBuildParameters();
@@ -759,6 +723,49 @@ namespace UnityEditor.Build.Pipeline.Tests
 
         }
 #endif
+
+        [Test]
+        public void ClusterBuildLayout_PropagatesSceneDependencyHash_ToWriteOperation()
+        {
+            // Regression test for UUM-144634: scene dependency changes (e.g. a referenced prefab being
+            // modified) must invalidate the scene in the ContentFile/Entities pipeline. ClusterBuildLayout
+            // must copy the pre-calculated scene DependencyHash onto the scene write operation so that
+            // SceneRawWriteOperation.GetHash128 produces a different hash when the dependency changes.
+            Scene scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene);
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(k_CubePath);
+            PrefabUtility.InstantiatePrefab(prefab);
+            EditorSceneManager.SaveScene(scene, k_ScenePath);
+
+            GUID sceneGuid;
+            GUID.TryParse(AssetDatabase.AssetPathToGUID(k_ScenePath), out sceneGuid);
+
+            var buildParams = GetBuildParameters();
+            var usageTags = new BuildUsageTagSet();
+            var sceneInfo = ContentBuildInterface.CalculatePlayerDependenciesForScene(k_ScenePath, buildParams.GetContentBuildSettings(), usageTags, null);
+
+            // A non-zero, known dependency hash representing the scene's prefab dependencies.
+            var expectedDependencyHash = AssetDatabase.GetAssetDependencyHash(k_CubePath);
+            Assert.AreNotEqual(new Hash128(), expectedDependencyHash, "Test setup expects a non-empty dependency hash.");
+
+            var depData = new BuildDependencyData();
+            depData.SceneInfo.Add(sceneGuid, sceneInfo);
+            depData.SceneUsage.Add(sceneGuid, usageTags);
+            depData.DependencyHash.Add(sceneGuid, expectedDependencyHash);
+
+            var writeData = new BundleWriteData();
+            var identifier = new PrefabPackedIdentifiers();
+            var clusterResult = new ClusterOutput();
+
+            var result = ClusterBuildLayout.Run(buildParams, depData, writeData, identifier, clusterResult, true);
+            Assert.AreEqual(ReturnCode.Success, result);
+
+#pragma warning disable CS0618 // Type or member is obsolete
+            var sceneOp = writeData.WriteOperations.OfType<SceneRawWriteOperation>().FirstOrDefault();
+#pragma warning restore CS0618 // Type or member is obsolete
+            Assert.IsNotNull(sceneOp, "Expected a scene write operation to be generated.");
+            Assert.AreEqual(expectedDependencyHash, sceneOp.DependencyHash,
+                "ClusterBuildLayout must propagate the scene's DependencyHash to the write operation so dependency changes re-hash the scene.");
+        }
 
         ScriptableBuildPipeline.Settings LoadSettingsFromFile()
         {

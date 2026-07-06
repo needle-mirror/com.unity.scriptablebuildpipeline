@@ -90,14 +90,14 @@ namespace UnityEditor.Build.Pipeline.Tests
                 assetInfo = new Dictionary<GUID, AssetLoadInfo>();
             var testData = new TestDependencyData(assetInfo);
             IBuildContext context = new BuildContext(testParams, testContent, testData);
-            ContextInjector.Inject(context, task);
+            new ContextInjector().Inject(context, task);
             return task;
         }
 
         static void ExtractTestData(IBuildTask task, out CustomAssets customAssets, out TestContent content, out TestDependencyData dependencyData)
         {
             IBuildContext context = new BuildContext();
-            ContextInjector.Extract(context, task);
+            new ContextInjector().Extract(context, task);
             customAssets = (CustomAssets)context.GetContextObject<ICustomAssets>();
             content = (TestContent)context.GetContextObject<IBundleBuildContent>();
             dependencyData = (TestDependencyData)context.GetContextObject<IDependencyData>();

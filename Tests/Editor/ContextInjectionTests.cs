@@ -98,7 +98,8 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             // Still need to box / unbox the struct task
             IBuildTask boxed = task;
-            ContextInjector.Inject(context, boxed);
+            var injector = new ContextInjector();
+            injector.Inject(context, boxed);
             task = (TaskStruct)boxed;
 
             Assert.IsNotNull(task.InjectedObject);
@@ -107,7 +108,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             ReturnCode result = task.Run();
             Assert.AreEqual(ReturnCode.Success, result);
 
-            ContextInjector.Extract(context, task);
+            injector.Extract(context, task);
 
             IInjectionContext modifiedInjection = context.GetContextObject<IInjectionContext>();
             Assert.AreEqual(task.NewState, modifiedInjection.State);
@@ -125,7 +126,8 @@ namespace UnityEditor.Build.Pipeline.Tests
             TaskClass task = new TaskClass(2);
             Assert.IsNull(task.InjectedObject);
 
-            ContextInjector.Inject(context, task);
+            var injector = new ContextInjector();
+            injector.Inject(context, task);
 
             Assert.IsNotNull(task.InjectedObject);
             Assert.AreEqual(1, task.InjectedObject.State);
@@ -133,7 +135,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             ReturnCode result = task.Run();
             Assert.AreEqual(ReturnCode.Success, result);
 
-            ContextInjector.Extract(context, task);
+            injector.Extract(context, task);
 
             IInjectionContext modifiedInjection = context.GetContextObject<IInjectionContext>();
             Assert.AreEqual(task.NewState, modifiedInjection.State);
@@ -147,14 +149,15 @@ namespace UnityEditor.Build.Pipeline.Tests
             TaskContext task = new TaskContext();
             Assert.IsNull(task.InjectedContext);
 
-            ContextInjector.Inject(context, task);
+            var injector = new ContextInjector();
+            injector.Inject(context, task);
 
             Assert.IsNotNull(task.InjectedContext);
             Assert.AreEqual(context, task.InjectedContext);
 
             Assert.Throws<InvalidOperationException>(() =>
             {
-                ContextInjector.Extract(context, task);
+                injector.Extract(context, task);
             });
         }
     }

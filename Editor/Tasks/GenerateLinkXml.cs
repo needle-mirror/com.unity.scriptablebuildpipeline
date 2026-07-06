@@ -32,12 +32,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             foreach (var writeResult in m_Results.WriteResults)
             {
                 linker.AddTypes(writeResult.Value.includedTypes);
-#if UNITY_2021_1_OR_NEWER
                 linker.AddSerializedClass(writeResult.Value.includedSerializeReferenceFQN);
-#else
-                if (writeResult.Value.GetType().GetProperty("includedSerializeReferenceFQN") != null)
-                    linker.AddSerializedClass(writeResult.Value.GetType().GetProperty("includedSerializeReferenceFQN").GetValue(writeResult.Value) as System.Collections.Generic.IEnumerable<string>);
-#endif
             }
 
             var linkPath = m_Parameters.GetOutputFilePathForIdentifier(k_LinkXml);

@@ -1,6 +1,4 @@
-using System.Collections;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEditor.Build.Pipeline.Interfaces;
 using UnityEngine;
 
@@ -77,19 +75,26 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
                 if (cache != null)
                 {
+                    cacheEntries = new List<CacheEntry>(workItems.Count);
                     using (log.ScopedStep(LogLevel.Info, "Creating Cache Entries"))
                         for (int i = 0; i < workItems.Count; i++)
                         {
                             workItems[i].entry = cbs.CreateCacheEntry(workItems[i]);
+                            cacheEntries.Add(workItems[i].entry);
                         }
-
-                    cacheEntries = workItems.Select(i => i.entry).ToList();
 
                     using (log.ScopedStep(LogLevel.Info, "Load Cached Data"))
                         cache.LoadCachedData(cacheEntries, out cachedInfo);
 
-                    cachedItems = workItems.Where(x => cachedInfo[x.Index] != null).ToList();
-                    nonCachedItems = workItems.Where(x => cachedInfo[x.Index] == null).ToList();
+                    cachedItems = new List<WorkItem<T>>(workItems.Count);
+                    nonCachedItems = new List<WorkItem<T>>(workItems.Count);
+                    for (int i = 0; i < workItems.Count; i++)
+                    {
+                        if (cachedInfo[workItems[i].Index] != null)
+                            cachedItems.Add(workItems[i]);
+                        else
+                            nonCachedItems.Add(workItems[i]);
+                    }
                 }
 
                 using (log.ScopedStep(LogLevel.Info, "Process Entries"))
@@ -112,8 +117,10 @@ namespace UnityEditor.Build.Pipeline.Utilities
                     List<CachedInfo> uncachedInfo;
                     using (log.ScopedStep(LogLevel.Info, "Saving to Cache"))
                     {
+                        uncachedInfo = new List<CachedInfo>(nonCachedItems.Count);
                         using (log.ScopedStep(LogLevel.Info, "Creating Cached Infos"))
-                            uncachedInfo = nonCachedItems.Select((item) => cbs.CreateCachedInfo(item)).ToList();
+                            for (int i = 0; i < nonCachedItems.Count; i++)
+                                uncachedInfo.Add(cbs.CreateCachedInfo(nonCachedItems[i]));
                         cache.SaveCachedData(uncachedInfo);
                     }
                 }

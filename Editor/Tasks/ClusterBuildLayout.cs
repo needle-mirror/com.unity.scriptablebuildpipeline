@@ -1,4 +1,3 @@
-#if UNITY_2022_2_OR_NEWER
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,17 +13,34 @@ using UnityEngine;
 
 namespace UnityEditor.Build.Pipeline.Tasks
 {
+    /// <summary>
+    /// Build context object containing the mapping of objects to the clusters created by the <see cref="ClusterBuildLayout"/> task.
+    /// </summary>
     public interface IClusterOutput : IContextObject
     {
+        /// <summary>
+        /// The mapping of each object to the id of the cluster that contains it.
+        /// </summary>
         Dictionary<ObjectIdentifier, Hash128> ObjectToCluster { get; }
+
+        /// <summary>
+        /// The mapping of each object to its local file identifier within its cluster.
+        /// </summary>
         Dictionary<ObjectIdentifier, long> ObjectToLocalID { get; }
     }
 
+    /// <summary>
+    /// Basic implementation of <see cref="IClusterOutput"/>.
+    /// </summary>
     public class ClusterOutput : IClusterOutput
     {
         private Dictionary<ObjectIdentifier, Hash128> m_ObjectToCluster = new Dictionary<ObjectIdentifier, Hash128>();
         private Dictionary<ObjectIdentifier, long> m_ObjectToLocalID = new Dictionary<ObjectIdentifier, long>();
+
+        /// <inheritdoc />
         public Dictionary<ObjectIdentifier, Hash128> ObjectToCluster { get { return m_ObjectToCluster; } }
+
+        /// <inheritdoc />
         public Dictionary<ObjectIdentifier, long> ObjectToLocalID { get { return m_ObjectToLocalID; } }
     }
 
@@ -42,11 +58,18 @@ namespace UnityEditor.Build.Pipeline.Tasks
             dictionary.Add(key, value);
         }
 
+        /// <summary>
+        /// Creates the build task with cluster names based on the ids of the referencing assets.
+        /// </summary>
         public ClusterBuildLayout()
         {
             m_useContentIdsForClusterName = false;
         }
 
+        /// <summary>
+        /// Creates the build task.
+        /// </summary>
+        /// <param name="useContentIdsForClusterName">If true, cluster names are computed from the ids of the objects contained in the cluster; otherwise they are based on the ids of the referencing assets.</param>
         public ClusterBuildLayout(bool useContentIdsForClusterName)
         {
             m_useContentIdsForClusterName = useContentIdsForClusterName;
@@ -55,7 +78,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
         bool m_useContentIdsForClusterName;
 
         /// <inheritdoc />
-        public int Version { get { return 2; } }
+        public int Version { get { return 3; } }
 
 #pragma warning disable 649
         [InjectContext(ContextUsage.In)]
@@ -197,6 +220,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 op.UsageSet = usageSet;
                 op.Scene = pair.Value.scene;
 
+                if(dependencyData.DependencyHash.TryGetValue(pair.Key, out var sceneDependencyHash))
+                    op.DependencyHash = sceneDependencyHash;
+
                 writeData.FileToBundle.Add(pair.Key.ToString(), pair.Key.ToString());
             }
             return ReturnCode.Success;
@@ -235,4 +261,3 @@ namespace UnityEditor.Build.Pipeline.Tasks
         }
     }
 }
-#endif

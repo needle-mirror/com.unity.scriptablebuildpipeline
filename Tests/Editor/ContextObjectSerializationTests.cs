@@ -29,10 +29,8 @@ namespace UnityEditor.Build.Pipeline.Tests
             {
                 typeof(BuildCallbacks), typeof(Unity5PackedIdentifiers), typeof(PrefabPackedIdentifiers), typeof(LinearPackedIdentifiers), typeof(BuildCache),
                 typeof(ProgressTracker), typeof(ProgressLoggingTracker), typeof(BuildInterfacesWrapper)
-#if UNITY_2022_2_OR_NEWER
                 , typeof(ContentFileIdentifiers)
                 , typeof(ClusterOutput)
-#endif
 #if ENABLE_CONTENT_DIRECTORIES
                 , typeof(BuildReportContext)
 #endif

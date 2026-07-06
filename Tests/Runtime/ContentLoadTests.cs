@@ -1,4 +1,3 @@
-#if UNITY_2022_2_OR_NEWER
 using System.Collections;
 using NUnit.Framework;
 using UnityEngine;
@@ -14,10 +13,17 @@ using UnityEditor.TestTools;
 
 namespace UnityEditor.Build.Pipeline.Tests.ContentLoad
 {
+    /// <summary>
+    /// Tests for loading content files through the ContentLoadInterface.
+    /// </summary>
     abstract public class ContentFileTests : ContentFileFixture
     {
         const string kCatalogTextData = "TextData";
 
+        /// <summary>
+        /// LoadFileAsync_CanLoadText
+        /// </summary>
+        /// <returns>An IEnumerator to yield on until the test completes.</returns>
         [UnityTest]
         public IEnumerator LoadFileAsync_CanLoadText()
         {
@@ -106,4 +112,3 @@ namespace UnityEditor.Build.Pipeline.Tests.ContentLoad
     }
 #endif
 }
-#endif

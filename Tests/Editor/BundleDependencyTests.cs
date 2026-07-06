@@ -77,7 +77,6 @@ namespace UnityEditor.Build.Pipeline.Tests
             // Todo, confirm that the NonRecursive Mode is enabled, the test assumes that it is and i think that is the default but its not exposed in this API
             var manifest = default(CompatibilityAssetBundleManifest);
 
-#if BUILD_OPTIONS_RECURSE_DEPENDENCIES_2022_3 || BUILD_OPTIONS_RECURSE_DEPENDENCIES_2023_3 || UNITY_6000_0_OR_NEWER
             if (recurseDeps)
             {
                 manifest = CompatibilityBuildPipeline.BuildAssetBundles(
@@ -87,7 +86,6 @@ namespace UnityEditor.Build.Pipeline.Tests
                     EditorUserBuildSettings.activeBuildTarget);
             }
             else
-#endif
             {
                 manifest = CompatibilityBuildPipeline.BuildAssetBundles(
                     k_BuildFolder,
@@ -97,45 +95,6 @@ namespace UnityEditor.Build.Pipeline.Tests
             }
 
             return manifest;
-        }
-
-#if UNITY_2023_2_OR_NEWER
-        [Test, Description("BPSBP-736")]
-        public void BundeHashChanges_WhenDirectDependencyChanges()
-        {
-            CompatibilityAssetBundleManifest manifest = BuildPrefabBundles(false);
-
-            //var outputFiles = Directory.EnumerateFiles(k_BuildFolder, "*", SearchOption.TopDirectoryOnly);
-            //Debug.Log("Output of the build:\n\t" + string.Join("\n\t", outputFiles));
-
-            var outputPaths = new string[k_CntPrefabChain];
-
-            for (int i = 0; i < k_CntPrefabChain; i++)
-            {
-                //e.g. a path like "TestBuild\0_135e9091b30805539e5f5f349375cd11"
-                outputPaths[i] = Directory.EnumerateFiles(k_BuildFolder, $"{i}_*", SearchOption.TopDirectoryOnly).ToArray()[0];
-            }
-
-            // Change bundle 3, e.g. remove its dependency on bundle 4
-            SetPrefabReferenceToNull(3);
-
-            CompatibilityAssetBundleManifest manifest2 = BuildPrefabBundles(false);
-
-            var rebuildPaths = new string[k_CntPrefabChain];
-            for (int i = 0; i < k_CntPrefabChain; i++)
-            {
-                rebuildPaths[i] = Directory.EnumerateFiles(k_BuildFolder, $"{i}_*", SearchOption.TopDirectoryOnly).ToArray()[0];
-            }
-
-            Assert.AreEqual(outputPaths[0], rebuildPaths[0], "Bundle hash changed");
-            Assert.AreEqual(outputPaths[1], rebuildPaths[1], "Bundle hash changed");
-
-            Assert.AreNotEqual(outputPaths[2], rebuildPaths[2]); //Direct dependency changed
-            Assert.AreNotEqual(outputPaths[3], rebuildPaths[3]); // We changed this bundle
-
-            Assert.AreEqual(outputPaths[4], rebuildPaths[4], "Bundle hash changed");
-
-            ResetPrefabReference(3);
         }
 
         [Test, Description("BPSBP-736")]
@@ -209,9 +168,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             PrefabUtility.SavePrefabAsset(prefabRoot);
             AssetDatabase.ImportAsset(prefabPath, ImportAssetOptions.ForceSynchronousImport & ImportAssetOptions.ForceUpdate);
         }
-#endif
 
-#if BUILD_OPTIONS_RECURSE_DEPENDENCIES_2022_3 || BUILD_OPTIONS_RECURSE_DEPENDENCIES_2023_3 || UNITY_6000_0_OR_NEWER
         [Test, Description("BPSBP-737 / ADDR-3262")]
         public void MonoScriptsAreNotNullInChainedBundles()
         {
@@ -225,7 +182,6 @@ namespace UnityEditor.Build.Pipeline.Tests
             var builtBundlePaths = Directory.EnumerateFiles(k_BuildFolder, prefabBundleMatch, SearchOption.TopDirectoryOnly).ToArray();
             LoadBundlesAndCheckMonoScript(builtBundlePaths);
         }
-#endif
 
         static void LoadBundlesAndCheckMonoScript(string[] bundleNames)
         {

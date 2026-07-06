@@ -4,11 +4,7 @@ using UnityEngine;
 
 namespace UnityEditor.Build.Pipeline.Interfaces
 {
-#if UNITY_2018_3_OR_NEWER
     using BuildCompression = UnityEngine.BuildCompression;
-#else
-    using BuildCompression = UnityEditor.Build.Content.BuildCompression;
-#endif
 
     /// <summary>
     /// Base interface for the parameters container
@@ -57,27 +53,15 @@ namespace UnityEditor.Build.Pipeline.Interfaces
         bool UseCache { get; set; }
 
         /// <summary>
-        /// Enables and specifies the cache server to use.
-        /// </summary>
-        string CacheServerHost { get; set; }
-
-        /// <summary>
-        /// The port for the cache server to use
-        /// </summary>
-        int CacheServerPort { get; set; }
-
-        /// <summary>
         /// Writes out a link.xml file to the output folder to use with Unity managed code stripping.
         /// </summary>
         bool WriteLinkXML { get; set; }
 
-#if NONRECURSIVE_DEPENDENCY_DATA
         /// <summary>
         /// Calculates and build asset bundles using Non-Recursive Dependency calculation methods.
         /// This approach helps reduce asset bundle rebuilds and runtime memory consumption.
         /// </summary>
         bool NonRecursiveDependencies { get; set; }
-#endif
 
         /// <summary>
         /// Constructs and returns the BuildSettings struct to use for content building.

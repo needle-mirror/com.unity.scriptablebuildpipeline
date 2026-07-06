@@ -12,17 +12,29 @@ using UnityEngine;
 
 internal class AutoBuildCacheUtility : IDisposable
 {
-    public AutoBuildCacheUtility()
+    [NonSerialized]
+    private IBuildLogger m_Logger;
+
+    public AutoBuildCacheUtility(IBuildLogger logger)
     {
-        BuildCacheUtility.ClearCacheHashes();
-        HashingMethods.CreateNewFileHashCache(1024);
+        m_Logger = logger;
+        using (m_Logger.ScopedStep(LogLevel.Info, "Initializing AutoBuildCacheUtility"))
+        {
+            BuildCacheUtility.ClearCacheHashes();
+            HashingMethods.CreateNewFileHashCache(1024);
+        }
     }
 
     public void Dispose()
     {
-        BuildCacheUtility.ClearCacheHashes();
-        HashingMethods.ClearFileHashCache(out var requestCount, out var requestCacheHits);
-    //    Debug.Log($"File Hash Cache: {requestCacheHits}/{requestCount} - {(float)requestCacheHits / requestCount * 100}% hit rate.");
+        using (m_Logger.ScopedStep(LogLevel.Info, "Dispose AutoBuildCacheUtility"))
+        {
+            BuildCacheUtility.ClearCacheHashes();
+            HashingMethods.ClearFileHashCache(out var requestCount, out var requestCacheHits);
+            m_Logger.AddArgSafe("RequestCount",  requestCount.ToString());
+            m_Logger.AddArgSafe("RequestCacheHits",  requestCacheHits.ToString());
+            m_Logger.AddArgSafe("CacheHitRate",  ((float)requestCacheHits / requestCount * 100) + "%");
+        }
     }
 }
 
@@ -32,12 +44,23 @@ internal static class BuildCacheUtility
     static Dictionary<KeyValuePair<string, int>, CacheEntry> m_PathToHash = new Dictionary<KeyValuePair<string, int>, CacheEntry>();
     static Dictionary<KeyValuePair<Type, int>, CacheEntry> m_TypeToHash = new Dictionary<KeyValuePair<Type, int>, CacheEntry>();
     static Dictionary<ObjectIdentifier, Type[]> m_ObjectToType = new Dictionary<ObjectIdentifier, Type[]>();
+
+    static Dictionary<Type, string> m_TypeToAqn = new Dictionary<Type, string>();
+    static string GetAqn(Type type)
+    {
+        if (!m_TypeToAqn.TryGetValue(type, out string aqn))
+            m_TypeToAqn[type] = aqn = type.AssemblyQualifiedName;
+        return aqn;
+    }
+
+    private class TypeAqnComparer : IComparer<Type>
+    {
+        public int Compare(Type x, Type y) => GetAqn(x).CompareTo(GetAqn(y));
+    }
+    private static readonly TypeAqnComparer s_TypeComparer = new TypeAqnComparer();
+
     static TypeDB m_TypeDB;
     internal static HashSet<GUID> m_ExplicitAssets = new HashSet<GUID>();
-
-#if !ENABLE_TYPE_HASHING
-    static Hash128 m_UnityVersion = HashingMethods.Calculate(Application.unityVersion).ToHash128();
-#endif
 
     public static void SetCurrentBuildContent(IBuildContent content)
     {
@@ -86,9 +109,9 @@ internal static class BuildCacheUtility
         if (m_PathToHash.TryGetValue(key, out entry))
             return entry;
 
-        var guid = AssetDatabase.AssetPathToGUID(path);
-        if (!string.IsNullOrEmpty(guid))
-            return GetCacheEntry(new GUID(guid), version);
+        GUID guid = AssetDatabase.GUIDFromAssetPath(path);
+        if (!guid.Empty())
+            return GetCacheEntry(guid, version);
 
         entry = new CacheEntry { File = path, Version = version };
         entry.Guid = HashingMethods.Calculate("FileHash", entry.File).ToGUID();
@@ -112,11 +135,7 @@ internal static class BuildCacheUtility
 
         entry = new CacheEntry { ScriptType = type.AssemblyQualifiedName, Version = version };
         entry.Guid = HashingMethods.Calculate("TypeHash", entry.ScriptType).ToGUID();
-#if ENABLE_TYPE_HASHING
         entry.Hash = ContentBuildInterface.CalculatePlayerSerializationHashForType(type, m_TypeDB);
-#else
-        entry.Hash = m_TypeDB != null ? m_TypeDB.GetHash128() : m_UnityVersion;
-#endif
         entry.Type = CacheEntry.EntryType.ScriptType;
 
         m_TypeToHash[key] = entry;
@@ -127,11 +146,7 @@ internal static class BuildCacheUtility
     {
         if (!m_ObjectToType.TryGetValue(objectId, out Type[] types))
         {
-#if ENABLE_TYPE_HASHING
             types = ContentBuildInterface.GetTypesForObject(objectId);
-#else
-            types = ContentBuildInterface.GetTypeForObjects(new[] { objectId });
-#endif
             m_ObjectToType[objectId] = types;
         }
         return types;
@@ -157,7 +172,7 @@ internal static class BuildCacheUtility
     public static Type[] GetSortedUniqueTypesForObject(ObjectIdentifier objectId)
     {
         Type[] types = GetCachedTypesForObject(objectId);
-        Array.Sort(types, (x, y) => x.AssemblyQualifiedName.CompareTo(y.AssemblyQualifiedName));
+        Array.Sort(types, s_TypeComparer);
         return types;
     }
 
@@ -171,7 +186,7 @@ internal static class BuildCacheUtility
             results.UnionWith(types);
         }
         types = results.ToArray();
-        Array.Sort(types, (x, y) => x.AssemblyQualifiedName.CompareTo(y.AssemblyQualifiedName));
+        Array.Sort(types, s_TypeComparer);
         return types;
     }
 
@@ -187,6 +202,7 @@ internal static class BuildCacheUtility
         m_PathToHash.Clear();
         m_TypeToHash.Clear();
         m_ObjectToType.Clear();
+        m_TypeToAqn.Clear();
         m_TypeDB = null;
     }
 

@@ -3,6 +3,15 @@ All notable changes to this package will be documented in this file.
 
 The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
+
+## [4.0.0] - 2026-07-06
+- Fixed an issue where a bundle's content hash would not change when a serialized field was renamed using `[FormerlySerializedAs]`, causing content-update checks to incorrectly treat the bundle as unchanged.
+- Reduced log message noise for build usage read/write issues.
+- Fixed scene dependency changes (e.g. modified prefab dependencies) not triggering a scene re-hash when building Content Archives with the ContentFile pipeline.
+
+## [3.1.2] - 2026-05-27
+- Fix implicit dependencies being missing when using non-recursive dependency calculation.
+
 ## [3.1.1] - 2026-05-15
 - Internal fixes.
 

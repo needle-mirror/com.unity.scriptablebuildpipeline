@@ -299,26 +299,14 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
         internal static HashAlgorithm GetHashAlgorithm()
         {
-#if UNITY_2020_1_OR_NEWER
-            // New projects on 2021.1 will default useSpookyHash to true
-            // Upgraded projects will remain false until they choose to switch
             return ScriptableBuildPipeline.useV2Hasher ? (HashAlgorithm)SpookyHash.Create() : new MD5CryptoServiceProvider();
-#else
-            return new MD5CryptoServiceProvider();
-#endif
         }
 
         internal static HashAlgorithm GetHashAlgorithm(Type type)
         {
             if (type == null)
             {
-#if UNITY_2020_1_OR_NEWER
-                // New projects on 2021.1 will default useSpookyHash to true
-                // Upgraded projects will remain false until they choose to switch
                 type = ScriptableBuildPipeline.useV2Hasher ? typeof(SpookyHash) : typeof(MD5);
-#else
-                type = typeof(MD5);
-#endif
             }
 
             if (type == typeof(MD4))
@@ -407,8 +395,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
         }
 
         /// <summary>
-        /// Creates the hash for a pair of Hash128 objects.  Optimized specialization of the generic Calculate() methods that has been shown to be ~3x faster
-        /// The generic function uses reflection to obtain the four 32bit fields in the Hash128 which is slow, this function uses more direct byte access
+        /// Creates the hash for a pair of Hash128 objects.  Optimized specialization of the generic Calculate() that uses direct byte access.
         /// </summary>
         /// <param name="hash1">The first hash to combine</param>
         /// <param name="hash2">The second hash to combine</param>
@@ -425,6 +412,33 @@ namespace UnityEditor.Build.Pipeline.Utilities
             Marshal.Copy(ptr, hashBytes, 16, 16);
 
             Marshal.FreeHGlobal(ptr);
+
+            HashStream hashStream = new HashStream(GetHashAlgorithm());
+            PassBytesToStreamInBlocks(hashStream, hashBytes, 4);
+            return hashStream.GetHash();
+        }
+
+        /// <summary>
+        /// Creates the hash for a Hash128 and int value. Optimized specialization of the generic Calculate() methods that has been shown to be ~3x faster.
+        /// Produces identical output to Calculate(new object[] { hash, value }).
+        /// </summary>
+        /// <param name="hash">The hash to combine</param>
+        /// <param name="value">The int value to combine</param>
+        /// <returns>Returns the combined hash.</returns>
+        public static RawHash Calculate(Hash128 hash, int value)
+        {
+            byte[] hashBytes = new byte[20];
+            IntPtr ptr = Marshal.AllocHGlobal(16);
+
+            Marshal.StructureToPtr(hash, ptr, false);
+            Marshal.Copy(ptr, hashBytes, 0, 16);
+
+            Marshal.FreeHGlobal(ptr);
+
+            hashBytes[16] = (byte)value;
+            hashBytes[17] = (byte)(value >> 8);
+            hashBytes[18] = (byte)(value >> 16);
+            hashBytes[19] = (byte)(value >> 24);
 
             HashStream hashStream = new HashStream(GetHashAlgorithm());
             PassBytesToStreamInBlocks(hashStream, hashBytes, 4);

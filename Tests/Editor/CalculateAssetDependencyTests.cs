@@ -110,14 +110,14 @@ namespace UnityEditor.Build.Pipeline.Tests
             var testObjDependencyData = new ObjectDependencyData();
 
             IBuildContext context = new BuildContext(testParams, testContent, testDepData, testExtendedData, testObjDependencyData);
-            ContextInjector.Inject(context, task);
+            new ContextInjector().Inject(context, task);
             return task;
         }
 
         static void ExtractTestData(IBuildTask task, out TestExtendedAssetData extendedAssetData)
         {
             IBuildContext context = new BuildContext();
-            ContextInjector.Extract(context, task);
+            new ContextInjector().Extract(context, task);
             extendedAssetData = (TestExtendedAssetData)context.GetContextObject<IBuildExtendedAssetData>();
         }
 
@@ -459,21 +459,10 @@ namespace UnityEditor.Build.Pipeline.Tests
 
         static object[] SpriteTestCases =
         {
-#if UNITY_2020_1_OR_NEWER
             new object[] { SpritePackerMode.Disabled, "", false, false, false },
             new object[] { SpritePackerMode.BuildTimeOnlyAtlas, "", true, true, true },
             new object[] { SpritePackerMode.BuildTimeOnlyAtlas, "", true, true, false },
             new object[] { SpritePackerMode.BuildTimeOnlyAtlas, "", false, false, false },
-#else
-            new object[] { SpritePackerMode.BuildTimeOnly, "SomeTag", true, true, false },
-            new object[] { SpritePackerMode.BuildTimeOnly, "", true, false, false },
-            new object[] { SpritePackerMode.AlwaysOn, "SomeTag", true, true, false },
-            new object[] { SpritePackerMode.AlwaysOn, "", true, false, false },
-            new object[] { SpritePackerMode.Disabled, "", true, false, false },
-            new object[] { SpritePackerMode.BuildTimeOnlyAtlas, "", true, true, false },
-            new object[] { SpritePackerMode.AlwaysOnAtlas, "", true, true, false },
-            new object[] { SpritePackerMode.AlwaysOnAtlas, "", false, false, false }
-#endif
         };
 
         /// <summary>
@@ -565,38 +554,6 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreEqual(2, output2.AssetResults[0].assetInfo.referencedObjects.Count);
         }
 
-#if !UNITY_2020_2_OR_NEWER
-        // This test is only important for going through AssetDatabase's LoadAllAssetRepresentationsAtPath
-        // in 2020.2 and newer we have a new build api that handles nulls natively and this no longer applies.
-        class NullLoadRepresentationFake : CalculateAssetDependencyHooks
-        {
-            public override UnityEngine.Object[] LoadAllAssetRepresentationsAtPath(string assetPath) { return new UnityEngine.Object[] { null }; }
-        }
-
-        /// <summary>
-        /// WhenAssetHasANullRepresentation_LogsWarning
-        /// </summary>
-        [Test]
-        public void WhenAssetHasANullRepresentation_LogsWarning()
-        {
-            // Create an asset
-            string assetPath = Path.Combine(kTestAssetFolder, "myPrefab.prefab");
-            GUID guid = CreateGameObject(assetPath);
-
-            CalculateAssetDependencyData.TaskInput input = CreateDefaultInput();
-            input.Assets = new List<GUID>() { guid };
-            input.EngineHooks = new NullLoadRepresentationFake();
-
-            LogAssert.Expect(LogType.Warning, new Regex(".+It will not be included in the build"));
-
-            CalculateAssetDependencyData.RunInternal(input, out CalculateAssetDependencyData.TaskOutput output);
-
-            Assert.AreEqual(guid, output.AssetResults[0].asset);
-            Assert.AreEqual(2, output.AssetResults[0].assetInfo.includedObjects.Count); // GameObject and Transform
-            Assert.AreEqual(0, output.AssetResults[0].assetInfo.referencedObjects.Count);
-        }
-
-#endif
         /// <summary>
         /// WhenAssetHasMultipleRepresentations_ExtendedDataContainsAllButMainAsset
         /// </summary>

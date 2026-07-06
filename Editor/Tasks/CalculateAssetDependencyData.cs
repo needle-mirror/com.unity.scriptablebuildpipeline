@@ -17,15 +17,6 @@ namespace UnityEditor.Build.Pipeline.Tasks
         public List<ObjectIdentifier> Dependencies = new List<ObjectIdentifier>();
     }
 
-#if !UNITY_2020_2_OR_NEWER
-    internal class CalculateAssetDependencyHooks
-    {
-        public virtual UnityEngine.Object[] LoadAllAssetRepresentationsAtPath(string assetPath)
-        {
-            return AssetDatabase.LoadAllAssetRepresentationsAtPath(assetPath);
-        }
-    }
-#endif
 
     /// <summary>
     /// Calculates the dependency data for all assets.
@@ -77,9 +68,6 @@ namespace UnityEditor.Build.Pipeline.Tasks
             public IProgressTracker ProgressTracker;
             public BuildUsageTagGlobal GlobalUsage;
             public BuildUsageCache DependencyUsageCache;
-#if !UNITY_2020_2_OR_NEWER
-            public CalculateAssetDependencyHooks EngineHooks;
-#endif
             public bool NonRecursiveDependencies;
             public IBuildLogger Logger;
         }
@@ -106,11 +94,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
         {
             if (input.BuildCache == null)
                 return default;
-#if NONRECURSIVE_DEPENDENCY_DATA
             CacheEntry entry = input.BuildCache.GetCacheEntry(asset, input.NonRecursiveDependencies ? -kVersion : kVersion);
-#else
-            CacheEntry entry = input.BuildCache.GetCacheEntry(asset, Version);
-#endif
 
             return entry;
         }
@@ -137,11 +121,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
             input.Target = m_Parameters.Target;
             input.TypeDB = m_Parameters.ScriptInfo;
             input.BuildCache = m_Parameters.UseCache ? m_Cache : null;
-#if NONRECURSIVE_DEPENDENCY_DATA
             input.NonRecursiveDependencies = m_Parameters.NonRecursiveDependencies;
-#else
-            input.NonRecursiveDependencies = false;
-#endif
             input.Assets = m_Content.Assets;
             input.ProgressTracker = m_Tracker;
             input.DependencyUsageCache = m_DependencyData.DependencyUsageCache;
@@ -162,10 +142,8 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
                 foreach (AssetOutput assetOutput in output.AssetResults)
                 {
-#if NONRECURSIVE_DEPENDENCY_DATA
                     if (!input.NonRecursiveDependencies)
                         ExpandReferences(assetOutput, m_ObjectDependencyData.ObjectDependencyMap);
-#endif
 
                     m_DependencyData.AssetUsage.Add(assetOutput.asset, assetOutput.usageTags);
 
@@ -258,39 +236,6 @@ namespace UnityEditor.Build.Pipeline.Tasks
             }
         }
 
-#if !UNITY_2020_2_OR_NEWER
-        static internal void GatherAssetRepresentations(string assetPath, System.Func<string, UnityEngine.Object[]> loadAllAssetRepresentations, ObjectIdentifier[] includedObjects, out ExtendedAssetData extendedData)
-        {
-            extendedData = null;
-            var representations = loadAllAssetRepresentations(assetPath);
-            if (representations.IsNullOrEmpty())
-                return;
-
-            var resultData = new ExtendedAssetData();
-            for (int j = 0; j < representations.Length; j++)
-            {
-                if (representations[j] == null)
-                {
-                    BuildLogger.LogWarning($"SubAsset {j} inside {assetPath} is null. It will not be included in the build.");
-                    continue;
-                }
-
-                if (AssetDatabase.IsMainAsset(representations[j]))
-                    continue;
-
-                string guid;
-                long localId;
-                if (!AssetDatabase.TryGetGUIDAndLocalFileIdentifier(representations[j], out guid, out localId))
-                    continue;
-
-                resultData.Representations.AddRange(includedObjects.Where(x => x.localIdentifierInFile == localId));
-            }
-
-            if (resultData.Representations.Count > 0)
-                extendedData = resultData;
-        }
-
-#else
         static internal void GatherAssetRepresentations(GUID asset, BuildTarget target, ObjectIdentifier[] includedObjects, out ExtendedAssetData extendedData)
         {
             extendedData = null;
@@ -306,13 +251,9 @@ namespace UnityEditor.Build.Pipeline.Tasks
             extendedData.Representations.AddRange(filteredRepresentations.Skip(1));
         }
 
-#endif
 
         static internal ReturnCode RunInternal(TaskInput input, out TaskOutput output)
         {
-#if !UNITY_2020_2_OR_NEWER
-            input.EngineHooks = input.EngineHooks != null ? input.EngineHooks : new CalculateAssetDependencyHooks();
-#endif
             output = new TaskOutput();
             output.AssetResults = new AssetOutput[input.Assets.Count];
 
@@ -365,11 +306,7 @@ namespace UnityEditor.Build.Pipeline.Tasks
                             {
                                 var referencedObjectOld = assetInfos.referencedObjects.ToArray();
                                 ObjectIdentifier[] referencedObjectsNew = null;
-#if NONRECURSIVE_DEPENDENCY_DATA
                                 referencedObjectsNew = GetPlayerDependenciesForAsset(input.Assets[i], assetInfos.includedObjects.ToArray(), input, assetResult, explicitAssets, implicitAssetsOutput, packedSprites);
-#else
-                                referencedObjectsNew = ContentBuildInterface.GetPlayerDependenciesForObjects(assetInfos.includedObjects.ToArray(), input.Target, input.TypeDB);
-#endif
 
                                 if (Enumerable.SequenceEqual(referencedObjectOld, referencedObjectsNew) == false)
                                 {
@@ -486,16 +423,12 @@ namespace UnityEditor.Build.Pipeline.Tasks
 
             bool isSprite = spriteImporter != null;
 
-#if NONRECURSIVE_DEPENDENCY_DATA
             // The packedSprites hashset is used to include source texture references for a non-packed sprite dependency.
             // We process all sprites before all other assets. A sprite is added to the hashset at the end of each iteration.
             // So the hashset may not be fully populated while processing sprites.
             // To resolve this, we can skip the source texture inclusion step by passing in a null hashset.
             // This is safe to do because sprites cannot have a non-packed sprite dependency. They can only reference other sprites packed in the same atlas.
             referencedObjects = GetPlayerDependenciesForAsset(asset, includedObjects, input, assetResult, explicitAssets, implicitAssetsOutput, isSprite ? null : packedSprites);
-#else
-            referencedObjects = ContentBuildInterface.GetPlayerDependenciesForObjects(includedObjects, input.Target, input.TypeDB);
-#endif
             assetResult.assetInfo.referencedObjects = new List<ObjectIdentifier>(referencedObjects);
             var allObjects = new List<ObjectIdentifier>(includedObjects);
             allObjects.AddRange(referencedObjects);
@@ -507,19 +440,11 @@ namespace UnityEditor.Build.Pipeline.Tasks
                 assetResult.spriteData.SourceTexture = includedObjects.FirstOrDefault();
                 assetResult.spriteData.PackedSprite = ExtensionMethods.IsPackedSprite(includedObjects, assetResult.spriteData.SourceTexture, input.Target, input.TypeDB);
 
-#if !UNITY_2020_1_OR_NEWER
-                if (EditorSettings.spritePackerMode == SpritePackerMode.AlwaysOn || EditorSettings.spritePackerMode == SpritePackerMode.BuildTimeOnly)
-                    assetResult.spriteData.PackedSprite = !string.IsNullOrEmpty(spriteImporter?.spritePackingTag);
-#endif
                 if (assetResult.spriteData.PackedSprite)
                     packedSprites.Add(asset);
             }
 
-#if !UNITY_2020_2_OR_NEWER
-            GatherAssetRepresentations(assetPath, input.EngineHooks.LoadAllAssetRepresentationsAtPath, includedObjects, out assetResult.extendedData);
-#else
             GatherAssetRepresentations(asset, input.Target, includedObjects, out assetResult.extendedData);
-#endif
             return assetResult;
         }
 

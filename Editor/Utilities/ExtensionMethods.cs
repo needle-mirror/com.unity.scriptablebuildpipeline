@@ -80,7 +80,6 @@ namespace UnityEditor.Build.Pipeline.Utilities
             dependencies.UnionWith(uniqueTypes.Select(cache.GetCacheEntry));
         }
 
-#if NONRECURSIVE_DEPENDENCY_DATA
         public static bool IsPackedSprite(IEnumerable<ObjectIdentifier> includedObjects, ObjectIdentifier sourceTexture, BuildTarget target, TypeDB typeDB)
         {
             if (EditorSettings.spritePackerMode == SpritePackerMode.Disabled)
@@ -138,6 +137,5 @@ namespace UnityEditor.Build.Pipeline.Utilities
             return collectedImmediateReferences.ToArray();
         }
 
-#endif
     }
 }

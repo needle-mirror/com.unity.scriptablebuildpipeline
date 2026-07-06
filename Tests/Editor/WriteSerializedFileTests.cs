@@ -14,6 +14,7 @@ using UnityEditor.Build.Pipeline.WriteTypes;
 using UnityEditor.Build.Player;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Serialization;
 using static UnityEditor.Build.Pipeline.Utilities.BuildLog;
 
 namespace UnityEditor.Build.Pipeline.Tests
@@ -119,7 +120,6 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             public WriteResult Write(string outputFolder, BuildSettings settings, BuildUsageTagGlobal globalUsage)
             {
-#if UNITY_2019_4_OR_NEWER
                 if (WriteBundle)
                 {
                     return ContentBuildInterface.WriteSerializedFile(outputFolder, new WriteParameters
@@ -132,12 +132,15 @@ namespace UnityEditor.Build.Pipeline.Tests
                         bundleInfo = new AssetBundleInfo() {  bundleName = "bundle" }
                     });
                 }
-#endif
 
                 string filename = Path.Combine(outputFolder, "resourceFilename");
                 CreateFileOfSize(filename, 1024);
                 TestWriteCount++;
                 WriteResult result = new WriteResult();
+                // A real WriteResult from ContentBuildInterface.WriteSerializedFile always
+                // populates includedTypes (even to an empty array); this synthetic result
+                // must match that or CalculateFileMetadata's includedTypes access throws.
+                result.m_IncludedTypes = Array.Empty<Type>();
                 ResourceFile file = new ResourceFile();
                 file.SetFileName(filename);
 
@@ -179,10 +182,8 @@ namespace UnityEditor.Build.Pipeline.Tests
         bool m_PreviousBakeCollisionMeshes;
         int m_PreviousQualityLevel;
         List<int> m_PreviousMaximumLODLeve = new List<int>();
-#if UNITY_2020_1_OR_NEWER
         bool m_PreviousMipStripping;
         List<int> m_PreviousMasterTextureLimits = new List<int>();
-#endif
         GraphicsDeviceType[] m_PreviousGraphicsAPIs;
         bool m_PreviousUseDefaultGraphicsAPIs;
 
@@ -211,10 +212,8 @@ namespace UnityEditor.Build.Pipeline.Tests
             m_PreviousBakeCollisionMeshes = PlayerSettings.bakeCollisionMeshes;
             PlayerSettings.bakeCollisionMeshes = false;
             QualitySettings_GetPrevious();
-#if UNITY_2020_1_OR_NEWER
             m_PreviousMipStripping = PlayerSettings.mipStripping;
             PlayerSettings.mipStripping = false;
-#endif
             m_PreviousUseDefaultGraphicsAPIs = PlayerSettings.GetUseDefaultGraphicsAPIs(EditorUserBuildSettings.activeBuildTarget);
             PlayerSettings.SetUseDefaultGraphicsAPIs(EditorUserBuildSettings.activeBuildTarget, false);
             m_PreviousGraphicsAPIs = PlayerSettings.GetGraphicsAPIs(EditorUserBuildSettings.activeBuildTarget);
@@ -238,7 +237,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             m_Log = new BuildLog();
 
             m_Context = new BuildContext(m_BuildParameters, m_DependencyData, m_WriteData, m_BuildResults, m_Cache, m_Log);
-            ContextInjector.Inject(m_Context, m_Task);
+            new ContextInjector().Inject(m_Context, m_Task);
         }
 
         /// <summary>
@@ -252,9 +251,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             PlayerSettings.stripUnusedMeshComponents = m_PreviousStripUnusedMeshComponents;
             PlayerSettings.bakeCollisionMeshes = m_PreviousBakeCollisionMeshes;
             QualitySettings_RestorePrevious();
-#if UNITY_2020_1_OR_NEWER
             PlayerSettings.mipStripping = m_PreviousMipStripping;
-#endif
             PlayerSettings.SetGraphicsAPIs(EditorUserBuildSettings.activeBuildTarget, m_PreviousGraphicsAPIs);
             PlayerSettings.SetUseDefaultGraphicsAPIs(EditorUserBuildSettings.activeBuildTarget, m_PreviousUseDefaultGraphicsAPIs);
             m_Cache.Dispose();
@@ -265,44 +262,31 @@ namespace UnityEditor.Build.Pipeline.Tests
             m_PreviousQualityLevel = QualitySettings.GetQualityLevel();
             QualitySettings.SetQualityLevel(0);
 
-#if UNITY_2020_1_OR_NEWER
             m_PreviousMasterTextureLimits.Clear();
-#endif
             m_PreviousMaximumLODLeve.Clear();
 
             var count = QualitySettings.names.Length;
             for (int i = 0; i < count; i++)
             {
-#if UNITY_2022_2_OR_NEWER
                 m_PreviousMasterTextureLimits.Add(QualitySettings.globalTextureMipmapLimit);
                 QualitySettings.globalTextureMipmapLimit = 0;
-#elif UNITY_2020_1_OR_NEWER
-                m_PreviousMasterTextureLimits.Add(QualitySettings.masterTextureLimit);
-                QualitySettings.masterTextureLimit = 0;
-#endif
                 m_PreviousMaximumLODLeve.Add(QualitySettings.maximumLODLevel);
                 QualitySettings.maximumLODLevel = 0;
                 QualitySettings.IncreaseLevel();
             }
         }
 
-#if UNITY_2020_1_OR_NEWER
         void SetQualitySettings_MasterTextureLimits(int limit)
         {
             QualitySettings.SetQualityLevel(0);
 
             for (int i = 0; i < m_PreviousMasterTextureLimits.Count; i++)
             {
-#if UNITY_2022_2_OR_NEWER
                 QualitySettings.globalTextureMipmapLimit = limit;
-#else
-                QualitySettings.masterTextureLimit = limit;
-#endif
                 QualitySettings.IncreaseLevel();
             }
         }
 
-#endif
                 void SetQualitySettings_MaximumLODLevel(int level)
         {
             QualitySettings.SetQualityLevel(0);
@@ -321,11 +305,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             var count = QualitySettings.names.Length;
             for (int i = 0; i < count; i++)
             {
-#if UNITY_2022_2_OR_NEWER
                 QualitySettings.globalTextureMipmapLimit = m_PreviousMasterTextureLimits[i];
-#elif UNITY_2020_1_OR_NEWER
-                QualitySettings.masterTextureLimit = m_PreviousMasterTextureLimits[i];
-#endif
                 QualitySettings.maximumLODLevel = m_PreviousMaximumLODLeve[i];
                 QualitySettings.IncreaseLevel();
             }
@@ -355,9 +335,7 @@ namespace UnityEditor.Build.Pipeline.Tests
                 yield return new TestCaseData(true, new Action<WriteSerializedFileTests>((_this) => { PlayerSettings.stripUnusedMeshComponents = true; })).SetName("StripUnusedMeshComponents");
                 yield return new TestCaseData(true, new Action<WriteSerializedFileTests>((_this) => { PlayerSettings.bakeCollisionMeshes = true; })).SetName("BakeCollisionMeshes");
                 yield return new TestCaseData(true, new Action<WriteSerializedFileTests>((_this) => { _this.SetQualitySettings_MaximumLODLevel(1); })).SetName("LODStripping");
-#if UNITY_2020_1_OR_NEWER
                 yield return new TestCaseData(true, new Action<WriteSerializedFileTests>((_this) => { _this.SetQualitySettings_MasterTextureLimits(1); PlayerSettings.mipStripping = true; })).SetName("MipStripping");
-#endif
                 yield return new TestCaseData(true, new Action<WriteSerializedFileTests>((_this) => { PlayerSettings.SetGraphicsAPIs(EditorUserBuildSettings.activeBuildTarget, _this.m_PlatformAPIsAfter); })).SetName("GraphicsAPIs");
             }
         }
@@ -474,6 +452,10 @@ namespace UnityEditor.Build.Pipeline.Tests
             serializedObjects[1].SetHeader(header2);
 
             WriteResult results = new WriteResult();
+            // See TestWriteOperation.Write(): a real WriteResult always populates
+            // includedTypes, so this synthetic result must match or
+            // CalculateFileMetadata's includedTypes access throws.
+            results.m_IncludedTypes = Array.Empty<Type>();
             results.SetResourceFiles(resourceFiles);
             results.SetSerializedObjects(serializedObjects);
 
@@ -506,6 +488,60 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreNotEqual(data1.ContentHash, data2.ContentHash);
         }
 
+
+        // Two types representing the "before" and "after" of renaming a serialized field via
+        // [FormerlySerializedAs]. The rename only changes the type's serialized layout (its
+        // type tree); it does not change the serialized VALUE bytes of an existing instance.
+        class FieldBeforeRename : ScriptableObject
+        {
+            [SerializeField] float speed = 5.0f;
+        }
+
+        class FieldAfterRename : ScriptableObject
+        {
+            [FormerlySerializedAs("speed")]
+            [SerializeField] float newSpeed = 5.0f;
+        }
+
+        /// <summary>
+        /// UUM-133631: ContentHash begins at the first object's offset, skipping the file's
+        /// type tree. A [FormerlySerializedAs] field rename changes only the type tree, so with
+        /// identical serialized bytes, ContentHash must still change when includedTypes changes,
+        /// otherwise a real content change (and its bundle) goes completely undetected.
+        /// </summary>
+        [Test]
+        public void ContentHash_ChangesWhenIncludedTypesChange_EvenIfSerializedBytesAreIdentical()
+        {
+            var resourceFile = new ResourceFile();
+            resourceFile.SetFileAlias("sf1");
+            resourceFile.SetFileName($"{m_TestTempDir}/sf_includedTypes");
+            resourceFile.SetSerializedFile(true);
+            File.WriteAllBytes(resourceFile.fileName, new byte[200]);
+
+            var header = new SerializedLocation();
+            header.SetFileName(resourceFile.fileAlias);
+            header.SetOffset(100);
+
+            var serializedObjects = new ObjectSerializedInfo[1];
+            serializedObjects[0].SetHeader(header);
+
+            WriteResult before = new WriteResult();
+            before.SetResourceFiles(new[] { resourceFile });
+            before.SetSerializedObjects(serializedObjects);
+            before.m_IncludedTypes = new[] { typeof(FieldBeforeRename) };
+
+            WriteResult after = new WriteResult();
+            after.SetResourceFiles(new[] { resourceFile });
+            after.SetSerializedObjects(serializedObjects);
+            after.m_IncludedTypes = new[] { typeof(FieldAfterRename) };
+
+            var beforeMeta = WriteSerializedFiles.CalculateFileMetadata(ref before);
+            var afterMeta = WriteSerializedFiles.CalculateFileMetadata(ref after);
+
+            Assert.AreEqual(beforeMeta.RawFileHash, afterMeta.RawFileHash, "Serialized bytes are identical, so RawFileHash should not change.");
+            Assert.AreNotEqual(beforeMeta.ContentHash, afterMeta.ContentHash, "ContentHash should reflect the type tree change even though the object's value bytes are unchanged.");
+        }
+
         /// <summary>
         /// Run_CallsWriteOnOperationAndOutputsWriteResult
         /// </summary>
@@ -535,7 +571,6 @@ namespace UnityEditor.Build.Pipeline.Tests
             m_BuildParameters.UseCache = true;
         }
 
-#if UNITY_2020_2_OR_NEWER || ENABLE_DETAILED_PROFILE_CAPTURING
         /// <summary>
         /// WhenWritingSerializedFilesAndUsingDetailedBuildLog_ProfileCaptureScope_CreatesLogEventsWithinTaskThreshold
         /// </summary>
@@ -548,9 +583,9 @@ namespace UnityEditor.Build.Pipeline.Tests
             ScriptableBuildPipeline.useDetailedBuildLog = true;
 
             m_Task.Run();
-            LogStep runCachedOp = m_Log.Root.Children.Find(x => x.Name == "RunCachedOperation");
-            LogStep processEntries = runCachedOp.Children.Find(x => x.Name == "Process Entries");
-            LogStep writingOp = processEntries.Children.Find(x => x.Name == "Writing TestWriteOperation");
+            LogStep runCachedOp = (BuildLog.LogStep)m_Log.Root.Children.Find(x => x is BuildLog.LogStep step && step.Name == "RunCachedOperation");
+            LogStep processEntries = (BuildLog.LogStep)runCachedOp.Children.Find(x => x is BuildLog.LogStep step && step.Name == "Process Entries");
+            LogStep writingOp = (BuildLog.LogStep)processEntries.Children.Find(x => x is BuildLog.LogStep step && step.Name == "Writing TestWriteOperation");
 
             Assert.IsTrue(writingOp.Children.Count > 0);
 
@@ -562,6 +597,5 @@ namespace UnityEditor.Build.Pipeline.Tests
             ScriptableBuildPipeline.useDetailedBuildLog = useDetailedBuildLog;
         }
 
-#endif
     }
 }

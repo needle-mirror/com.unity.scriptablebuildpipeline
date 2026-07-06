@@ -48,7 +48,6 @@ namespace UnityEditor.Build.Pipeline.Tests
             Assert.AreEqual(-8666180608703991793, BitConverter.ToInt64(HashingMethods.Calculate<MD4>("library/atlascache/27/2799803afb660251e3b3049ba37cb15a", (long)2).ToBytes(), 0));
         }
 
-#if UNITY_2020_1_OR_NEWER
         [TestCase(false)]   // Use old hasher (MD5)
         [TestCase(true)]    // Use V2 hasher (Spooky)
         public void HashingMethods_Has128x2Fast_SameAsGeneric(bool useV2Hasher)
@@ -64,17 +63,22 @@ namespace UnityEditor.Build.Pipeline.Tests
 
             ScriptableBuildPipeline.useV2Hasher = prevUseV2Hasher;
         }
-#else
-        [Test]
-        public void HashingMethods_Has128x2Fast_SameAsGeneric()
-        {
-            // Test ensures the HashingMethods.Calculate(Hash128, Hash128) fast path produces the same results as the general HashingMethods.Calculate(params object[] objects) one does
-            Hash128 hash1 = new Hash128(0x1122334455667788, 0x99AABBCCDDEEFF00);
-            Hash128 hash2 = new Hash128(0x123456789ABCDEF0, 0x1967AbC487Df2F12);
 
-            Assert.AreEqual(HashingMethods.Calculate(hash1, hash2), HashingMethods.Calculate(new object[] { hash1, hash2 }));
+        [TestCase(false)]   // Use old hasher (MD5)
+        [TestCase(true)]    // Use V2 hasher (Spooky)
+        public void HashingMethods_Hash128AndIntFast_SameAsGeneric(bool useV2Hasher)
+        {
+            // Test ensures the HashingMethods.Calculate(Hash128, int) fast path produces the same results as the general HashingMethods.Calculate(params object[] objects) one does
+            Hash128 hash = new Hash128(0x1122334455667788, 0x99AABBCCDDEEFF00);
+            int version = 42;
+
+            bool prevUseV2Hasher = ScriptableBuildPipeline.useV2Hasher;
+            ScriptableBuildPipeline.useV2Hasher = useV2Hasher;
+
+            Assert.AreEqual(HashingMethods.Calculate(hash, version), HashingMethods.Calculate(new object[] { hash, version }));
+
+            ScriptableBuildPipeline.useV2Hasher = prevUseV2Hasher;
         }
-#endif
 
         // Struct that is binary compatible with Hash128 but is not Hash128
         struct Hash128Proxy
@@ -165,21 +169,17 @@ namespace UnityEditor.Build.Pipeline.Tests
               new[] { "6d489a02294c1a5ce775050cfa2cd363", "6d489a02294c1a5ce775050cfa2cd363", "6d489a02294c1a5ce775050cfa2cd363",
                       "2844dc4c3aa734b2cae0f4a670d5346e", "384a563d6a14deb7553f7efc95d1b67f", "c434697711429f8205b09c47bcd87d85",
                       "5e5335125abe521354a9f9a7c302d690" } }
-#if UNITY_2020_1_OR_NEWER
             , { typeof(SpookyHash),
                 new[] { "6e59a12bc07db93b5f9e6a0a4acecbd1", "6e59a12bc07db93b5f9e6a0a4acecbd1", "6e59a12bc07db93b5f9e6a0a4acecbd1",
                         "bca5ae54cb78244bd544d06111694efb", "0fa373cc7984b0e05e7052fd7a7e51eb", "2e6baf5f29327f5ea5d668c988307232",
                         "5d212d4d612906870257cb183932d1a7" } }
-#endif
         };
 
         public static IEnumerable<IHasher> TestCases()
         {
             yield return new HashTester<MD4>();
             yield return new HashTester<MD5>();
-#if UNITY_2020_1_OR_NEWER
             yield return new HashTester<SpookyHash>();
-#endif
         }
 
         [Test]
@@ -293,3 +293,4 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
     }
 }
+

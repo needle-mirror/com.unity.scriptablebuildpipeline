@@ -1,4 +1,3 @@
-#if UNITY_2019_4_OR_NEWER
 using System;
 
 namespace UnityEditor.Build.Pipeline.Utilities
@@ -10,6 +9,9 @@ namespace UnityEditor.Build.Pipeline.Utilities
     [AttributeUsage(AttributeTargets.Class, Inherited = true, AllowMultiple = false)]
     public class VersionedCallbackAttribute : Attribute
     {
+        /// <summary>
+        /// The version of this callback.
+        /// </summary>
         public readonly float version;
 
         /// <summary>
@@ -23,4 +25,3 @@ namespace UnityEditor.Build.Pipeline.Utilities
         }
     }
 }
-#endif

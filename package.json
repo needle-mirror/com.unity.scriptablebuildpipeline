@@ -1,7 +1,7 @@
 {
   "name": "com.unity.scriptablebuildpipeline",
   "displayName": "Scriptable Build Pipeline",
-  "version": "3.1.1",
+  "version": "4.0.0",
   "unity": "6000.0",
   "description": "The Scriptable Build Pipeline moves the asset bundle build pipeline to C#.  Use the pre-defined build flows, or create your own using the divided up APIs.  This system improves build time, fixes incremental build, and provides greater flexibility.",
   "keywords": [
@@ -17,15 +17,15 @@
     "com.unity.modules.assetbundle": "1.0.0"
   },
   "_upm": {
-    "changelog": "- Internal fixes."
+    "changelog": "- Fixed an issue where a bundle's content hash would not change when a serialized field was renamed using `[FormerlySerializedAs]`, causing content-update checks to incorrectly treat the bundle as unchanged.\n- Reduced log message noise for build usage read/write issues.\n- Fixed scene dependency changes (e.g. modified prefab dependencies) not triggering a scene re-hash when building Content Archives with the ContentFile pipeline."
   },
   "upmCi": {
-    "footprint": "b568a3ed6d4da7d131d66aa91fe29ae18d24ffc8"
+    "footprint": "6fa4d878d9cadb96b072090f39a87179164f63ce"
   },
-  "documentationUrl": "https://docs.unity3d.com/Packages/com.unity.scriptablebuildpipeline@3.1/manual/index.html",
+  "documentationUrl": "https://docs.unity3d.com/Packages/com.unity.scriptablebuildpipeline@4.0/manual/index.html",
   "repository": {
     "url": "https://github.cds.internal.unity3d.com/unity/Addressables.git",
     "type": "git",
-    "revision": "72cf54e59880f71effc99cd19103294e6c86b8c6"
+    "revision": "104866e2ad8909f543d39b9bfeb358d8fbb2c44a"
   }
 }

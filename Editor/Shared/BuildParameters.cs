@@ -7,11 +7,7 @@ using UnityEngine;
 
 namespace UnityEditor.Build.Pipeline
 {
-#if UNITY_2018_3_OR_NEWER
     using BuildCompression = UnityEngine.BuildCompression;
-#else
-    using BuildCompression = UnityEditor.Build.Content.BuildCompression;
-#endif
 
     /// <summary>
     /// Basic implementation of IBuildParameters. Stores the set of parameters passed into the Scriptable Build Pipeline.
@@ -77,10 +73,8 @@ namespace UnityEditor.Build.Pipeline
         public int CacheServerPort { get; set; }
         /// <inheritdoc />
         public bool WriteLinkXML { get; set; }
-#if NONRECURSIVE_DEPENDENCY_DATA
         /// <inheritdoc />
         public bool NonRecursiveDependencies { get; set; }
-#endif
 
         internal BuildParameters() {}
 
@@ -101,11 +95,7 @@ namespace UnityEditor.Build.Pipeline
 
             ScriptInfo = null;
             ScriptOptions = ScriptCompilationOptions.None;
-#if UNITY_2018_3_OR_NEWER
             BundleCompression = BuildCompression.LZMA;
-#else
-            BundleCompression = BuildCompression.DefaultLZMA;
-#endif
             OutputFolder = outputFolder;
             TempOutputFolder = ContentPipeline.kTempBuildPath;
             ScriptOutputFolder = ContentPipeline.kScriptBuildPath;
@@ -119,9 +109,7 @@ namespace UnityEditor.Build.Pipeline
 
             WriteLinkXML = false;
 
-#if NONRECURSIVE_DEPENDENCY_DATA && UNITY_2021_1_OR_NEWER
             NonRecursiveDependencies = true;
-#endif
         }
 
         /// <inheritdoc />
@@ -184,9 +172,7 @@ namespace UnityEditor.Build.Pipeline
         public BundleBuildParameters(BuildTarget target, BuildTargetGroup group, string outputFolder)
             : base(target, group, outputFolder)
         {
-#if UNITY_2021_1_OR_NEWER
             ContiguousBundles = true;
-#endif
         }
 
         /// <inheritdoc />
