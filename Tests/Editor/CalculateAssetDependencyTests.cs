@@ -526,6 +526,9 @@ namespace UnityEditor.Build.Pipeline.Tests
         /// <param name="spriteMode">spriteMode</param>
         [TestCaseSource("SpriteUtilityTestCases")]
         [Test]
+#if UNITY_6000_6_OR_NEWER
+        [Ignore("SpriteAtlas dependencies to their sprites have been removed.")]
+#endif
         public void WhenSpriteWithAtlasUpdated_SpriteInfoUpdated(SpritePackerMode spriteMode)
         {
             var spriteAtlas = AssetDatabase.LoadAssetAtPath<SpriteAtlas>(kSpriteAtlasAsset);
@@ -632,6 +635,9 @@ namespace UnityEditor.Build.Pipeline.Tests
         /// </summary>
         /// <param name="rm">RecursiveMode</param>
         [Test]
+#if UNITY_6000_6_OR_NEWER
+        [Ignore("SpriteAtlas dependencies to their sprites have been removed.")]
+#endif
         public void WhenExplicitSpriteAndAtlas_AtlasOnlyReferencesSprites([Values] RecursiveMode rm)
         {
             var sprite1 = AssetDatabase.LoadAssetAtPath<Sprite>(kSpriteTexture1Asset);
@@ -686,6 +692,9 @@ namespace UnityEditor.Build.Pipeline.Tests
         /// </summary>
         /// <param name="rm">RecursiveMode</param>
         [Test]
+#if UNITY_6000_6_OR_NEWER
+        [Ignore("SpriteAtlas dependencies to their sprites have been removed.")]
+#endif
         public void WhenExplicitSpritesAndImplicitAtlas_SpritesOnlyReferenceSprites([Values] RecursiveMode rm)
         {
             var sprite1 = AssetDatabase.LoadAssetAtPath<Sprite>(kSpriteTexture1Asset);

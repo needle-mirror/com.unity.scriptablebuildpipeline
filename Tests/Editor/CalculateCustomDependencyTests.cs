@@ -1,5 +1,6 @@
 using NUnit.Framework;
 using System.Collections.Generic;
+using System.IO;
 using System.Reflection;
 using UnityEditor.Build.Content;
 using UnityEditor.Build.Pipeline.Injector;
@@ -16,6 +17,19 @@ namespace UnityEditor.Build.Pipeline.Tests
     /// </summary>
     public class CalculateCustomDependencyTests
     {
+        private const string TestAssetPath = "temp/test_serialized_file.asset";
+
+        /// <summary>
+        /// Individual test teardown
+        /// </summary>
+        [TearDown]
+        public void TearDown()
+        {
+            if (File.Exists(TestAssetPath))
+            {
+                File.Delete(TestAssetPath);
+            }
+        }
         class TestBuildParameters : TestBuildParametersBase
         {
             // Optional Inputs
@@ -110,7 +124,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         [Test]
         public void CreateAssetEntryForObjectIdentifiers_ThrowsExceptionOnAssetGUIDCollision()
         {
-            var assetPath = "temp/test_serialized_file.asset";
+            var assetPath = TestAssetPath;
             UnityEditorInternal.InternalEditorUtility.SaveToSerializedFileAndForget(new[] { Texture2D.whiteTexture, Texture2D.redTexture }, assetPath, false);
 
             var address = "CustomAssetAddress";
@@ -142,7 +156,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         [Test]
         public void GetObjectIdentifiersAndTypesForSerializedFile_ReturnsAllObjectIdentifiersAndTypes()
         {
-            var assetPath = "temp/test_serialized_file.asset";
+            var assetPath = TestAssetPath;
             UnityEditorInternal.InternalEditorUtility.SaveToSerializedFileAndForget(new[] { Texture2D.whiteTexture, Texture2D.redTexture }, assetPath, false);
 
             var customContent = new List<CustomContent>
@@ -173,7 +187,7 @@ namespace UnityEditor.Build.Pipeline.Tests
         [Test]
         public void CreateAssetEntryForObjectIdentifiers_AddsNewBundleAndAssetDataForCustomAsset()
         {
-            var assetPath = "temp/test_serialized_file.asset";
+            var assetPath = TestAssetPath;
             var bundleName = "CustomAssetBundle";
             var address = "CustomAssetAddress";
             var assetGuid = HashingMethods.Calculate(address).ToGUID();
