@@ -121,10 +121,10 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
 
         /// <summary>
-        /// Verifies that two subsprites (A and F) from the same letter atlas share the same asset-derived prefix
-        /// in their serialization indices, as required for contiguous bundle packing.
+        /// Verifies that the first and last letter subsprites (A and F) of the same atlas share the
+        /// asset-only prefix of their serialization indices, for every supported header size.
         /// </summary>
-        /// <param name="headerSize">The prefab packed header size to test (1-4 bytes).</param>
+        /// <param name="headerSize">Prefab Packed header size (in bytes) that determines how many upper bits of the serialization index are asset-derived.</param>
         [TestCase(1)]
         [TestCase(2)]
         [TestCase(3)]
@@ -151,10 +151,10 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
 
         /// <summary>
-        /// Verifies that two subsprites (0 and 9) from the same digit atlas share the same asset-derived prefix
-        /// in their serialization indices, as required for contiguous bundle packing.
+        /// Verifies that the first and last digit subsprites (0 and 9) of the same atlas share the
+        /// asset-only prefix of their serialization indices, for every supported header size.
         /// </summary>
-        /// <param name="headerSize">The prefab packed header size to test (1-4 bytes).</param>
+        /// <param name="headerSize">Prefab Packed header size (in bytes) that determines how many upper bits of the serialization index are asset-derived.</param>
         [TestCase(1)]
         [TestCase(2)]
         [TestCase(3)]
@@ -180,11 +180,11 @@ namespace UnityEditor.Build.Pipeline.Tests
             }
         }
 
-        /// <summary>
-        /// Verifies that all letter subsprites (A through F) from the same atlas share one common asset-derived prefix,
-        /// ensuring objects from the same source asset can be packed contiguously in bundles.
-        /// </summary>
         // Previously: SerializationIndexFromObjectIdentifier_AllLetterSubsprites_ShareOneUpperUInt32
+        /// <summary>
+        /// Verifies that every letter subsprite (A–F) of the letter atlas maps to the same asset-only
+        /// prefix, so a contiguous bundle keeps the whole source asset together.
+        /// </summary>
         [Test]
         public void SerializationIndexFromObjectIdentifier_AllLetterSubsprites_ShareOneAssetPrefix()
         {
@@ -213,11 +213,11 @@ namespace UnityEditor.Build.Pipeline.Tests
             }
         }
 
-        /// <summary>
-        /// Verifies that all digit subsprites (0 through 9) from the same atlas share one common asset-derived prefix,
-        /// ensuring objects from the same source asset can be packed contiguously in bundles.
-        /// </summary>
         // Previously: SerializationIndexFromObjectIdentifier_AllDigitSubsprites_ShareOneUpperUInt32
+        /// <summary>
+        /// Verifies that every digit subsprite (0–9) of the digit atlas maps to the same asset-only
+        /// prefix, so a contiguous bundle keeps the whole source asset together.
+        /// </summary>
         [Test]
         public void SerializationIndexFromObjectIdentifier_AllDigitSubsprites_ShareOneAssetPrefix()
         {
@@ -246,11 +246,11 @@ namespace UnityEditor.Build.Pipeline.Tests
             }
         }
 
-        /// <summary>
-        /// Verifies that subsprites from different atlases (letter vs digit) have different asset-derived prefixes,
-        /// ensuring objects from different source assets are distinguishable in their serialization indices.
-        /// </summary>
         // Previously: SerializationIndexFromObjectIdentifier_LetterAtlasAndDigitAtlas_DifferInUpperUInt32
+        /// <summary>
+        /// Verifies that subsprites from two different atlases land on different asset-only prefixes and
+        /// do not collide on the full serialization index.
+        /// </summary>
         [Test]
         public void SerializationIndexFromObjectIdentifier_LetterAtlasAndDigitAtlas_DifferInAssetPrefix()
         {
@@ -275,10 +275,10 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
 
         /// <summary>
-        /// Verifies that letter atlas subsprites share the same asset-derived prefix even when a non-zero
-        /// file ID hash seed is configured, ensuring consistent behavior across different hash seed configurations.
+        /// Verifies that subsprites of the letter atlas still share the asset-only prefix when a non-zero
+        /// <c>fileIDHashSeed</c> is configured.
         /// </summary>
-        /// <param name="headerSize">The prefab packed header size to test (1-4 bytes).</param>
+        /// <param name="headerSize">Prefab Packed header size (in bytes) that determines how many upper bits of the serialization index are asset-derived.</param>
         [TestCase(1)]
         [TestCase(2)]
         [TestCase(3)]
@@ -306,8 +306,8 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
 
         /// <summary>
-        /// Verifies that letter and digit atlases have different asset-derived prefixes when a non-zero
-        /// file ID hash seed is configured, ensuring distinct assets remain distinguishable.
+        /// Verifies that the letter and digit atlases keep distinct asset-only prefixes when a non-zero
+        /// <c>fileIDHashSeed</c> is configured.
         /// </summary>
         [Test]
         public void SerializationIndexFromObjectIdentifier_NonZeroFileIdHashSeed_LetterAndDigitAtlases_DifferInAssetPrefix()
@@ -333,8 +333,9 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
 
         /// <summary>
-        /// Tests serialization index behavior for objects located in VirtualArtifacts/Extra paths,
-        /// verifying that virtual artifacts follow the same asset prefix rules as regular assets.
+        /// Same asset-prefix expectations, but for object identifiers whose file path points at a
+        /// non-primary artifact under <c>VirtualArtifacts/Extra/</c> rather than at an asset in the project.
+        /// Those paths are produced on demand by <see cref="VirtualArtifactSerializationIndexTestImporter"/>.
         /// </summary>
         [TestFixture]
         public sealed class VirtualArtifactsExtraSerializationIndex
@@ -354,7 +355,8 @@ namespace UnityEditor.Build.Pipeline.Tests
                 Path.GetFullPath(Path.Combine(Application.dataPath, "..", "Packages", "com.unity.scriptablebuildpipeline", "Tests", "Editor", "Fixtures"));
 
             /// <summary>
-            /// Produces VirtualArtifacts/Extra paths for testing by deploying staging fixtures and forcing artifact production.
+            /// Deploys the staging fixtures and forces production of their scripted-importer artifacts, caching
+            /// the two distinct <c>VirtualArtifacts/Extra/</c> paths the tests in this fixture run against.
             /// </summary>
             [OneTimeSetUp]
             public static void ProduceExtraArtifactPaths()
@@ -367,7 +369,7 @@ namespace UnityEditor.Build.Pipeline.Tests
             }
 
             /// <summary>
-            /// Removes staging fixtures created during test setup to clean up the asset database.
+            /// Deletes the staging fixture assets copied into the package by <see cref="ProduceExtraArtifactPaths"/>.
             /// </summary>
             [OneTimeTearDown]
             public static void RemoveStagingFixtures()
@@ -443,10 +445,10 @@ namespace UnityEditor.Build.Pipeline.Tests
             }
 
             /// <summary>
-            /// Verifies that objects with different local IDs from the same VirtualArtifacts/Extra file
-            /// share the same asset-derived prefix in their serialization indices.
+            /// Verifies that two objects with different local ids inside the same <c>VirtualArtifacts/Extra/</c>
+            /// file share the asset-only prefix of their serialization indices.
             /// </summary>
-            /// <param name="fileIdHashSeed">The file ID hash seed to use (0 or non-zero).</param>
+            /// <param name="fileIdHashSeed">Value assigned to <c>ScriptableBuildPipeline.fileIDHashSeed</c> for the duration of the test.</param>
             [TestCase(0)]
             [TestCase(42)]
             public void SerializationIndexFromObjectIdentifier_VirtualArtifactsExtra_SameFileDifferentLocalIds_ShareAssetPrefix(int fileIdHashSeed)
@@ -472,10 +474,10 @@ namespace UnityEditor.Build.Pipeline.Tests
             }
 
             /// <summary>
-            /// Verifies that objects from different VirtualArtifacts/Extra files have different asset-derived prefixes,
-            /// ensuring distinct virtual artifacts are distinguishable.
+            /// Verifies that objects living in two different <c>VirtualArtifacts/Extra/</c> files land on
+            /// different asset-only prefixes.
             /// </summary>
-            /// <param name="fileIdHashSeed">The file ID hash seed to use (0 or non-zero).</param>
+            /// <param name="fileIdHashSeed">Value assigned to <c>ScriptableBuildPipeline.fileIDHashSeed</c> for the duration of the test.</param>
             [TestCase(0)]
             [TestCase(42)]
             public void SerializationIndexFromObjectIdentifier_VirtualArtifactsExtra_DifferentFiles_DifferInAssetPrefix(int fileIdHashSeed)

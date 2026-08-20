@@ -20,9 +20,11 @@ namespace UnityEditor.Build.Pipeline.Tests
             null);
 
         /// <summary>
-        /// Imports the asset and produces a non-primary artifact in VirtualArtifacts/Extra for testing serialization index behavior.
+        /// Writes the imported file out as a single extra artifact file so the asset resolves to a path under
+        /// <c>VirtualArtifacts/Extra/</c>, using <c>SetOutputArtifactFile</c> when the running editor exposes it
+        /// and falling back to <see cref="AssetImportContext.GetOutputArtifactFilePath"/> otherwise.
         /// </summary>
-        /// <param name="ctx">The asset import context provided by Unity's import pipeline.</param>
+        /// <param name="ctx">Import context supplied by the asset pipeline for the asset being imported.</param>
         public override void OnImportAsset(AssetImportContext ctx)
         {
             if (s_SetOutputArtifactFile != null)
