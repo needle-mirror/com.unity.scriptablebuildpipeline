@@ -113,8 +113,8 @@ public class ArchiveAndCompressTestFixture
     internal string[] RunWebExtract(string filePath)
     {
         var baseDir = Path.GetDirectoryName(EditorApplication.applicationPath);
-        var webExtractFiles = Directory.GetFiles(baseDir, "WebExtract*", SearchOption.AllDirectories);
-        string webExtractPath = webExtractFiles[0];
+        string webExtractPath = FindWebExtractExecutable(baseDir);
+        Assert.IsNotNull(webExtractPath, $"No WebExtract executable found under '{baseDir}'.");
 
         Assert.IsTrue(File.Exists(filePath), "Param filePath does not point to an existing file.");
 
@@ -139,6 +139,30 @@ public class ArchiveAndCompressTestFixture
         Assert.AreEqual(0, exitCode);
         //UnityEngine.Debug.Log(output);
         return Directory.GetFiles(filePath + "_data");
+    }
+
+    // The editor layout ships debug companions next to the tool (WebExtract_s.debug on Linux,
+    // WebExtract.pdb on Windows, WebExtract.dSYM/.../DWARF/WebExtract on macOS) and
+    // Directory.GetFiles returns them in filesystem order, so picking element [0] launches the
+    // debug-info file about as often as the executable ("Exec format error"). Match the platform's
+    // executable extension, skip dSYM bundles, and sort for a stable pick.
+    static string FindWebExtractExecutable(string baseDir)
+    {
+        var executableExtension = Application.platform == RuntimePlatform.WindowsEditor ? ".exe" : string.Empty;
+        var candidates = new List<string>();
+
+        foreach (var candidate in Directory.GetFiles(baseDir, "WebExtract*", SearchOption.AllDirectories))
+        {
+            if (!string.Equals(Path.GetExtension(candidate), executableExtension, StringComparison.OrdinalIgnoreCase))
+                continue;
+            if (candidate.IndexOf(".dSYM", StringComparison.OrdinalIgnoreCase) >= 0)
+                continue;
+
+            candidates.Add(candidate);
+        }
+
+        candidates.Sort(StringComparer.Ordinal);
+        return candidates.Count > 0 ? candidates[0] : null;
     }
 
     internal ArchiveAndCompressBundles.TaskInput GetDefaultInput()
