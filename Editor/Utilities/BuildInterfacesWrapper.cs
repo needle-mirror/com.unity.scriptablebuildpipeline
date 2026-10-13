@@ -83,10 +83,12 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
         internal void GatherCallbackVersions()
         {
-            var versionedType = typeof(VersionedCallbackAttribute);
-            var typeCollection = TypeCache.GetTypesWithAttribute(versionedType);
             List<Hash128> sceneInputs = new List<Hash128>();
             List<Hash128> shaderInputs = new List<Hash128>();
+
+#pragma warning disable CS0618 // Type or member is obsolete
+            var versionedType = typeof(VersionedCallbackAttribute);
+            var typeCollection = TypeCache.GetTypesWithAttribute(versionedType);
             foreach (var type in typeCollection)
             {
                 var attribute = (VersionedCallbackAttribute)Attribute.GetCustomAttribute(type, versionedType);
@@ -94,13 +96,30 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 {
                     shaderInputs.Add(HashingMethods.Calculate(type.AssemblyQualifiedName, attribute.version).ToHash128());
                 }
-#pragma warning disable CS0618 // Type or member is obsolete
                 else if (typeof(IProcessScene).IsAssignableFrom(type) || typeof(IProcessSceneWithReport).IsAssignableFrom(type))
-#pragma warning restore CS0618 // Type or member is obsolete
                 {
                     sceneInputs.Add(HashingMethods.Calculate(type.AssemblyQualifiedName, attribute.version).ToHash128());
                 }
             }
+#pragma warning restore CS0618 // Type or member is obsolete
+            var buildVersionedType = typeof(BuildCallbackVersionAttribute);
+            var buildTypeCollection = TypeCache.GetTypesWithAttribute(buildVersionedType);
+            foreach (var type in buildTypeCollection)
+            {
+                var attribute = (BuildCallbackVersionAttribute)Attribute.GetCustomAttribute(type, buildVersionedType);
+                if (typeof(IPreprocessShaders).IsAssignableFrom(type) || typeof(IPreprocessComputeShaders).IsAssignableFrom(type))
+                {
+                    shaderInputs.Add(HashingMethods.Calculate(type.AssemblyQualifiedName, attribute.Version).ToHash128());
+                }
+#pragma warning disable CS0618 // Type or member is obsolete
+                else if (typeof(IProcessScene).IsAssignableFrom(type) || typeof(IProcessSceneWithReport).IsAssignableFrom(type))
+#pragma warning restore CS0618 // Type or member is obsolete
+                {
+                    sceneInputs.Add(HashingMethods.Calculate(type.AssemblyQualifiedName, attribute.Version).ToHash128());
+                }
+            }
+
+            GatherAssetPostprocessorSceneVersions(sceneInputs);
 
             SceneCallbackVersionHash = new Hash128();
             if (sceneInputs.Count > 0)
@@ -115,6 +134,17 @@ namespace UnityEditor.Build.Pipeline.Utilities
                 shaderInputs.Sort();
                 ShaderCallbackVersionHash = HashingMethods.Calculate(shaderInputs).ToHash128();
             }
+        }
+
+        static void GatherAssetPostprocessorSceneVersions(List<Hash128> sceneInputs)
+        {
+            var internalType = typeof(AssetPostprocessor).Assembly.GetType("UnityEditor.AssetPostprocessingInternal");
+            var method = internalType?.GetMethod("GetSinglePassBuildSceneProcessorsHashString", BindingFlags.NonPublic | BindingFlags.Static);
+            if (method == null)
+                return;
+
+            var hashString = (string)method.Invoke(null, null);
+            sceneInputs.Add(Hash128.Compute(hashString));
         }
 
         /// <summary>
