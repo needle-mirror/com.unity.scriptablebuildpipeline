@@ -14,7 +14,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
     /// <see cref="IBuildLogger"/>
     /// </summary>
     [Serializable]
-    public class BuildLog : IBuildLogger, ILogTEP, IDeferredBuildLogger
+    public class BuildLog : IBuildLogger, ILogTEP, ILogBuildSteps, IDeferredBuildLogger
     {
         internal interface ILogStepChild { }
 
@@ -61,6 +61,9 @@ namespace UnityEditor.Build.Pipeline.Utilities
             public bool HasMemory { get; set; }
 
             internal bool isThreaded;
+
+            // One of the pipeline's IBuildTasks, which BuildTasksRunner opens a scope for by type name.
+            internal bool isBuildTask;
 
             List<KeyValuePair<string, string>> m_Args;
             public List<KeyValuePair<string, string>> Args { get { if (m_Args == null) m_Args = new List<KeyValuePair<string, string>>(); return m_Args; } }
@@ -141,6 +144,17 @@ namespace UnityEditor.Build.Pipeline.Utilities
         internal BuildLog(bool onThread)
         {
             Init(onThread);
+        }
+
+        // Called by BuildTasksRunner, the one place that knows a scope belongs to an IBuildTask.
+        internal static void MarkCurrentStepAsBuildTask(IBuildLogger logger)
+        {
+            if (!(logger is BuildLog buildLog))
+                return;
+
+            BuildLog log = buildLog.GetThreadSafeLog();
+            if (log.m_Stack.Count > 1)
+                log.m_Stack.Peek().isBuildTask = true;
         }
 
         private BuildLog GetThreadSafeLog()
@@ -325,7 +339,42 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
         static string CleanJSONText(string message)
         {
-            return message.Replace("\\", "\\\\");
+            return message.Replace("\\", "\\\\").Replace("\"", "\\\"");
+        }
+
+        // Explicit, the way IDeferredBuildLogger is implemented, because a public method cannot hand back an
+        // internal type.
+        BuildStepData[] ILogBuildSteps.GetBuildSteps()
+        {
+            var steps = new List<BuildStepData>();
+            // The root only exists to hold the build, the same way FormatForTraceEventProfiler leaves it out.
+            AppendChildSteps(Root, 0, steps);
+            return steps.ToArray();
+        }
+
+        static void AppendStep(LogStep step, int depth, List<BuildStepData> steps)
+        {
+            steps.Add(new BuildStepData
+            {
+                Name = step.Name, Depth = depth, DurationMs = step.DurationMS, IsBuildTask = step.isBuildTask
+            });
+
+            // A build task is as deep as this goes: inside one is where the per-object native events live.
+            if (!step.isBuildTask)
+                AppendChildSteps(step, depth + 1, steps);
+        }
+
+        static void AppendChildSteps(LogStep parent, int depth, List<BuildStepData> steps)
+        {
+            if (!parent.HasChildren)
+                return;
+
+            foreach (ILogStepChild child in parent.Children)
+            {
+                // An ExternalLog is another build's profile. That build reports its own steps.
+                if (child is LogStep step)
+                    AppendStep(step, depth, steps);
+            }
         }
 
         static IEnumerable<string> IterateTEPLines(bool includeSelf, BuildLog.LogStep node)

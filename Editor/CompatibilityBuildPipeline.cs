@@ -22,7 +22,6 @@ namespace UnityEditor.Build.Pipeline
         /// <remarks>
         /// Not all BuildAssetBundleOptions are supported in the Scriptable Build Pipeline.
         /// Supported options are: ForceRebuildAssetBundle, AppendHashToAssetBundleName, ChunkBasedCompression, UncompressedAssetBundle, and DisableWriteTypeTree.
-        /// In addition, existing BuildPipeline callbacks are not yet supported.
         /// </remarks>
         /// <param name="outputPath">Output path for the AssetBundles.</param>
         /// <param name="assetBundleOptions">AssetBundle building options.</param>
@@ -42,7 +41,6 @@ namespace UnityEditor.Build.Pipeline
         /// <remarks>
         /// Not all BuildAssetBundleOptions are supported in the Scriptable Build Pipeline.
         /// Supported options are: ForceRebuildAssetBundle, AppendHashToAssetBundleName, ChunkBasedCompression, UncompressedAssetBundle, and DisableWriteTypeTree.
-        /// In addition, existing BuildPipeline callbacks are not yet supported.
         /// </remarks>
         /// <param name="outputPath">Output path for the AssetBundles.</param>
         /// <param name="builds">AssetBundle building map.</param>

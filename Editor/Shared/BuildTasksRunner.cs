@@ -54,7 +54,10 @@ namespace UnityEditor.Build.Pipeline
                         injector.Inject(context, task);
                         ReturnCode result;
                         using (logger.ScopedStep(LogLevel.Info, task.GetType().Name))
+                        {
+                            BuildLog.MarkCurrentStepAsBuildTask(logger);
                             result = task.Run();
+                        }
                         if (result < ReturnCode.Success)
                             return result;
                         injector.Extract(context, task);
@@ -104,6 +107,8 @@ namespace UnityEditor.Build.Pipeline
             if (context.TryGetContextObject(out tracker))
                 tracker.TaskCount = pipeline.Count;
 
+            context.TryGetContextObject(out IBuildLogger logger);
+
             foreach (IBuildTask task in pipeline)
             {
                 try
@@ -118,7 +123,14 @@ namespace UnityEditor.Build.Pipeline
                     var injector = new ContextInjector();
                     injector.Inject(context, task);
                     profiler.Start(count, task.GetType().Name);
-                    var result = task.Run();
+                    ReturnCode result;
+                    // The same scope Run opens, so the build log reports tasks the same way under
+                    // either runner and the step tree stops descending at a task in both.
+                    using (logger.ScopedStep(LogLevel.Info, task.GetType().Name))
+                    {
+                        BuildLog.MarkCurrentStepAsBuildTask(logger);
+                        result = task.Run();
+                    }
                     profiler.Stop(count++);
 
                     if (result < ReturnCode.Success)

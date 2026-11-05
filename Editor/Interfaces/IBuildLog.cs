@@ -109,6 +109,47 @@ namespace UnityEditor.Build.Pipeline.Interfaces
         void ImportExternalTEP(string tepFilePath);
     }
 
+    /// <summary>
+    /// One step of a build.
+    /// </summary>
+    [Serializable]
+    internal struct BuildStepData
+    {
+        /// <summary>
+        /// The name the step was logged under.
+        /// </summary>
+        public string Name;
+
+        /// <summary>
+        /// How far the step is nested, counting the outermost steps of the build as 0.
+        /// </summary>
+        public int Depth;
+
+        /// <summary>
+        /// How long the step took, in milliseconds.
+        /// </summary>
+        public double DurationMs;
+
+        /// <summary>
+        /// Whether the step is a build task, which is where the steps stop. Such a step has no children here
+        /// even when the build logged some.
+        /// </summary>
+        public bool IsBuildTask;
+    }
+
+    /// <summary>
+    /// Interface for loggers that can report the shape of a build as data, rather than as a profile to read
+    /// in Perfetto.
+    /// </summary>
+    internal interface ILogBuildSteps
+    {
+        /// <summary>
+        /// The steps of the build, flattened depth first, each carrying how far it is nested.
+        /// </summary>
+        /// <remarks>Stops at each build task, and leaves out steps imported from another build's profile.</remarks>
+        /// <returns>The steps, outermost first, in the order they ran. Empty when nothing was logged.</returns>
+        BuildStepData[] GetBuildSteps();
+    }
 
     /// <summary>
     /// Helper class to define a scope with a using statement

@@ -1,9 +1,21 @@
-# Unity Scriptable Build Pipeline
+# Scriptable Build Pipeline package
 
-The Scriptable Build Pipeline (SBP) package allows you to control how Unity builds content. The package moves the previously C++-only build pipeline code to a public C# package with a pre-defined build flow for building AssetBundles. The pre-defined AssetBundle build flow reduces build time, improves incremental build processing, and provides greater flexibility than before.
+The Scriptable Build Pipeline (SBP) is a low-level package used by the Addressables package to build AssetBundles. The SBP package runs a pre-defined build flow for AssetBundles, which reduces build time, improves incremental build processing, and uses C# instead of C++ to support orchestration, caching, and asset dependency calculation.
 
-The [Addressables](https://docs.unity3d.com/Packages/com.unity.addressables@latest) package uses the Scriptable Build Pipeline to build AssetBundles.  For new projects it is recommended to use Addressables for your builds, rather than directly building AssetBundles using the Scriptable Build Pipeline.
+SBP can work as a standalone package to build AssetBundles and is useful if you want to customize your build process with build preferences or to manage the build cache. However, you don’t need to use the SBP package directly to build AssetBundles. Instead, it's recommended to use the Addressables package to create content builds with [AssetBundles](xref:um-asset-bundles-intro) or [content directories](xref:um-content-directories-introduction) (requires Unity 6.6 or later).
 
-If your project currently uses [BuildPipeline.BuildAssetBundle](https://docs.unity3d.com/ScriptReference/BuildPipeline.BuildAssetBundles.html) to build AssetBundles then you can update your build scripts to use the Scriptable Build Pipeline instead.  See the [Upgrade Guide](UpgradeGuide.md) for more details.
+| Topic | Description |
+| :---- | :---- |
+| [Install Scriptable Build Pipeline](install-and-upgrade.md) | Install the Scriptable Build Pipeline package for your project. |
+| [Get started with Scriptable Build Pipeline](GettingStarted.md) | Learn about how to use the Scriptable Build Pipeline package. |
+| [Convert existing AssetBundle code](UpgradeGuide.md) | Understand which Build Pipeline features are compatible with the Scriptable Build Pipeline. |
+| [Build AssetBundles](build-assetbundles.md) | Build AssetBundles with the Scriptable Build Pipeline. |
+| [Load files by name](load-files-by-name.md) | Load files with their names instead of their paths. |
+| [Analyze build logs](BuildLogger.md) | Examine AssetBundles build performance data. |
+| [Scriptable Build Pipeline Preferences window reference](scriptable-build-pipeline-preferences.md) | Reference for the Scriptable Build Pipeline Preferences window. |
 
-The Scriptable Build Pipeline also makes it possible to customize the build process with your own build flows, derived classes and other code that you write to run during the build itself.  However, this type of customization is intended for advanced use cases and it can present challenges when upgrading to newer versions of the Scriptable Build Pipeline.  For example, changes to the underlying package and DefaultBuildTasks may not be compatible with your customizations.  So when possible, it can be more practical to write your custom build script to perform actions before and after the AssetBundle build, rather than seeking to inject a lot of custom code directly into the build itself.
+## Additional resources
+
+* [Addressables package](https://docs.unity3d.com/Packages/com.unity.addressables@latest)
+* [Building and publishing](xref:um-building-and-publishing)
+* [Choose a content build system](https://docs.unity3d.com/Packages/com.unity.addressables@latest?subfolder=/manual/content-build-systems.html)

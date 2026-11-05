@@ -139,6 +139,24 @@ namespace UnityEditor.Build.Pipeline.Tests
         }
 
         /// <summary>
+        /// WhenConvertingToTraceEventFormat_QuotesAreEscaped
+        /// </summary>
+        [Test]
+        public void WhenConvertingToTraceEventFormat_QuotesAreEscaped()
+        {
+            BuildLog log = new BuildLog();
+            using (log.ScopedStep(LogLevel.Info, "TestStep \"Quoted\""))
+            {
+                log.AddEntry(LogLevel.Warning, "reset group name: \"EmptyGroup2\" to \"EmptyGroup1\"");
+                log.AddArg("Key \"A\"", "Value \"B\"");
+            }
+            string text = log.FormatForTraceEventProfiler();
+            StringAssert.Contains("\"name\": \"TestStep \\\"Quoted\\\"\"", text);
+            StringAssert.Contains("\"Warning: reset group name: \\\"EmptyGroup2\\\" to \\\"EmptyGroup1\\\"\"", text);
+            StringAssert.Contains("\"Key \\\"A\\\"\":\"Value \\\"B\\\"\"", text);
+        }
+
+        /// <summary>
         /// WhenConvertingToTraceEventFormat_MetaDataIsAdded
         /// </summary>
         [Test]
@@ -423,6 +441,157 @@ namespace UnityEditor.Build.Pipeline.Tests
             string text = log.FormatForTraceEventProfiler();
             StringAssert.Contains("\"ParentKey\":\"ParentValue\"", text);
             StringAssert.Contains("\"ChildKey\":\"ChildValue\"", text);
+        }
+
+        // The interface is internal, so a BuildLog does not carry the method in its own surface.
+        static BuildStepData[] StepsOf(BuildLog log) => ((ILogBuildSteps)log).GetBuildSteps();
+
+        static string Describe(BuildStepData[] steps)
+        {
+            var text = new System.Text.StringBuilder();
+            foreach (BuildStepData step in steps)
+                text.Append(new string(' ', step.Depth * 2)).Append(step.Name).Append('\n');
+            return text.ToString();
+        }
+
+        /// <summary>
+        /// WhenGetBuildSteps_NestingBecomesDepth
+        /// </summary>
+        [Test]
+        public void WhenGetBuildSteps_NestingBecomesDepth()
+        {
+            BuildLog log = new BuildLog();
+            using (log.ScopedStep(LogLevel.Info, "Outer"))
+            {
+                using (log.ScopedStep(LogLevel.Info, "Inner"))
+                    using (log.ScopedStep(LogLevel.Info, "Innermost")) { }
+                using (log.ScopedStep(LogLevel.Info, "Sibling")) { }
+            }
+            using (log.ScopedStep(LogLevel.Info, "Second")) { }
+
+            // Depth first, and the root the steps hang off is not one of them.
+            Assert.AreEqual("Outer\n  Inner\n    Innermost\n  Sibling\nSecond\n", Describe(StepsOf(log)));
+        }
+
+        /// <summary>
+        /// WhenGetBuildSteps_WithNothingLogged_IsEmpty
+        /// </summary>
+        [Test]
+        public void WhenGetBuildSteps_WithNothingLogged_IsEmpty()
+        {
+            Assert.IsEmpty(StepsOf(new BuildLog()));
+        }
+
+        /// <summary>
+        /// WhenGetBuildSteps_StopAtABuildTask
+        /// </summary>
+        [Test]
+        public void WhenGetBuildSteps_StopAtABuildTask()
+        {
+            BuildLog log = new BuildLog();
+            using (log.ScopedStep(LogLevel.Info, "Run tasks"))
+            {
+                using (log.ScopedStep(LogLevel.Info, "WriteSerializedFiles"))
+                {
+                    BuildLog.MarkCurrentStepAsBuildTask(log);
+                    using (log.ScopedStep(LogLevel.Info, "RunCachedOperation"))
+                        using (log.ScopedStep(LogLevel.Info, "Write Object")) { }
+                }
+                using (log.ScopedStep(LogLevel.Info, "Not a task"))
+                    using (log.ScopedStep(LogLevel.Info, "Inside it")) { }
+            }
+
+            // A task is as deep as this goes, and only a task: anything else is walked through as before.
+            Assert.AreEqual("Run tasks\n  WriteSerializedFiles\n  Not a task\n    Inside it\n",
+                Describe(StepsOf(log)));
+        }
+
+        /// <summary>
+        /// WhenGetBuildSteps_OnlyABuildTaskIsMarkedOne
+        /// </summary>
+        [Test]
+        public void WhenGetBuildSteps_OnlyABuildTaskIsMarkedOne()
+        {
+            BuildLog log = new BuildLog();
+            using (log.ScopedStep(LogLevel.Info, "Run tasks"))
+            {
+                using (log.ScopedStep(LogLevel.Info, "WriteSerializedFiles"))
+                {
+                    BuildLog.MarkCurrentStepAsBuildTask(log);
+                    using (log.ScopedStep(LogLevel.Info, "Write Object")) { }
+                }
+                using (log.ScopedStep(LogLevel.Info, "Childless")) { }
+            }
+
+            BuildStepData[] steps = StepsOf(log);
+
+            // Both are leaves, so the flag is the only thing telling a capped step from a childless one.
+            var marked = new List<string>();
+            foreach (BuildStepData step in steps)
+            {
+                if (step.IsBuildTask)
+                    marked.Add(step.Name);
+            }
+
+            CollectionAssert.AreEqual(new[] { "WriteSerializedFiles" }, marked);
+        }
+
+        class NestingTask : IBuildTask
+        {
+            internal IBuildLogger Log;
+            public int Version => 1;
+
+            public ReturnCode Run()
+            {
+                using (Log.ScopedStep(LogLevel.Info, "Inside the task")) { }
+                return ReturnCode.Success;
+            }
+        }
+
+        // ContentPipeline picks RunProfiled over Run under SBP_PROFILER_ENABLE, so both have to mark
+        // their task scopes or the cap silently does nothing in a profiled build.
+        /// <summary>
+        /// WhenGetBuildSteps_EitherRunnerStopsAtABuildTask
+        /// </summary>
+        /// <param name="profiled">Whether to use RunProfiled.</param>
+        [TestCase(false, TestName = "Run")]
+        [TestCase(true, TestName = "RunProfiled")]
+        public void WhenGetBuildSteps_EitherRunnerStopsAtABuildTask(bool profiled)
+        {
+            BuildLog log = new BuildLog();
+            var pipeline = new IBuildTask[] { new NestingTask { Log = log } };
+            var context = new BuildContext(log);
+
+            using (log.ScopedStep(LogLevel.Info, "Run tasks"))
+            {
+                ReturnCode code = profiled
+                    ? BuildTasksRunner.RunProfiled(pipeline, context)
+                    : BuildTasksRunner.Run(pipeline, context);
+                Assert.AreEqual(ReturnCode.Success, code);
+            }
+
+            Assert.AreEqual("Run tasks\n  NestingTask\n", Describe(StepsOf(log)));
+        }
+
+        /// <summary>
+        /// WhenGetBuildSteps_ImportedStepsAreLeftOut
+        /// </summary>
+        [Test]
+        public void WhenGetBuildSteps_ImportedStepsAreLeftOut()
+        {
+            string tempPath = Path.GetTempFileName();
+            try
+            {
+                File.WriteAllText(tempPath, k_MinimalTEP);
+                BuildLog log = new BuildLog();
+                using (log.ScopedStep(LogLevel.Info, "StepA"))
+                    log.ImportExternalTEP(tempPath);
+
+                // The imported build reports its own steps, and shows up in the profile either way.
+                Assert.AreEqual("StepA\n", Describe(StepsOf(log)));
+                StringAssert.Contains("ExternalEvent", log.FormatForTraceEventProfiler());
+            }
+            finally { File.Delete(tempPath); }
         }
     }
 }
