@@ -13,7 +13,10 @@ namespace UnityEditor.Build.Pipeline.Utilities
     struct ObjectTypes
     {
         public ObjectIdentifier ObjectID;
+        // Only stored by the build cache's USerialize, which handles Type[] itself; Unity serialization never sees this struct.
+#pragma warning disable UAC1001
         public Type[] Types;
+#pragma warning restore UAC1001
 
         public ObjectTypes(ObjectIdentifier objectID, Type[] types)
         {

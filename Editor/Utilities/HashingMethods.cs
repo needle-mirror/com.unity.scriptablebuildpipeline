@@ -299,7 +299,7 @@ namespace UnityEditor.Build.Pipeline.Utilities
 
         internal static HashAlgorithm GetHashAlgorithm()
         {
-            return ScriptableBuildPipeline.useV2Hasher ? (HashAlgorithm)SpookyHash.Create() : new MD5CryptoServiceProvider();
+            return ScriptableBuildPipeline.useV2Hasher ? (HashAlgorithm)SpookyHash.Create() : MD5.Create();
         }
 
         internal static HashAlgorithm GetHashAlgorithm(Type type)
@@ -315,8 +315,14 @@ namespace UnityEditor.Build.Pipeline.Utilities
             if (type == typeof(SpookyHash))
                 return SpookyHash.Create();
 
+            if (type == typeof(MD5))
+                return MD5.Create();
+
             // TODO: allow user created HashAlgorithms?
+            // Calculate<T> is public, so other algorithm types still resolve by name as before.
+#pragma warning disable SYSLIB0045 // HashAlgorithm.Create(string) is obsolete in .NET 7+.
             var alggorithm = HashAlgorithm.Create(type.FullName);
+#pragma warning restore SYSLIB0045
             if (alggorithm == null)
                 throw new NotImplementedException("Unable to create hash algorithm: '" + type.FullName + "'.");
             return alggorithm;

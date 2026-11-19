@@ -1,7 +1,7 @@
 {
   "name": "com.unity.scriptablebuildpipeline",
   "displayName": "Scriptable Build Pipeline",
-  "version": "4.0.3",
+  "version": "4.0.4",
   "unity": "6000.0",
   "description": "The Scriptable Build Pipeline moves the asset bundle build pipeline to C#.  Use the pre-defined build flows, or create your own using the divided up APIs.  This system improves build time, fixes incremental build, and provides greater flexibility.",
   "keywords": [
@@ -17,15 +17,15 @@
     "com.unity.modules.assetbundle": "1.0.0"
   },
   "_upm": {
-    "changelog": "- Fixed the build report becoming unparseable when a logged message contains a double quote."
+    "changelog": "- Internal changes for .NET compatibility."
   },
   "upmCi": {
-    "footprint": "87a38dc26f7d44a3abb49d269321fb54e3994b73"
+    "footprint": "5a677483dcb1472da1f17bcdf73791045c18c432"
   },
   "documentationUrl": "https://docs.unity3d.com/Packages/com.unity.scriptablebuildpipeline@4.0/manual/index.html",
   "repository": {
     "url": "https://github.cds.internal.unity3d.com/unity/Addressables.git",
     "type": "git",
-    "revision": "9973ced6402fd1613e85f832857cc2fdbc05ccb8"
+    "revision": "8b4de1cb69008b0d9e89bd43c9c241522e422a7d"
   }
 }
